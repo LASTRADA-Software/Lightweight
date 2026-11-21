@@ -124,13 +124,18 @@ Public Types</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:a22d1ea27f5cdfb44245311d231fb17bc" id="r_a22d1ea27f5cdfb44245311d231fb17bc"><td class="memTemplParams" colspan="2">template&lt;typename... S&gt; <br />
-requires std::constructible_from&lt;<a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html#ac108395e0094203583b03b195284d6b2">ValueType</a>, S...&gt;</td></tr>
-<tr class="memitem:a22d1ea27f5cdfb44245311d231fb17bc"><td class="memTemplItemLeft" align="right" valign="top">constexpr&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html#a22d1ea27f5cdfb44245311d231fb17bc">BelongsTo</a> (S &amp;&amp;... value) noexcept</td></tr>
-<tr class="memdesc:a22d1ea27f5cdfb44245311d231fb17bc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructs a new <a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html" title="Represents the many-to-one side of a foreign-key relationship.">BelongsTo</a> with the given value(s) forwarded to the underlying value type.  <br /></td></tr>
-<tr class="separator:a22d1ea27f5cdfb44245311d231fb17bc"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afe5b8e02dce0924c31b7e4d4b5a8be9b" id="r_afe5b8e02dce0924c31b7e4d4b5a8be9b"><td class="memItemLeft" align="right" valign="top"><a id="afe5b8e02dce0924c31b7e4d4b5a8be9b" name="afe5b8e02dce0924c31b7e4d4b5a8be9b"></a>
+constexpr&#160;</td><td class="memItemRight" valign="bottom"><b>BelongsTo</b> () noexcept=default</td></tr>
+<tr class="memdesc:afe5b8e02dce0924c31b7e4d4b5a8be9b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Default constructor. Not available for a required relationship, see <a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html#a3dde000656617d189fd83a2118a30d24">IsRequired</a>. <br /></td></tr>
+<tr class="separator:afe5b8e02dce0924c31b7e4d4b5a8be9b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aefe7fb31c665fef074a9306e65ee5776" id="r_aefe7fb31c665fef074a9306e65ee5776"><td class="memTemplParams" colspan="2">template&lt;typename... S&gt; <br />
+requires (sizeof...(S) != 0) &amp;&amp; std::constructible_from&lt;<a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html#ac108395e0094203583b03b195284d6b2">ValueType</a>, S...&gt;</td></tr>
+<tr class="memitem:aefe7fb31c665fef074a9306e65ee5776"><td class="memTemplItemLeft" align="right" valign="top">constexpr&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html#aefe7fb31c665fef074a9306e65ee5776">BelongsTo</a> (S &amp;&amp;... value) noexcept</td></tr>
+<tr class="separator:aefe7fb31c665fef074a9306e65ee5776"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4af047d9c50ac0a56ba5133210225a68" id="r_a4af047d9c50ac0a56ba5133210225a68"><td class="memItemLeft" align="right" valign="top">constexpr&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html#a4af047d9c50ac0a56ba5133210225a68">BelongsTo</a> (detail::UninitializedTag) noexcept</td></tr>
+<tr class="memdesc:a4af047d9c50ac0a56ba5133210225a68"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructs a <a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html" title="Represents the many-to-one side of a foreign-key relationship.">BelongsTo</a> whose foreign key is about to be overwritten, e.g. by reading a result row.  <br /></td></tr>
+<tr class="separator:a4af047d9c50ac0a56ba5133210225a68"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad91ca65a07c80cf3aca3915a25723bae" id="r_ad91ca65a07c80cf3aca3915a25723bae"><td class="memItemLeft" align="right" valign="top">constexpr&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html#ad91ca65a07c80cf3aca3915a25723bae">BelongsTo</a> (<a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html#ae3deecf75fdd98c06884f76ce07f077b">ReferencedRecord</a> const &amp;other) noexcept</td></tr>
-<tr class="memdesc:ad91ca65a07c80cf3aca3915a25723bae"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructs a new <a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html" title="Represents the many-to-one side of a foreign-key relationship.">BelongsTo</a> from the given referenced record, copying its primary key.  <br /></td></tr>
 <tr class="separator:ad91ca65a07c80cf3aca3915a25723bae"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa9bd867d69ca5c88684ab0e3b4439527" id="r_aa9bd867d69ca5c88684ab0e3b4439527"><td class="memItemLeft" align="right" valign="top">constexpr&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html#aa9bd867d69ca5c88684ab0e3b4439527">BelongsTo</a> (<a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html">BelongsTo</a> const &amp;other) noexcept</td></tr>
 <tr class="memdesc:aa9bd867d69ca5c88684ab0e3b4439527"><td class="mdescLeft">&#160;</td><td class="mdescRight">Copy constructor.  <br /></td></tr>
@@ -246,6 +251,8 @@ Static Public Attributes</h2></td></tr>
 <tr class="memitem:a0acf3c5ded9575b9ff14df67d61f36b6" id="r_a0acf3c5ded9575b9ff14df67d61f36b6"><td class="memItemLeft" align="right" valign="top">static constexpr auto&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html#a0acf3c5ded9575b9ff14df67d61f36b6">IsAutoIncrementPrimaryKey</a> = false</td></tr>
 <tr class="memdesc:a0acf3c5ded9575b9ff14df67d61f36b6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Indicates that a <a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html" title="Represents the many-to-one side of a foreign-key relationship.">BelongsTo</a> field is never an auto-increment primary key.  <br /></td></tr>
 <tr class="separator:a0acf3c5ded9575b9ff14df67d61f36b6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3dde000656617d189fd83a2118a30d24" id="r_a3dde000656617d189fd83a2118a30d24"><td class="memItemLeft" align="right" valign="top">static constexpr bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html#a3dde000656617d189fd83a2118a30d24">IsRequired</a> = <a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html#a494d69eaab98e062f64657adfe51938d">IsMandatory</a></td></tr>
+<tr class="separator:a3dde000656617d189fd83a2118a30d24"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><div class="compoundTemplParams">template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt, SqlNullable Nullable = SqlNullable::NotNull&gt;<br />
@@ -336,8 +343,8 @@ template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullop
 </div>
 </div>
 <h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
-<a id="a22d1ea27f5cdfb44245311d231fb17bc" name="a22d1ea27f5cdfb44245311d231fb17bc"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a22d1ea27f5cdfb44245311d231fb17bc">&#9670;&#160;</a></span>BelongsTo() <span class="overload">[1/4]</span></h2>
+<a id="aefe7fb31c665fef074a9306e65ee5776" name="aefe7fb31c665fef074a9306e65ee5776"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aefe7fb31c665fef074a9306e65ee5776">&#9670;&#160;</a></span>BelongsTo() <span class="overload">[1/5]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -345,7 +352,7 @@ template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullop
 template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt, SqlNullable Nullable = SqlNullable::NotNull&gt; </div>
 <div class="memtemplate">
 template&lt;typename... S&gt; <br />
-requires std::constructible_from&lt;<a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html#ac108395e0094203583b03b195284d6b2">ValueType</a>, S...&gt;</div>
+requires (sizeof...(S) != 0) &amp;&amp; std::constructible_from&lt;<a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html#ac108395e0094203583b03b195284d6b2">ValueType</a>, S...&gt;</div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -364,15 +371,47 @@ requires std::constructible_from&lt;<a class="el" href="../../d0/df7/classLightw
   </tr>
 </table>
 </div><div class="memdoc">
+<p>Constructs a new <a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html" title="Represents the many-to-one side of a foreign-key relationship.">BelongsTo</a> with the given value(s) forwarded to the underlying value type.</p>
+<p>Like a <a class="el" href="../../d2/dd0/structLightweight_1_1Field.html" title="Represents a single column in a table.">Field</a> constructed from a value, the relationship starts out modified, so that <a class="el" href="../../de/d61/classLightweight_1_1DataMapper.html#ac05404e9ac572f44c6a312db5a75e814">DataMapper::Update()</a> writes a foreign key given this way. </p>
 
-<p>Constructs a new <a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html" title="Represents the many-to-one side of a foreign-key relationship.">BelongsTo</a> with the given value(s) forwarded to the underlying value type. </p>
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00125">125</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
-<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00112">112</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+</div>
+</div>
+<a id="a4af047d9c50ac0a56ba5133210225a68" name="a4af047d9c50ac0a56ba5133210225a68"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a4af047d9c50ac0a56ba5133210225a68">&#9670;&#160;</a></span>BelongsTo() <span class="overload">[2/5]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt, SqlNullable Nullable = SqlNullable::NotNull&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">constexpr <a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html">Lightweight::BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt;::BelongsTo </td>
+          <td>(</td>
+          <td class="paramtype">detail::UninitializedTag&#160;</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">explicit</span><span class="mlabel">constexpr</span><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Constructs a <a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html" title="Represents the many-to-one side of a foreign-key relationship.">BelongsTo</a> whose foreign key is about to be overwritten, e.g. by reading a result row. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00132">132</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
 </div>
 </div>
 <a id="ad91ca65a07c80cf3aca3915a25723bae" name="ad91ca65a07c80cf3aca3915a25723bae"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ad91ca65a07c80cf3aca3915a25723bae">&#9670;&#160;</a></span>BelongsTo() <span class="overload">[2/4]</span></h2>
+<h2 class="memtitle"><span class="permalink"><a href="#ad91ca65a07c80cf3aca3915a25723bae">&#9670;&#160;</a></span>BelongsTo() <span class="overload">[3/5]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -396,17 +435,16 @@ template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullop
   </tr>
 </table>
 </div><div class="memdoc">
+<p>Constructs a new <a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html" title="Represents the many-to-one side of a foreign-key relationship.">BelongsTo</a> from the given referenced record, copying its primary key. The relationship starts out modified, see the value constructor. </p>
 
-<p>Constructs a new <a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html" title="Represents the many-to-one side of a foreign-key relationship.">BelongsTo</a> from the given referenced record, copying its primary key. </p>
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00136">136</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
-<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00118">118</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
-
-<p class="reference">References <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00066">Lightweight::BelongsTo&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt;::ReferencedField</a>, and <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00256">Lightweight::BelongsTo&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt;::Value()</a>.</p>
+<p class="reference">References <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00066">Lightweight::BelongsTo&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt;::ReferencedField</a>, and <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00275">Lightweight::BelongsTo&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt;::Value()</a>.</p>
 
 </div>
 </div>
 <a id="aa9bd867d69ca5c88684ab0e3b4439527" name="aa9bd867d69ca5c88684ab0e3b4439527"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aa9bd867d69ca5c88684ab0e3b4439527">&#9670;&#160;</a></span>BelongsTo() <span class="overload">[3/4]</span></h2>
+<h2 class="memtitle"><span class="permalink"><a href="#aa9bd867d69ca5c88684ab0e3b4439527">&#9670;&#160;</a></span>BelongsTo() <span class="overload">[4/5]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -433,12 +471,12 @@ template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullop
 
 <p>Copy constructor. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00130">130</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00149">149</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
 </div>
 </div>
 <a id="a946d91c2cd643b9a8cdbf4343aa19d63" name="a946d91c2cd643b9a8cdbf4343aa19d63"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a946d91c2cd643b9a8cdbf4343aa19d63">&#9670;&#160;</a></span>BelongsTo() <span class="overload">[4/4]</span></h2>
+<h2 class="memtitle"><span class="permalink"><a href="#a946d91c2cd643b9a8cdbf4343aa19d63">&#9670;&#160;</a></span>BelongsTo() <span class="overload">[5/5]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -465,7 +503,7 @@ template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullop
 
 <p>Move constructor. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00141">141</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00160">160</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
 </div>
 </div>
@@ -498,7 +536,7 @@ template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullop
 
 <p>Assigns NULL to the relationship, clearing the loaded record. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00152">152</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00171">171</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
 </div>
 </div>
@@ -541,7 +579,7 @@ requires (std::constructible_from&lt;<a class="el" href="../../d0/df7/classLight
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>Reference to this field. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00179">179</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00198">198</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
 </div>
 </div>
@@ -573,9 +611,9 @@ template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullop
 
 <p>Assigns a referenced record, updating the foreign key and loaded state. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00190">190</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00209">209</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00066">Lightweight::BelongsTo&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt;::ReferencedField</a>, and <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00256">Lightweight::BelongsTo&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt;::Value()</a>.</p>
+<p class="reference">References <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00066">Lightweight::BelongsTo&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt;::ReferencedField</a>, and <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00275">Lightweight::BelongsTo&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt;::Value()</a>.</p>
 
 </div>
 </div>
@@ -607,7 +645,7 @@ template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullop
 
 <p>Copy assignment operator. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00211">211</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00230">230</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
 </div>
 </div>
@@ -639,7 +677,7 @@ template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullop
 
 <p>Move assignment operator. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00227">227</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00246">246</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
 </div>
 </div>
@@ -671,7 +709,7 @@ template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullop
 
 <p>Marks the field as modified or unmodified. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00244">244</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00263">263</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
 </div>
 </div>
@@ -702,7 +740,7 @@ template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullop
 
 <p>Checks if the field is modified. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00250">250</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00269">269</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
 </div>
 </div>
@@ -733,9 +771,9 @@ template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullop
 
 <p>Retrieves the reference to the value of the field. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00256">256</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00275">275</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00118">Lightweight::BelongsTo&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt;::BelongsTo()</a>, and <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00190">Lightweight::BelongsTo&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt;::operator=()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00136">Lightweight::BelongsTo&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt;::BelongsTo()</a>, and <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00209">Lightweight::BelongsTo&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt;::operator=()</a>.</p>
 
 </div>
 </div>
@@ -766,7 +804,7 @@ template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullop
 
 <p>Retrieves the mutable reference to the value of the field. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00262">262</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00281">281</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
 </div>
 </div>
@@ -804,7 +842,7 @@ template&lt;typename Self &gt; </div>
 <p>Never throws for an unavailable record: the reason comes back as the error instead.</p>
 <dl class="section return"><dt>Returns</dt><dd>The record; or <a class="el" href="../../d7/d2f/group__DataMapper.html#ggaccfed183e72fab87179bacefc80b23e1a38c300f4fc9ce8a77aad4a30de05cad8">RelationError::NotFound</a> when the foreign key is NULL or points at no row, <a class="el" href="../../d7/d2f/group__DataMapper.html#ggaccfed183e72fab87179bacefc80b23e1a52c1415ae26d69e91093beaac88e0815">RelationError::NotConfigured</a> when there is no loader (a hand-built record, or one read with <code>loadRelations = false</code>), <a class="el" href="../../d7/d2f/group__DataMapper.html#ggaccfed183e72fab87179bacefc80b23e1a6f64ae857ab55cba2c3941fbc59285d5">RelationError::Outdated</a> when the default connection string changed since the record was read, <a class="el" href="../../d7/d2f/group__DataMapper.html#ggaccfed183e72fab87179bacefc80b23e1ad14f393e86cbe5976f0457ae2a0fcc49">RelationError::QueryFailed</a> when the load query failed. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00279">279</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00298">298</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
 </div>
 </div>
@@ -845,7 +883,7 @@ requires (<a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html#a4
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00291">291</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00310">310</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
 </div>
 </div>
@@ -886,7 +924,7 @@ requires (<a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html#a4
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00302">302</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00321">321</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
 </div>
 </div>
@@ -917,7 +955,7 @@ template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullop
 
 <p>Checks if the field value is NULL. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00312">312</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00331">331</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
 </div>
 </div>
@@ -948,7 +986,7 @@ template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullop
 
 <p>Checks if the field value is not NULL. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00318">318</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00337">337</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
 </div>
 </div>
@@ -981,7 +1019,7 @@ template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullop
 <p>Unlike <code><a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html#adb5b5bb3b0d9aaa6ecd4e26a3ecda7af" title="Retrieves the referenced record, loading it on first access.">Record()</a></code>, this never runs the on-demand loader: it reports what is present right now. That is what lets the batched relation loading walk one level deeper (<code>With&lt;A, B&gt;()</code>) without turning the walk itself into the N+1 it exists to remove.</p>
 <dl class="section return"><dt>Returns</dt><dd>Pointer to the loaded record, or <code>nullptr</code> if the relation is unloaded or NULL. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00330">330</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00349">349</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
 </div>
 </div>
@@ -1014,7 +1052,7 @@ template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullop
 <p>Unlike <code><a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html#adb5b5bb3b0d9aaa6ecd4e26a3ecda7af" title="Retrieves the referenced record, loading it on first access.">Record()</a></code>, this never runs the on-demand loader: it reports what is present right now. That is what lets the batched relation loading walk one level deeper (<code>With&lt;A, B&gt;()</code>) without turning the walk itself into the N+1 it exists to remove.</p>
 <dl class="section return"><dt>Returns</dt><dd>Pointer to the loaded record, or <code>nullptr</code> if the relation is unloaded or NULL.   </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00336">336</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00355">355</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
 </div>
 </div>
@@ -1045,7 +1083,7 @@ template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullop
 
 <p>Emplaces a record into the relationship. This will mark the relationship as loaded. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00342">342</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00361">361</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
 </div>
 </div>
@@ -1084,7 +1122,7 @@ template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullop
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00363">363</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00385">385</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
 </div>
 </div>
@@ -1128,7 +1166,7 @@ template&lt;typename Stmt &gt; </div>
 
 <p>Binds the foreign key value to the given output column index on the statement. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00375">375</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00397">397</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
 </div>
 </div>
@@ -1160,7 +1198,7 @@ template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullop
 
 <p>Three-way comparison operator. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00381">381</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00403">403</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
 </div>
 </div>
@@ -1194,7 +1232,7 @@ template&lt;detail::FieldElementType T, PrimaryKey IsPrimaryKeyValue = PrimaryKe
 
 <p>Three-way comparison operator with a <a class="el" href="../../d2/dd0/structLightweight_1_1Field.html" title="Represents a single column in a table.">Field</a>. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00388">388</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00410">410</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
 </div>
 </div>
@@ -1226,7 +1264,7 @@ template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullop
 
 <p>Equality comparison operator. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00394">394</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00416">416</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
 </div>
 </div>
@@ -1258,7 +1296,7 @@ template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullop
 
 <p>Inequality comparison operator. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00400">400</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00422">422</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
 </div>
 </div>
@@ -1292,7 +1330,7 @@ template&lt;detail::FieldElementType T, PrimaryKey IsPrimaryKeyValue = PrimaryKe
 
 <p>Equality comparison operator with a <a class="el" href="../../d2/dd0/structLightweight_1_1Field.html" title="Represents a single column in a table.">Field</a>. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00407">407</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00429">429</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
 </div>
 </div>
@@ -1326,7 +1364,7 @@ template&lt;detail::FieldElementType T, PrimaryKey IsPrimaryKeyValue = PrimaryKe
 
 <p>Inequality comparison operator with a <a class="el" href="../../d2/dd0/structLightweight_1_1Field.html" title="Represents a single column in a table.">Field</a>. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00414">414</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00436">436</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
 </div>
 </div>
@@ -1358,7 +1396,7 @@ template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullop
 
 <p>Used internally to configure on-demand loading of the record. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00427">427</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00449">449</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
 </div>
 </div>
@@ -1389,7 +1427,7 @@ template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullop
 
 <p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00066">66</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00118">Lightweight::BelongsTo&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt;::BelongsTo()</a>, and <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00190">Lightweight::BelongsTo&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt;::operator=()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00136">Lightweight::BelongsTo&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt;::BelongsTo()</a>, and <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00209">Lightweight::BelongsTo&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt;::operator=()</a>.</p>
 
 </div>
 </div>
@@ -1536,6 +1574,33 @@ template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullop
 <p>Indicates that a <a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html" title="Represents the many-to-one side of a foreign-key relationship.">BelongsTo</a> field is never an auto-increment primary key. </p>
 
 <p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00107">107</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+
+</div>
+</div>
+<a id="a3dde000656617d189fd83a2118a30d24" name="a3dde000656617d189fd83a2118a30d24"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a3dde000656617d189fd83a2118a30d24">&#9670;&#160;</a></span>IsRequired</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt, SqlNullable Nullable = SqlNullable::NotNull&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">constexpr bool <a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html">Lightweight::BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt;::IsRequired = <a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html#a494d69eaab98e062f64657adfe51938d">IsMandatory</a></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">static</span><span class="mlabel">constexpr</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Indicates whether the relationship must be given a value when its record is created by the caller. A required relationship has no default constructor, so a record cannot be created without it, unless the record declares a default member initializer for it. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00112">112</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
 </div>
 </div>

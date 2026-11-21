@@ -1,5 +1,13 @@
 var NAVTREEINDEX6 =
 {
+"da/d49/structLightweight_1_1SqlMigration_1_1ChecksumVerificationResult.html#ae3b7009e838fb2ab37c9cd65740c20e7":[20,7,2,4],
+"da/d49/structLightweight_1_1SqlMigration_1_1ChecksumVerificationResult.html#ae89a23f74516602d7c4e773d768b0436":[20,7,2,1],
+"da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html":[20,3,15],
+"da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#a005b078df5fc4a050cff113564a3c03c":[20,3,15,1],
+"da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#a110f55753102b397dee9f26192fb1295":[20,3,15,9],
+"da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#a25a32f6bdaa186db2f20b2683bcede27":[20,3,15,8],
+"da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#a27f9b5b92afec1d8ca21de0eb978fbce":[20,3,15,4],
+"da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#a2f2d1f5684e8d4290b9ad733f0c77835":[20,3,15,7],
 "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#a3c38e58abdc7f00d611b073b68572837":[20,3,15,15],
 "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#a4e3054462423c11bc1ac5d5df8ef301b":[20,3,15,16],
 "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#a6195f901f57b2d594e9b7c4d78db6ea9":[20,3,15,3],
@@ -241,13 +249,5 @@ var NAVTREEINDEX6 =
 "db/dad/classLightweight_1_1SqlStatement.html#a9d2ca0ca6a074744e63c36623a7e2d2b":[20,6,10,19],
 "db/dad/classLightweight_1_1SqlStatement.html#aa021a10c4473e6f7051618708f19574e":[20,6,10,15],
 "db/dad/classLightweight_1_1SqlStatement.html#aa36584130753011e131c0bfd6c75b3f4":[20,6,10,5],
-"db/dad/classLightweight_1_1SqlStatement.html#aa8528873d2ff2b2f879f587e8aa5026a":[20,6,10,38],
-"db/dad/classLightweight_1_1SqlStatement.html#abad0858c1d8904405879ee69b559742e":[20,6,10,32],
-"db/dad/classLightweight_1_1SqlStatement.html#abe60fdd5ccc0a2c07cf183eac8d83cd2":[20,6,10,31],
-"db/dad/classLightweight_1_1SqlStatement.html#abf5a451e1dbe5fca332cb2cd30e95631":[20,6,10,28],
-"db/dad/classLightweight_1_1SqlStatement.html#ac19f8c92550b34319f2f7b48ec32c149":[20,6,10,44],
-"db/dad/classLightweight_1_1SqlStatement.html#ac394d28a45e9b10a2edb1cdf0037281e":[20,6,10,33],
-"db/dad/classLightweight_1_1SqlStatement.html#aca574aabad03fc30adc6f52bb935cf2c":[20,6,10,47],
-"db/dad/classLightweight_1_1SqlStatement.html#acaeacb45bb1f297e5978bf0e474f708b":[20,6,10,24],
-"db/dad/classLightweight_1_1SqlStatement.html#ade0634f2250c8cd5c1128a30823279e5":[20,6,10,8]
+"db/dad/classLightweight_1_1SqlStatement.html#aa8528873d2ff2b2f879f587e8aa5026a":[20,6,10,38]
 };

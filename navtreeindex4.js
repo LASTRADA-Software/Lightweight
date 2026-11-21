@@ -1,5 +1,12 @@
 var NAVTREEINDEX4 =
 {
+"d7/d53/structLightweight_1_1SqlTime.html#aad1328d9dbf6a77a3d7a632528376652":[20,1,11,8],
+"d7/d53/structLightweight_1_1SqlTime.html#ab3be70c906d47b15e6b0bb2c3b8af75a":[20,1,11,5],
+"d7/d53/structLightweight_1_1SqlTime.html#ad2fa6d376c7fd1ca95119d08e0e6b814":[20,1,11,9],
+"d7/d53/structLightweight_1_1SqlTime.html#aeac9fe591411b84af0285ea3f4152892":[20,1,11,6],
+"d7/d6d/ChunkPlanner_8hpp_source.html":[23,0,1,4,2],
+"d7/d76/SyncWait_8hpp_source.html":[23,0,1,0,11],
+"d7/d79/UnicodeUpgradeProgress_8hpp_source.html":[23,0,1,43],
 "d7/d8f/structLightweight_1_1SqlBackup_1_1RestoreReport.html":[22,0,0,2,12],
 "d7/d8f/structLightweight_1_1SqlBackup_1_1RestoreReport.html#a3f72469fb9e727496021899d870ac37d":[22,0,0,2,12,5],
 "d7/d8f/structLightweight_1_1SqlBackup_1_1RestoreReport.html#a422627996645b60439cf9d156b24b753":[22,0,0,2,12,0],
@@ -242,12 +249,5 @@ var NAVTREEINDEX4 =
 "d8/dd2/structLightweight_1_1SqlFieldExpression.html#afe87625542faab00a7af2b26a45849f5":[20,8,4,0],
 "d8/ddd/Common_8hpp_source.html":[23,0,1,4,3],
 "d8/deb/HasMany_8hpp_source.html":[23,0,1,2,6],
-"d8/dec/Delete_8hpp_source.html":[23,0,1,5,1],
-"d8/df7/classLightweight_1_1SqlQueryFormatter.html":[22,0,0,77],
-"d8/df7/classLightweight_1_1SqlQueryFormatter.html#a03c4198af1564e763f548e6f466a840c":[22,0,0,77,30],
-"d8/df7/classLightweight_1_1SqlQueryFormatter.html#a09abb2638365ecc1319c35aa8238eb72":[22,0,0,77,28],
-"d8/df7/classLightweight_1_1SqlQueryFormatter.html#a1057a9e70219626b8eae258557d51b1f":[22,0,0,77,29],
-"d8/df7/classLightweight_1_1SqlQueryFormatter.html#a150a177da7cc5510ebd3f5461b555b4e":[22,0,0,77,8],
-"d8/df7/classLightweight_1_1SqlQueryFormatter.html#a1aade87023f69d63e86f4aca06a97595":[22,0,0,77,31],
-"d8/df7/classLightweight_1_1SqlQueryFormatter.html#a1d973789fe4e659b30eb414dea1d6941":[22,0,0,77,37]
+"d8/dec/Delete_8hpp_source.html":[23,0,1,5,1]
 };
