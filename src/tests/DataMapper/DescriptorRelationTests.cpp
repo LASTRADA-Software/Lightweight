@@ -34,7 +34,7 @@ struct DescribedAlbum;
 struct DescribedArtist
 {
     Field<int32_t, PrimaryKey::AutoAssign, SqlRealName { "ArtistId" }> artistId {};
-    Field<SqlAnsiString<64>, SqlRealName { "Name" }> name {};
+    Field<SqlAnsiString<64>, SqlRealName { "Name" }> name;
 
     HasMany<DescribedAlbum> albums {};
 };
@@ -42,8 +42,8 @@ struct DescribedArtist
 struct DescribedAlbum
 {
     Field<int32_t, PrimaryKey::AutoAssign, SqlRealName { "AlbumId" }> albumId {};
-    Field<SqlAnsiString<64>, SqlRealName { "Title" }> title {};
-    BelongsTo<Member(DescribedArtist::artistId), SqlRealName { "ArtistId" }> artist {};
+    Field<SqlAnsiString<64>, SqlRealName { "Title" }> title;
+    BelongsTo<Member(DescribedArtist::artistId), SqlRealName { "ArtistId" }> artist;
 };
 
 template <>
@@ -83,7 +83,7 @@ static_assert(std::same_as<decltype(DescribedAlbumMembers::MemberAt<1>(std::decl
 
 TEST_CASE("RecordMemberList reaches each member in declaration order", "[DataMapper][Description]")
 {
-    auto album = DescribedAlbum {};
+    auto album = DescribedAlbum { .title = "", .artist = 0 };
     auto const& constAlbum = album;
 
     CHECK(static_cast<void const*>(&DescribedAlbumMembers::MemberAt<0>(album)) == &album.albumId);

@@ -29,7 +29,7 @@ using namespace Lightweight;
 // All fixed-width columns: Query<>().All()/Range() take the native row-wise array-fetch fast path.
 struct RowFixedRecord
 {
-    Field<int64_t, PrimaryKey::AutoAssign> id;
+    Field<int64_t, PrimaryKey::AutoAssign> id {};
     Field<int64_t> big;
     Field<double> ratio;
     Field<int32_t> mid;
@@ -489,7 +489,7 @@ TEST_CASE_METHOD(SqlTestFixture, "RowWiseFetch.benchmark: block fetch vs per-row
         std::vector<RowFixedRecord> records;
         while (true)
         {
-            auto& record = records.emplace_back();
+            auto& record = records.emplace_back(RowFixedRecord { .big = 0, .ratio = 0.0, .mid = 0, .tiny = int16_t { 0 } });
             cursor.BindOutputColumnsToRecord(&record);
             if (!cursor.FetchRow())
             {
