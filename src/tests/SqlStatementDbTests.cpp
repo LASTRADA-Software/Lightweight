@@ -1519,6 +1519,93 @@ TEST_CASE_METHOD(SqlTestFixture,
     }
 }
 
+namespace
+{
+
+/// A row for the row-major batch of SqlTime.
+struct TimeFractionRow
+{
+    int id {};
+    SqlTime time;
+};
+
+} // namespace
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlTime: reading leaves no stale fraction", "[SqlTime]")
+{
+    using namespace std::chrono_literals;
+
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("time_fraction")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Integer {})
+            .RequiredColumn("Value", SqlColumnTypeDefinitions::Time {});
+    });
+    auto const written = SqlTime { 13h, 59min, 26s, 123456us };
+
+    // Single execute, column-major batch, row-major batch.
+    stmt.Prepare(R"(INSERT INTO "time_fraction" ("Id", "Value") VALUES (?, ?))");
+    (void) stmt.Execute(1, written);
+    (void) stmt.ExecuteBatch(std::array { 2 }, std::array { written });
+    auto const rows = std::array { TimeFractionRow { .id = 3, .time = written } };
+    (void) stmt.ExecuteBatch(
+        std::span { rows },
+        [](TimeFractionRow const& row) -> int const& { return row.id; },
+        [](TimeFractionRow const& row) -> SqlTime const& { return row.time; });
+
+    // The binders transfer SQL_C_TYPE_TIME, which carries no fraction of a second: the time of day
+    // round-trips, the fraction reads back as 0 rather than as whatever the target held before.
+    auto const checkRead = [&](SqlTime const& read) {
+        CHECK(read.sqlValue.hour == written.sqlValue.hour);
+        CHECK(read.sqlValue.minute == written.sqlValue.minute);
+        CHECK(read.sqlValue.second == written.sqlValue.second);
+        CHECK(read.sqlValue.fraction == 0);
+    };
+    constexpr auto StaleFraction = SQLUINTEGER { 999'999 };
+    auto const query = R"(SELECT "Id", "Value" FROM "time_fraction" ORDER BY "Id")"sv;
+    for (auto const depth: { PrefetchDepthDefault, std::size_t { 1 } })
+    {
+        INFO("prefetch depth " << depth);
+        stmt.Connection().SetDefaultPrefetchDepth(depth);
+        {
+            // A column is read once per row: drivers other than SQLite refuse a second SQLGetData.
+            auto cursor = stmt.ExecuteDirect(query);
+            auto rowCount = 0;
+            while (cursor.FetchRow())
+            {
+                INFO("row " << ++rowCount);
+                checkRead(cursor.GetColumn<SqlTime>(2));
+            }
+            CHECK(rowCount == 3);
+        }
+        {
+            auto cursor = stmt.ExecuteDirect(query);
+            auto rowCount = 0;
+            while (cursor.FetchRow())
+            {
+                INFO("row " << ++rowCount);
+                auto target = SqlTime {};
+                target.sqlValue.fraction = StaleFraction;
+                CHECK(cursor.GetColumn(2, &target));
+                checkRead(target);
+            }
+            CHECK(rowCount == 3);
+        }
+        {
+            auto id = 0;
+            auto bound = SqlTime {};
+            bound.sqlValue.fraction = StaleFraction;
+            auto cursor = stmt.ExecuteDirect(query);
+            cursor.BindOutputColumns(&id, &bound);
+            while (cursor.FetchRow())
+            {
+                INFO("bound row " << id);
+                checkRead(bound);
+            }
+        }
+    }
+}
+
 TEST_CASE_METHOD(SqlTestFixture,
                  "BindOutputColumns once: a long value into a UTF-16 staged or direct string alone",
                  "[SqlStatement][BindOnce]")
