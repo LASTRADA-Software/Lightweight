@@ -172,7 +172,7 @@ struct ChunkPlan
 /// Upper bound on parallel windows a single table is split into at plan time. Caps plan-time
 /// memory for sparse key spaces (e.g. snowflake-style int64 IDs) where span/rowsPerChunk would
 /// explode; sparse tables get proportionally wider windows instead.
-constexpr int64_t MaxWindowsPerTable = 1024;
+inline constexpr int64_t MaxWindowsPerTable = 1024;
 
 /// Computes the per-window key width for splitting [pkMin, pkMax] into at most
 /// @p maxWindowsPerTable windows of at least @p rowsPerChunk keys each:

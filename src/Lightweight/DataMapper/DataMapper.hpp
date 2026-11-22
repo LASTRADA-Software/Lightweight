@@ -1063,7 +1063,7 @@ namespace detail
 
     /// @brief Requested rows per SQLFetchScroll round-trip for the native row-wise fetch fast path. The
     /// statement clamps this to a memory budget, so it is an upper bound, not a guarantee.
-    constexpr std::size_t kDefaultRowArrayFetchDepth = 1024;
+    inline constexpr std::size_t kDefaultRowArrayFetchDepth = 1024;
 
     /// @brief Mutable-reference output accessor for member @p I that is a Field/BelongsTo: yields the
     /// field's mutable value so the row-wise fetch path binds the result column in place. The read-side
