@@ -106,13 +106,10 @@ Static Public Member Functions</h2></td></tr>
 <tr class="separator:af4378cf5f60c31d50614c8959d50d5a7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aff570afdc28beebe41cf1ee347c29c17" id="r_aff570afdc28beebe41cf1ee347c29c17"><td class="memItemLeft" align="right" valign="top">static LIGHTWEIGHT_FORCE_INLINE SQLRETURN&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/dca/structLightweight_1_1SqlDataBinder_3_01char_01_4.html#aff570afdc28beebe41cf1ee347c29c17">BatchInputParameter</a> (SQLHSTMT stmt, SQLUSMALLINT column, char const *values, size_t rowCount, <a class="el" href="../../d9/dbb/classLightweight_1_1SqlDataBinderCallback.html">SqlDataBinderCallback</a> &amp;cb, SQLLEN *indicators=nullptr) noexcept</td></tr>
 <tr class="separator:aff570afdc28beebe41cf1ee347c29c17"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a734d40f0e9e2a9016ddaa04d17d7d253" id="r_a734d40f0e9e2a9016ddaa04d17d7d253"><td class="memItemLeft" align="right" valign="top">static SQLRETURN&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/dca/structLightweight_1_1SqlDataBinder_3_01char_01_4.html#a734d40f0e9e2a9016ddaa04d17d7d253">BatchInputParameterAsUtf16</a> (SQLHSTMT stmt, SQLUSMALLINT column, char const *values, size_t rowCount, detail::NarrowTextBinding binding, <a class="el" href="../../d9/dbb/classLightweight_1_1SqlDataBinderCallback.html">SqlDataBinderCallback</a> &amp;cb) noexcept</td></tr>
-<tr class="memdesc:a734d40f0e9e2a9016ddaa04d17d7d253"><td class="mdescLeft">&#160;</td><td class="mdescRight">Binds a column-wise array of characters as <code>SQL_C_WCHAR</code>, converted to UTF-16 as <code>binding</code> prescribes.  <br /></td></tr>
-<tr class="separator:a734d40f0e9e2a9016ddaa04d17d7d253"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aeac9c0a751013d48accdf1b5cae34d90" id="r_aeac9c0a751013d48accdf1b5cae34d90"><td class="memItemLeft" align="right" valign="top">static SQLRETURN&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/dca/structLightweight_1_1SqlDataBinder_3_01char_01_4.html#aeac9c0a751013d48accdf1b5cae34d90">OutputColumn</a> (SQLHSTMT stmt, SQLUSMALLINT column, char *result, SQLLEN *indicator, <a class="el" href="../../d9/dbb/classLightweight_1_1SqlDataBinderCallback.html">SqlDataBinderCallback</a> &amp;cb) noexcept</td></tr>
 <tr class="separator:aeac9c0a751013d48accdf1b5cae34d90"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:af27d1d39fdbc4411ba745716107ba222" id="r_af27d1d39fdbc4411ba745716107ba222"><td class="memItemLeft" align="right" valign="top">static SQLRETURN&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/dca/structLightweight_1_1SqlDataBinder_3_01char_01_4.html#af27d1d39fdbc4411ba745716107ba222">GetColumn</a> (SQLHSTMT stmt, SQLUSMALLINT column, char *result, SQLLEN *indicator, <a class="el" href="../../d9/dbb/classLightweight_1_1SqlDataBinderCallback.html">SqlDataBinderCallback</a> const &amp;cb) noexcept</td></tr>
-<tr class="separator:af27d1d39fdbc4411ba745716107ba222"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aec5c0540ee2ba4c59a8d86fb2e026f94" id="r_aec5c0540ee2ba4c59a8d86fb2e026f94"><td class="memItemLeft" align="right" valign="top">static SQLRETURN&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/dca/structLightweight_1_1SqlDataBinder_3_01char_01_4.html#aec5c0540ee2ba4c59a8d86fb2e026f94">GetColumn</a> (SQLHSTMT stmt, SQLUSMALLINT column, char *result, SQLLEN *indicator, <a class="el" href="../../d9/dbb/classLightweight_1_1SqlDataBinderCallback.html">SqlDataBinderCallback</a> const &amp;) noexcept</td></tr>
+<tr class="separator:aec5c0540ee2ba4c59a8d86fb2e026f94"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a5abe211eeb56a88cdaeaac69c7bc147e" id="r_a5abe211eeb56a88cdaeaac69c7bc147e"><td class="memItemLeft" align="right" valign="top">static LIGHTWEIGHT_FORCE_INLINE std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/dca/structLightweight_1_1SqlDataBinder_3_01char_01_4.html#a5abe211eeb56a88cdaeaac69c7bc147e">Inspect</a> (char value)</td></tr>
 <tr class="separator:a5abe211eeb56a88cdaeaac69c7bc147e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
@@ -127,11 +124,10 @@ Static Public Attributes</h2></td></tr>
 <p>Unlike the numeric primitives, <code>char</code> maps to a character type (<code>SQL_C_CHAR</code> / <code>SQL_CHAR</code>), whose ODBC contract differs from fixed-width data in three ways, each of which this binder honours:</p><ul>
 <li>On input, the column size is the length in characters and must not be zero (MS SQL Server rejects zero with HY104 "Invalid precision value").</li>
 <li>On input, the value is not NUL-terminated, so its length must be passed through the indicator — without one the driver reads the value as a NUL-terminated string, past the end of the <code>char</code>.</li>
-<li>On output, the driver NUL-terminates what it writes, so the buffer needs room for one more byte than the value; a one-byte buffer receives nothing.</li>
+<li>On output, the driver NUL-terminates what it writes, so the buffer needs room for one more byte than the value; a one-byte buffer receives nothing. </li>
 </ul>
-<p>Where the connection converts narrow text with the process code page (<code>detail::NarrowTextBinding::WideFromProcessCodePage</code>), the character goes through <code>SQL_C_WCHAR</code> instead. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d2/d5e/Primitives_8hpp_source.html#l00108">108</a> of file <a class="el" href="../../d2/d5e/Primitives_8hpp_source.html">Primitives.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d2/d5e/Primitives_8hpp_source.html#l00104">104</a> of file <a class="el" href="../../d2/d5e/Primitives_8hpp_source.html">Primitives.hpp</a>.</p>
 </div><h2 class="groupheader">Member Function Documentation</h2>
 <a id="af4378cf5f60c31d50614c8959d50d5a7" name="af4378cf5f60c31d50614c8959d50d5a7"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#af4378cf5f60c31d50614c8959d50d5a7">&#9670;&#160;</a></span>InputParameter()</h2>
@@ -190,7 +186,7 @@ Static Public Attributes</h2></td></tr>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The ODBC return code of <code>SQLBindParameter</code>. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d2/d5e/Primitives_8hpp_source.html#l00120">120</a> of file <a class="el" href="../../d2/d5e/Primitives_8hpp_source.html">Primitives.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d2/d5e/Primitives_8hpp_source.html#l00116">116</a> of file <a class="el" href="../../d2/d5e/Primitives_8hpp_source.html">Primitives.hpp</a>.</p>
 
 </div>
 </div>
@@ -259,79 +255,15 @@ Static Public Attributes</h2></td></tr>
     <tr><td class="paramname">values</td><td>The first of <code>rowCount</code> characters; they must outlive the statement's execution. </td></tr>
     <tr><td class="paramname">rowCount</td><td>The number of rows in the batch. </td></tr>
     <tr><td class="paramname">cb</td><td>Provides the per-row length indicators when <code>indicators</code> is not given. </td></tr>
-    <tr><td class="paramname">indicators</td><td>Optional per-row indicator array (the length, or <code>SQL_NULL_DATA</code>). When null, every row is bound as one character, converted where the connection converts narrow text; given indicators keep the narrow bind. </td></tr>
+    <tr><td class="paramname">indicators</td><td>Optional per-row indicator array (the length, or <code>SQL_NULL_DATA</code>). When null, every row is bound as one character. </td></tr>
   </table>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The ODBC return code of <code>SQLBindParameter</code>. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d2/d5e/Primitives_8hpp_source.html#l00145">145</a> of file <a class="el" href="../../d2/d5e/Primitives_8hpp_source.html">Primitives.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d2/d5e/Primitives_8hpp_source.html#l00137">137</a> of file <a class="el" href="../../d2/d5e/Primitives_8hpp_source.html">Primitives.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../d7/d0f/DataBinder_2Core_8hpp_source.html#l00104">Lightweight::SqlDataBinderCallback::NarrowTextBindingMode()</a>, and <a class="el" href="../../d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#ad2b577cf0e7a7cc9eb671677b42cb914">Lightweight::SqlDataBinderCallback::ProvideInputIndicators()</a>.</p>
-
-</div>
-</div>
-<a id="a734d40f0e9e2a9016ddaa04d17d7d253" name="a734d40f0e9e2a9016ddaa04d17d7d253"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a734d40f0e9e2a9016ddaa04d17d7d253">&#9670;&#160;</a></span>BatchInputParameterAsUtf16()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">static SQLRETURN Lightweight::SqlDataBinder&lt; char &gt;::BatchInputParameterAsUtf16 </td>
-          <td>(</td>
-          <td class="paramtype">SQLHSTMT&#160;</td>
-          <td class="paramname"><em>stmt</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">SQLUSMALLINT&#160;</td>
-          <td class="paramname"><em>column</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">char const *&#160;</td>
-          <td class="paramname"><em>values</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">size_t&#160;</td>
-          <td class="paramname"><em>rowCount</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">detail::NarrowTextBinding&#160;</td>
-          <td class="paramname"><em>binding</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype"><a class="el" href="../../d9/dbb/classLightweight_1_1SqlDataBinderCallback.html">SqlDataBinderCallback</a> &amp;&#160;</td>
-          <td class="paramname"><em>cb</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">static</span><span class="mlabel">noexcept</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p>Binds a column-wise array of characters as <code>SQL_C_WCHAR</code>, converted to UTF-16 as <code>binding</code> prescribes. </p>
-
-<p class="definition">Definition at line <a class="el" href="../../d2/d5e/Primitives_8hpp_source.html#l00174">174</a> of file <a class="el" href="../../d2/d5e/Primitives_8hpp_source.html">Primitives.hpp</a>.</p>
+<p class="reference">References <a class="el" href="../../d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#ad2b577cf0e7a7cc9eb671677b42cb914">Lightweight::SqlDataBinderCallback::ProvideInputIndicators()</a>.</p>
 
 </div>
 </div>
@@ -400,12 +332,12 @@ Static Public Attributes</h2></td></tr>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The ODBC return code of <code>SQLBindCol</code>. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d2/d5e/Primitives_8hpp_source.html#l00215">215</a> of file <a class="el" href="../../d2/d5e/Primitives_8hpp_source.html">Primitives.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d2/d5e/Primitives_8hpp_source.html#l00172">172</a> of file <a class="el" href="../../d2/d5e/Primitives_8hpp_source.html">Primitives.hpp</a>.</p>
 
 </div>
 </div>
-<a id="af27d1d39fdbc4411ba745716107ba222" name="af27d1d39fdbc4411ba745716107ba222"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#af27d1d39fdbc4411ba745716107ba222">&#9670;&#160;</a></span>GetColumn()</h2>
+<a id="aec5c0540ee2ba4c59a8d86fb2e026f94" name="aec5c0540ee2ba4c59a8d86fb2e026f94"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aec5c0540ee2ba4c59a8d86fb2e026f94">&#9670;&#160;</a></span>GetColumn()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -441,7 +373,7 @@ Static Public Attributes</h2></td></tr>
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype"><a class="el" href="../../d9/dbb/classLightweight_1_1SqlDataBinderCallback.html">SqlDataBinderCallback</a> const &amp;&#160;</td>
-          <td class="paramname"><em>cb</em>&#160;</td>
+          <td class="paramname">&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -462,13 +394,12 @@ Static Public Attributes</h2></td></tr>
     <tr><td class="paramname">column</td><td>The 1-based column index. </td></tr>
     <tr><td class="paramname">result</td><td>Receives the character; left untouched on NULL. </td></tr>
     <tr><td class="paramname">indicator</td><td>Receives the length, or <code>SQL_NULL_DATA</code>. </td></tr>
-    <tr><td class="paramname">cb</td><td>Tells how the connection binds narrow text. </td></tr>
   </table>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The ODBC return code of <code>SQLGetData</code>. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d2/d5e/Primitives_8hpp_source.html#l00246">246</a> of file <a class="el" href="../../d2/d5e/Primitives_8hpp_source.html">Primitives.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d2/d5e/Primitives_8hpp_source.html#l00191">191</a> of file <a class="el" href="../../d2/d5e/Primitives_8hpp_source.html">Primitives.hpp</a>.</p>
 
 </div>
 </div>
@@ -503,7 +434,7 @@ Static Public Attributes</h2></td></tr>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd><code>value</code> as a one-character string. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d2/d5e/Primitives_8hpp_source.html#l00267">267</a> of file <a class="el" href="../../d2/d5e/Primitives_8hpp_source.html">Primitives.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d2/d5e/Primitives_8hpp_source.html#l00203">203</a> of file <a class="el" href="../../d2/d5e/Primitives_8hpp_source.html">Primitives.hpp</a>.</p>
 
 </div>
 </div>
@@ -530,7 +461,7 @@ Static Public Attributes</h2></td></tr>
 
 <p>The column type a <code>char</code> maps to. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d2/d5e/Primitives_8hpp_source.html#l00111">111</a> of file <a class="el" href="../../d2/d5e/Primitives_8hpp_source.html">Primitives.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d2/d5e/Primitives_8hpp_source.html#l00107">107</a> of file <a class="el" href="../../d2/d5e/Primitives_8hpp_source.html">Primitives.hpp</a>.</p>
 
 </div>
 </div>
