@@ -39,6 +39,7 @@ using namespace std::chrono_literals;
 using namespace std::string_view_literals;
 
 static std::atomic<uint64_t> gNextConnectionId { 1 };
+static std::atomic<uint64_t> gNextSessionId { 1 };
 static std::function<void(SqlConnection&)> gPostConnectedHook {};
 static std::atomic<SqlStringTruncationMode> gDefaultStringTruncationMode { SqlStringTruncationMode::Truncate };
 static std::mutex gConnectionMutex {};
@@ -359,6 +360,7 @@ struct SqlConnection::Data
     SqliteConnectionSettings sqliteSettings;        // Applied on every Connect() to a SQLite database.
     SqlRetrySettings connectRetrySettings;          // How Connect() retries a transient failure.
     SqlRetrySleeper* connectRetrySleeper = nullptr; // Waits between connect attempts; null = ThreadSleeper().
+    uint64_t sessionId = 0; // Identifies the current connected session (0 while not connected), see SessionId().
 };
 
 SqlConnection::SqlConnection():
@@ -408,6 +410,7 @@ SqlConnection::SqlConnection(BorrowTag /*tag*/, SQLHDBC connectedHandle):
 {
     m_data->sqliteSettings = DefaultSqliteSettings();
     m_data->connectRetrySettings = DefaultConnectRetrySettings();
+    m_data->sessionId = gNextSessionId++;
     try
     {
         DetectServer();
@@ -777,6 +780,7 @@ std::expected<void, SqlErrorInfo> SqlConnection::ConnectOnce(SqlConnectionDataSo
 
     // Handles prepared against the previous session die with the disconnect below.
     m_data->preparedStatementCache.Clear();
+    m_data->sessionId = 0;
 
     if (m_hDbc)
     {
@@ -928,6 +932,7 @@ std::expected<void, SqlErrorInfo> SqlConnection::ConnectOnce() noexcept
     m_data->dataSourceName.reset();
     // Handles prepared against the previous session die with the disconnect below.
     m_data->preparedStatementCache.Clear();
+    m_data->sessionId = 0;
 
     if (m_hDbc)
     {
@@ -1062,6 +1067,9 @@ void SqlConnection::DetectServer()
 
 bool SqlConnection::PostConnect()
 {
+    // A new session: statement handles allocated in an earlier one died with its disconnect.
+    m_data->sessionId = gNextSessionId++;
+
     DetectServer();
 
     if (m_acceptsWideQueryText)
@@ -1100,10 +1108,18 @@ SqlErrorInfo SqlConnection::LastError() const
     return SqlErrorInfo::FromConnectionHandle(m_hDbc);
 }
 
+uint64_t SqlConnection::SessionId() const noexcept
+{
+    return m_data ? m_data->sessionId : 0;
+}
+
 void SqlConnection::Close() noexcept
 {
     if (!m_hDbc)
         return;
+
+    if (m_data)
+        m_data->sessionId = 0;
 
     if (m_handleOwnership == SqlHandleOwnership::Borrowed)
     {

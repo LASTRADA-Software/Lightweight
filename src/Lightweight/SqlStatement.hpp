@@ -679,9 +679,14 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     /// @return The SQLExecDirect return code.
     [[nodiscard]] SQLRETURN ExecDirectOnHandle(std::string_view query);
 
-    /// @brief Records a freshly allocated handle of a connection to an ANSI-only driver, so that its
-    /// diagnostics are read through the ANSI entry points (see detail::RegisterAnsiOnlyHandle()).
+    /// @brief Records a freshly allocated handle: the connection session it belongs to and, for a
+    /// connection to an ANSI-only driver, that its diagnostics are read through the ANSI entry points
+    /// (see detail::RegisterAnsiOnlyHandle()).
     void RegisterHandleTextEntry() noexcept;
+
+    /// @brief Gives up the statement handle this statement holds: hands it back to the connection's
+    /// prepared-statement cache, or frees it. Used by the destructor and by move assignment.
+    void ReleaseHandle() noexcept;
 
     /// @brief Describes every parameter of the prepared query.
     ///
@@ -714,8 +719,9 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     std::unique_ptr<Data, void (*)(Data*)> m_data; // The private data of the statement
     SqlConnection* m_connection {};                // Pointer to the connection object
     SQLHSTMT m_hStmt {};                           // The native oDBC statement handle
-    std::string m_preparedQuery;                   // The last prepared query
-    std::optional<SQLSMALLINT> m_numColumns;       // The number of columns in the result set, if known
+    uint64_t m_sessionId {};     // The connection session m_hStmt was allocated in (see SqlConnection::SessionId())
+    std::string m_preparedQuery; // The last prepared query
+    std::optional<SQLSMALLINT> m_numColumns; // The number of columns in the result set, if known
     // Column names of the last prepared/executed query object, in result-column order, for named
     // column access. Empty when the query carried no mapping (raw SQL, or a wildcard projection).
     std::vector<std::string> m_projectedFieldNames;

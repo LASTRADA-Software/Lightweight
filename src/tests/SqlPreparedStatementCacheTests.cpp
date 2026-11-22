@@ -11,6 +11,7 @@
 #include <ranges>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 using namespace Lightweight;
@@ -472,4 +473,52 @@ TEST_CASE_METHOD(SqlTestFixture,
 
     CHECK(pooled->Connection().PreparedStatementCacheCapacity() == PreparedStatementCacheCapacitySuggested);
     CHECK(pooled->Connection().IsAlive());
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "PreparedStatementCache: move-assigning onto a statement releases the handle it held",
+                 "[SqlPreparedStatementCache]")
+{
+    auto connection = MakeSeededConnection();
+    auto const& cache = connection.PreparedStatementCache();
+
+    auto stmt = SqlStatement { connection };
+    CHECK(SelectValue(stmt, 1) == 10);
+    REQUIRE(cache.Size() == 0);
+
+    // The prepared handle the target held goes back to the cache, as it would on destruction, instead of
+    // leaking until the connection closes.
+    stmt = SqlStatement { connection };
+    CHECK(cache.Size() == 1);
+
+    // ... where the next prepare of that query text picks it up.
+    auto probe = SqlStatement { connection };
+    CHECK(SelectValue(probe, 2) == 20);
+    CHECK(cache.Stats().hits == 1);
+
+    // Self-assignment keeps the statement usable.
+    auto& alias = stmt;
+    stmt = std::move(alias);
+    CHECK(SelectValue(stmt, 3) == 30);
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "PreparedStatementCache: a handle that died with its session is not released into the next one",
+                 "[SqlPreparedStatementCache]")
+{
+    auto connection = MakeSeededConnection();
+    auto const& cache = connection.PreparedStatementCache();
+
+    auto stmt = SqlStatement { connection };
+    CHECK(SelectValue(stmt, 1) == 10);
+
+    // Closing frees every statement handle of the session; the connection object then connects anew.
+    connection.Close();
+    REQUIRE(connection.Connect(SqlConnection::DefaultConnectionString()));
+    connection.SetPreparedStatementCacheCapacity(8);
+
+    // The handle stmt held is gone: assigning over it must neither free it again nor pool it.
+    stmt = SqlStatement { connection };
+    CHECK(cache.Size() == 0);
+    CHECK(SelectValue(stmt, 2) == 20);
 }

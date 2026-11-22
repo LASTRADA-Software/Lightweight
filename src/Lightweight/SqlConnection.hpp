@@ -354,6 +354,15 @@ class SqlConnection final
         return m_connectionId;
     }
 
+    /// @brief Identifies the connected session: a value unique within the process, assigned by every
+    /// successful connect and reset to 0 when the connection is closed, re-connected or moved from.
+    ///
+    /// A statement handle belongs to the session it was allocated in and dies with it, so this tells a
+    /// statement whether the handle it holds is still alive on this connection.
+    ///
+    /// @return The current session's identifier, or 0 while not connected.
+    [[nodiscard]] LIGHTWEIGHT_API uint64_t SessionId() const noexcept;
+
     /// Closes the connection, freeing the underlying ODBC handles.
     ///
     /// A borrowed connection (see @ref Borrow) only detaches from its handle, leaving it connected.

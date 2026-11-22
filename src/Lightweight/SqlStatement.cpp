@@ -399,6 +399,7 @@ SqlStatement::SqlStatement(SqlStatement&& other) noexcept:
     m_data { std::move(other.m_data) },
     m_connection { other.m_connection },
     m_hStmt { other.m_hStmt },
+    m_sessionId { other.m_sessionId },
     m_preparedQuery { std::move(other.m_preparedQuery) },
     m_projectedFieldNames { std::move(other.m_projectedFieldNames) },
     m_projectionHasWildcard { other.m_projectionHasWildcard },
@@ -417,9 +418,14 @@ SqlStatement& SqlStatement::operator=(SqlStatement&& other) noexcept
     if (this == &other)
         return *this;
 
+    // The handle this statement holds goes the way the destructor sends it; overwriting it leaked one
+    // statement handle per assignment until the connection closed.
+    ReleaseHandle();
+
     m_data = std::move(other.m_data);
     m_connection = other.m_connection;
     m_hStmt = other.m_hStmt;
+    m_sessionId = other.m_sessionId;
     m_preparedQuery = std::move(other.m_preparedQuery);
     m_expectedParameterCount = other.m_expectedParameterCount;
     m_preparedParameterCount = other.m_preparedParameterCount;
@@ -456,6 +462,14 @@ SqlStatement::SqlStatement(std::nullopt_t /*nullopt*/):
 SqlStatement::~SqlStatement() noexcept
 {
     SqlLogger::GetLogger().OnFetchEnd();
+    ReleaseHandle();
+}
+
+void SqlStatement::ReleaseHandle() noexcept
+{
+    if (m_hStmt == SQL_NULL_HSTMT)
+        return; // moved-from, or constructed without a connection
+
     // A statement handle belongs to its connection: closing the connection frees the DBC handle, and
     // the driver manager invalidates every statement hanging off it at that point. Freeing this handle
     // afterwards reads released driver memory, which segfaults under unixODBC. Skip it when the
@@ -473,6 +487,12 @@ SqlStatement::~SqlStatement() noexcept
     if (m_connection && !m_connection->NativeHandle())
         return;
 
+    // Likewise when the connection has connected again since (Connect() disconnects first) or was
+    // replaced by move assignment: the handle died with the session it was allocated in, and must
+    // neither be freed again nor handed to the new session's cache.
+    if (m_connection && m_connection->SessionId() != m_sessionId)
+        return;
+
     // Hand the prepared handle back to the connection's pool, so the next statement preparing the same
     // query text can re-execute it. Falls through to freeing it when the pool declines to take it.
     if (ReleasePreparedHandle())
@@ -480,10 +500,12 @@ SqlStatement::~SqlStatement() noexcept
 
     detail::UnregisterAnsiOnlyHandle(m_hStmt);
     SQLFreeHandle(SQL_HANDLE_STMT, m_hStmt);
+    m_hStmt = SQL_NULL_HSTMT;
 }
 
 void SqlStatement::RegisterHandleTextEntry() noexcept
 {
+    m_sessionId = m_connection->SessionId();
     if (m_hStmt != SQL_NULL_HSTMT && !m_connection->AcceptsWideQueryText())
         detail::RegisterAnsiOnlyHandle(m_hStmt, m_connection->NativeHandle());
 }
@@ -607,6 +629,7 @@ bool SqlStatement::AcquirePreparedHandle(SqlPreparedStatementCache& cache, std::
     }
 
     m_hStmt = pooled->nativeHandle;
+    m_sessionId = m_connection->SessionId(); // pooled handles belong to the current session
     ApplyQueryTimeoutToNewHandle();
     // Both counts: m_expectedParameterCount is what Execute() validates against, m_preparedParameterCount
     // is what a later release pools again (and what the own-handle reuse path restores).
