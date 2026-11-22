@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "BasicStringBinder.hpp"
 #include "Core.hpp"
 #include "UnicodeConverter.hpp"
 
@@ -16,8 +17,13 @@ struct SqlDataBinder<char[N]>
     static LIGHTWEIGHT_FORCE_INLINE SQLRETURN InputParameter(SQLHSTMT stmt,
                                                              SQLUSMALLINT column,
                                                              char const* value,
-                                                             SqlDataBinderCallback& /*cb*/) noexcept
+                                                             SqlDataBinderCallback& cb) noexcept
     {
+        // Converts with the process code page where the driver would use the thread one (see
+        // SqlConnection::NarrowTextBindingMode). PostgreSQL keeps this narrow bind.
+        if (auto const binding = cb.NarrowTextBindingMode(); binding == detail::NarrowTextBinding::WideFromProcessCodePage)
+            return detail::BindNarrowTextAsUtf16(stmt, column, std::string_view { value }, binding, cb);
+
         return SQLBindParameter(stmt,
                                 column,
                                 SQL_PARAM_INPUT,

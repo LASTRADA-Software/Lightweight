@@ -505,6 +505,7 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     LIGHTWEIGHT_API void PlanPostProcessOutputColumn(std::function<void()>&& cb) override;
     [[nodiscard]] LIGHTWEIGHT_API SqlServerType ServerType() const noexcept override;
     [[nodiscard]] LIGHTWEIGHT_API std::string const& DriverName() const noexcept override;
+    [[nodiscard]] LIGHTWEIGHT_API detail::NarrowTextBinding NarrowTextBindingMode() const noexcept override;
     LIGHTWEIGHT_API void ProcessPostExecuteCallbacks();
 
     LIGHTWEIGHT_API SQLLEN* ProvideInputIndicator() override;
@@ -766,6 +767,12 @@ class [[nodiscard]] SqlResultCursor
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE size_t NumColumnsAffected() const
     {
         return m_stmt->NumColumnsAffected();
+    }
+
+    /// @return How the narrow (@c char) string binders exchange text with this cursor's driver.
+    [[nodiscard]] detail::NarrowTextBinding NarrowTextBindingMode() const noexcept
+    {
+        return m_stmt->NarrowTextBindingMode();
     }
 
     /// @brief The SQL data type the driver reports for a result column (the @c SQL_* value from
@@ -1622,6 +1629,29 @@ concept SqlHasRowWiseBatchBinder =
         { SqlDataBinder<V>::BatchRowWiseInputParameter(stmt, column, elem0, n, n, cb) } -> std::same_as<SQLRETURN>;
     };
 
+namespace detail
+{
+    template <typename V>
+    struct IsNarrowFixedStringColumn: std::false_type
+    {
+    };
+
+    template <std::size_t N, SqlFixedStringMode Mode>
+    struct IsNarrowFixedStringColumn<SqlFixedString<N, char, Mode>>: std::true_type
+    {
+    };
+
+    template <std::size_t N, SqlFixedStringMode Mode>
+    struct IsNarrowFixedStringColumn<std::optional<SqlFixedString<N, char, Mode>>>: std::true_type
+    {
+    };
+} // namespace detail
+
+/// @brief Whether @p V is a char fixed-capacity string, or a @c std::optional of one. The row-wise batch binds
+/// such a column as @c SQL_C_CHAR in place, without the narrow-text conversion the single-row binder applies.
+template <typename V>
+constexpr bool SqlIsNarrowFixedStringColumn = detail::IsNarrowFixedStringColumn<V>::value;
+
 template <SqlInputParameterBatchBinder FirstColumnBatch, std::ranges::contiguous_range... MoreColumnBatches>
 SqlResultCursor SqlStatement::ExecuteBatchNative(FirstColumnBatch const& firstColumnBatch,
                                                  MoreColumnBatches const&... moreColumnBatches)
@@ -1742,6 +1772,9 @@ SqlResultCursor SqlStatement::ExecuteBatch(Rows const& rows, ColumnAccessors con
     constexpr bool anyStridedIndicatorColumn =
         (SqlHasRowWiseBatchBinder<std::remove_cvref_t<std::invoke_result_t<ColumnAccessors const&, RowElem const&>>> || ...);
     constexpr bool indicatorAlignmentSatisfied = (sizeof(RowElem) % alignof(SQLLEN)) == 0;
+    constexpr bool anyNarrowFixedStringColumn =
+        (SqlIsNarrowFixedStringColumn<std::remove_cvref_t<std::invoke_result_t<ColumnAccessors const&, RowElem const&>>>
+         || ...);
 
     if constexpr (allColumnsRowBindable && allAccessorsReturnReference
                   && (!anyStridedIndicatorColumn || indicatorAlignmentSatisfied))
@@ -1757,7 +1790,12 @@ SqlResultCursor SqlStatement::ExecuteBatch(Rows const& rows, ColumnAccessors con
         };
         bool const rowStrideOk = rowCount < 2 || (accessorStrideMatchesRow(accessors) && ...);
 
-        if (m_connection->SupportsNativeRowBatch() && rowStrideOk)
+        // A narrow fixed string cannot be converted in place, so a connection that converts narrow text with
+        // the process code page takes the per-row path. PostgreSQL keeps the narrow bind.
+        bool const narrowColumnsBindInPlace =
+            !anyNarrowFixedStringColumn || NarrowTextBindingMode() != detail::NarrowTextBinding::WideFromProcessCodePage;
+
+        if (m_connection->SupportsNativeRowBatch() && rowStrideOk && narrowColumnsBindInPlace)
             return ExecuteBatchNativeRowWise(rows, accessors...);
     }
 

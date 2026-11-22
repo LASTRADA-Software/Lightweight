@@ -12,7 +12,11 @@
 #include <memory>
 #include <optional>
 #include <ranges>
+#include <span>
+#include <string>
+#include <string_view>
 #include <utility>
+#include <vector>
 
 namespace Lightweight
 {
@@ -275,6 +279,54 @@ namespace detail
                           indicator);
     }
 
+    /// Converts narrow @p text to UTF-16 as @p binding prescribes (UTF-8, or the process ANSI code page).
+    inline std::u16string NarrowTextToUtf16(std::string_view text, NarrowTextBinding binding)
+    {
+        if (binding == NarrowTextBinding::WideFromProcessCodePage)
+            return ToUtf16(std::string { text });
+        return ToUtf16(std::u8string_view { reinterpret_cast<char8_t const*>(text.data()), text.size() });
+    }
+
+    /// Converts UTF-16 @p text to narrow text as @p binding prescribes (UTF-8, or the process ANSI code page).
+    inline std::string Utf16ToNarrowText(std::u16string_view text, NarrowTextBinding binding)
+    {
+        if (binding == NarrowTextBinding::WideFromProcessCodePage)
+            return ToLocaleString(text);
+        auto const u8String = ToUtf8(text);
+        return { reinterpret_cast<char const*>(u8String.data()), u8String.size() };
+    }
+
+    /// Binds narrow @p text as a @c SQL_C_WCHAR input parameter, converted to UTF-16 as @p binding prescribes.
+    ///
+    /// The driver then converts the text to the database encoding itself, so it never interprets
+    /// the narrow bytes in an encoding of its own choosing.
+    inline SQLRETURN BindNarrowTextAsUtf16(SQLHSTMT stmt,
+                                           SQLUSMALLINT column,
+                                           std::string_view text,
+                                           NarrowTextBinding binding,
+                                           SqlDataBinderCallback& cb) noexcept
+    {
+        auto u16String = std::make_shared<std::u16string>(NarrowTextToUtf16(text, binding));
+        cb.PlanPostExecuteCallback([u16String = u16String]() {}); // keep buffer alive
+        auto const charCount = u16String->size();
+        auto const byteCount = charCount * sizeof(char16_t);
+        auto const sqlType = static_cast<SQLSMALLINT>(charCount > SqlOptimalMaxColumnSize ? SQL_WLONGVARCHAR : SQL_WVARCHAR);
+
+        SQLLEN* indicator = cb.ProvideInputIndicator();
+        *indicator = static_cast<SQLLEN>(byteCount);
+
+        return SQLBindParameter(stmt,
+                                column,
+                                SQL_PARAM_INPUT,
+                                SQL_C_WCHAR,
+                                sqlType,
+                                NonZeroColumnSize(charCount),
+                                0,
+                                (SQLPOINTER) u16String->data(),
+                                static_cast<SQLLEN>(byteCount),
+                                indicator);
+    }
+
 } // namespace detail
 
 // SqlDataBinder<> specialization for ANSI character strings
@@ -293,39 +345,14 @@ struct SqlDataBinder<AnsiStringType>
                                                              AnsiStringType const& value,
                                                              SqlDataBinderCallback& cb) noexcept
     {
-        // PostgreSQL: route narrow strings through UTF-16 + SQL_C_WCHAR. Even with the
-        // DBC handle in Unicode-app mode (SQLDriverConnectW), psqlODBC on Windows still
-        // interprets SQL_C_CHAR data as the system codepage (cp1252), not UTF-8 — so a
-        // 200-byte UTF-8 payload representing 100 supplementary-plane characters gets
-        // re-encoded into 400 bytes and trips VARCHAR(100)'s character-count check.
-        // Going via SQL_C_WCHAR makes the driver itself do the encoding conversion to
-        // the server's encoding (UTF-8) using proper Unicode rules. We treat the
-        // incoming `std::string` as UTF-8 by convention — that is what every other
-        // call path in the library produces (file readers, query formatters, etc.).
-        if (cb.ServerType() == SqlServerType::POSTGRESQL)
-        {
-            auto u16String = std::make_shared<std::u16string>(ToUtf16(std::u8string_view {
-                reinterpret_cast<char8_t const*>(StringTraits::Data(&value)), StringTraits::Size(&value) }));
-            cb.PlanPostExecuteCallback([u16String = u16String]() {}); // keep buffer alive
-            auto const charCount = u16String->size();
-            auto const byteCount = charCount * sizeof(char16_t);
-            auto const sqlType =
-                static_cast<SQLSMALLINT>(charCount > SqlOptimalMaxColumnSize ? SQL_WLONGVARCHAR : SQL_WVARCHAR);
-
-            SQLLEN* indicator = cb.ProvideInputIndicator();
-            *indicator = static_cast<SQLLEN>(byteCount);
-
-            return SQLBindParameter(stmt,
-                                    column,
-                                    SQL_PARAM_INPUT,
-                                    SQL_C_WCHAR,
-                                    sqlType,
-                                    detail::NonZeroColumnSize(charCount),
-                                    0,
-                                    (SQLPOINTER) u16String->data(),
-                                    static_cast<SQLLEN>(byteCount),
-                                    indicator);
-        }
+        // Drivers that would reinterpret SQL_C_CHAR bytes in an encoding of their own get the text as UTF-16:
+        // psqlODBC on Windows reads them as the system code page although the library treats them as UTF-8,
+        // and the SQLite driver's OEMCP option reads them as the thread's ANSI code page instead of the process
+        // one. The driver then converts the UTF-16 to the database encoding itself. See
+        // SqlConnection::NarrowTextBindingMode.
+        if (auto const binding = cb.NarrowTextBindingMode(); binding != detail::NarrowTextBinding::Narrow)
+            return detail::BindNarrowTextAsUtf16(
+                stmt, column, { StringTraits::Data(&value), StringTraits::Size(&value) }, binding, cb);
 
         auto const charCount = StringTraits::Size(&value);
         auto const sqlType = static_cast<SQLSMALLINT>(charCount > SqlOptimalMaxColumnSize ? SQL_LONGVARCHAR : SQL_VARCHAR);
@@ -351,6 +378,10 @@ struct SqlDataBinder<AnsiStringType>
                                                                   size_t rowCount,
                                                                   SqlDataBinderCallback& cb) noexcept
     {
+        // PostgreSQL keeps the narrow batch bind (correct for ASCII content only, see BatchRowWiseInputParameter).
+        if (auto const binding = cb.NarrowTextBindingMode(); binding == detail::NarrowTextBinding::WideFromProcessCodePage)
+            return BatchInputParameterAsUtf16(stmt, column, values, rowCount, binding, cb);
+
         size_t maxLen = 0;
         SQLLEN* indicators = cb.ProvideInputIndicators(rowCount);
         for (size_t i = 0; i < rowCount; ++i)
@@ -372,6 +403,51 @@ struct SqlDataBinder<AnsiStringType>
                                 0,
                                 (SQLPOINTER) values,
                                 sizeof(AnsiStringType),
+                                indicators);
+    }
+
+    /// Binds a column-wise batch of narrow strings as @c SQL_C_WCHAR, converted to UTF-16 as @p binding prescribes.
+    ///
+    /// The converted rows are laid out in one buffer with a fixed per-row stride, which the column-wise
+    /// parameter array addresses through the bind's buffer length; the buffer lives until the batch is executed.
+    static SQLRETURN BatchInputParameterAsUtf16(SQLHSTMT stmt,
+                                                SQLUSMALLINT column,
+                                                AnsiStringType const* values,
+                                                size_t rowCount,
+                                                detail::NarrowTextBinding binding,
+                                                SqlDataBinderCallback& cb) noexcept
+    {
+        auto rows = std::vector<std::u16string> {};
+        rows.reserve(rowCount);
+        auto maxChars = size_t { 0 };
+        for (auto const& value: std::span { values, rowCount })
+        {
+            rows.emplace_back(
+                detail::NarrowTextToUtf16({ StringTraits::Data(&value), StringTraits::Size(&value) }, binding));
+            maxChars = (std::max) (maxChars, rows.back().size());
+        }
+        auto const rowStride = maxChars + 1;
+
+        auto buffer = std::make_shared<std::u16string>(rowCount * rowStride, u'\0');
+        cb.PlanPostExecuteCallback([buffer = buffer]() {}); // keep buffer alive
+        SQLLEN* indicators = cb.ProvideInputIndicators(rowCount);
+        for (auto const rowIndex: std::views::iota(size_t { 0 }, rowCount))
+        {
+            auto const& row = rows[rowIndex];
+            std::ranges::copy(row, buffer->begin() + static_cast<std::ptrdiff_t>(rowIndex * rowStride));
+            indicators[rowIndex] = static_cast<SQLLEN>(row.size() * sizeof(char16_t));
+        }
+
+        auto const sqlType = static_cast<SQLSMALLINT>(maxChars > SqlOptimalMaxColumnSize ? SQL_WLONGVARCHAR : SQL_WVARCHAR);
+        return SQLBindParameter(stmt,
+                                column,
+                                SQL_PARAM_INPUT,
+                                SQL_C_WCHAR,
+                                sqlType,
+                                detail::NonZeroColumnSize(maxChars),
+                                0,
+                                (SQLPOINTER) buffer->data(),
+                                static_cast<SQLLEN>(rowStride * sizeof(char16_t)),
                                 indicators);
     }
 
@@ -476,18 +552,15 @@ struct SqlDataBinder<AnsiStringType>
     static LIGHTWEIGHT_FORCE_INLINE SQLRETURN OutputColumn(
         SQLHSTMT stmt, SQLUSMALLINT column, AnsiStringType* result, SQLLEN* indicator, SqlDataBinderCallback& cb) noexcept
     {
-        // PostgreSQL: read narrow strings back through UTF-16 + SQL_C_WCHAR, mirroring InputParameter.
-        // psqlODBC on Windows transcodes SQL_C_CHAR data to the system codepage (cp1252), which mangles
-        // the UTF-8 bytes the write path stored (café -> caf? ?). Going via SQL_C_WCHAR and converting
-        // UTF-16 -> UTF-8 here keeps the narrow round-trip byte-exact under the library's UTF-8 convention.
-        // (Self-contained rather than reusing BindOutputColumnNonUtf16Unicode, which assumes a
-        // std::basic_string result and so does not cover SqlText / fixed-capacity narrow strings.)
-        if (cb.ServerType() == SqlServerType::POSTGRESQL)
+        // Read narrow strings back through UTF-16 + SQL_C_WCHAR where InputParameter writes them that way,
+        // converting with the same encoding. (Self-contained rather than reusing BindOutputColumnNonUtf16Unicode,
+        // which assumes a std::basic_string result and so does not cover SqlText / fixed-capacity narrow strings.)
+        if (auto const binding = cb.NarrowTextBindingMode(); binding != detail::NarrowTextBinding::Narrow)
         {
             auto u16String = std::make_shared<std::u16string>();
             u16String->resize(StringTraits::Size(result) != 0 ? StringTraits::Size(result) : 255);
 
-            cb.PlanPostProcessOutputColumn([stmt, column, result, indicator, u16String]() {
+            cb.PlanPostProcessOutputColumn([stmt, column, result, indicator, u16String, binding]() {
                 if (*indicator == SQL_NULL_DATA)
                     u16String->clear();
                 else if (*indicator == SQL_NO_TOTAL)
@@ -510,11 +583,11 @@ struct SqlDataBinder<AnsiStringType>
                     u16String->resize(totalChars);
                 }
 
-                auto const u8String = ToUtf8(*u16String);
+                auto const narrowText = detail::Utf16ToNarrowText(*u16String, binding);
                 // Resize may clamp to a fixed-capacity string's Capacity; copy only the post-clamp
-                // length so a UTF-8 expansion never overruns the inline buffer.
-                StringTraits::Resize(result, static_cast<SQLLEN>(u8String.size()));
-                std::memcpy(StringTraits::Data(result), u8String.data(), StringTraits::Size(result));
+                // length so a multi-byte expansion never overruns the inline buffer.
+                StringTraits::Resize(result, static_cast<SQLLEN>(narrowText.size()));
+                std::memcpy(StringTraits::Data(result), narrowText.data(), StringTraits::Size(result));
 
                 if constexpr (requires { StringTraits::PostProcessOutputColumn(result, *indicator); })
                     if (*indicator != SQL_NULL_DATA && *indicator != SQL_NO_TOTAL)
@@ -599,23 +672,22 @@ struct SqlDataBinder<AnsiStringType>
                                SQLLEN* indicator,
                                SqlDataBinderCallback const& cb) noexcept
     {
-        // PostgreSQL: fetch narrow strings via UTF-16 + SQL_C_WCHAR and convert to UTF-8, symmetric
-        // with InputParameter / OutputColumn. A raw SQL_C_CHAR fetch would come back transcoded to
-        // the Windows system codepage (cp1252) by psqlODBC, mangling the stored UTF-8 bytes.
-        if (cb.ServerType() == SqlServerType::POSTGRESQL)
+        // Fetch narrow strings via UTF-16 + SQL_C_WCHAR where InputParameter writes them that way,
+        // symmetric with InputParameter / OutputColumn.
+        if (auto const binding = cb.NarrowTextBindingMode(); binding != detail::NarrowTextBinding::Narrow)
         {
             auto u16String = std::u16string {};
             auto const sqlResult = detail::GetColumnUtf16(stmt, column, &u16String, indicator, cb);
             if (!SQL_SUCCEEDED(sqlResult))
                 return sqlResult;
 
-            auto const u8String = ToUtf8(u16String);
+            auto const narrowText = detail::Utf16ToNarrowText(u16String, binding);
             // Resize may clamp to a fixed-capacity string's Capacity, so copy only what fits
             // (StringTraits::Size reflects the post-clamp length) to avoid overrunning the buffer.
-            StringTraits::Resize(result, static_cast<SQLLEN>(u8String.size()));
-            std::memcpy(StringTraits::Data(result), u8String.data(), StringTraits::Size(result));
+            StringTraits::Resize(result, static_cast<SQLLEN>(narrowText.size()));
+            std::memcpy(StringTraits::Data(result), narrowText.data(), StringTraits::Size(result));
             // Apply the type's post-processing (e.g. FIXED_SIZE_RIGHT_TRIMMED strips the CHAR(N)
-            // padding the server returned), matching the non-PostgreSQL GetColumn path. The
+            // padding the server returned), matching the narrow GetColumn path. The
             // synthetic indicator is the result's own byte count.
             if constexpr (requires { StringTraits::PostProcessOutputColumn(result, *indicator); })
                 if (*indicator != SQL_NULL_DATA && *indicator != SQL_NO_TOTAL)

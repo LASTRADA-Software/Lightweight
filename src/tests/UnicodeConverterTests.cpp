@@ -4,6 +4,16 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#if defined(_WIN32) || defined(_WIN64)
+    #ifndef NOMINMAX
+        #define NOMINMAX
+    #endif
+    #ifndef WIN32_LEAN_AND_MEAN
+        #define WIN32_LEAN_AND_MEAN
+    #endif
+    #include <Windows.h>
+#endif
+
 using namespace std::string_view_literals;
 using namespace Lightweight;
 
@@ -340,3 +350,19 @@ TEST_CASE("Empty string round-trips through every converter", "[Unicode]")
     CHECK(ToStdWideString(std::string {}).empty());
     CHECK(ToUtf16(std::string {}).empty());
 }
+
+#if defined(_WIN32) || defined(_WIN64)
+TEST_CASE("UTF-16 to local 8-bit conversion uses the process code page without best fit", "[Unicode]")
+{
+    // A single-byte code page has no infinity sign; best fit would map it to "8".
+    if (GetACP() == CP_UTF8)
+    {
+        CHECK(ToLocaleString(u"\u221E"sv) == "\xE2\x88\x9E");
+        return;
+    }
+    CHECK(ToLocaleString(u"\u221E"sv) == "?");
+
+    auto const umlaut = u"\u00E4"sv;
+    CHECK(ToUtf16(ToLocaleString(umlaut)) == umlaut);
+}
+#endif
