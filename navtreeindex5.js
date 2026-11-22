@@ -1,7 +1,5 @@
 var NAVTREEINDEX5 =
 {
-"d8/df7/classLightweight_1_1SqlQueryFormatter.html#a1aade87023f69d63e86f4aca06a97595":[22,0,0,77,31],
-"d8/df7/classLightweight_1_1SqlQueryFormatter.html#a1d973789fe4e659b30eb414dea1d6941":[22,0,0,77,37],
 "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a1dcb7e54bfcc84b7995643cd35a43c53":[22,0,0,77,3],
 "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a21a962ad99398b3b0e882a11a38a7e9f":[22,0,0,77,38],
 "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a28840705a0b4cc329d082cf327f486f3":[22,0,0,77,18],
@@ -146,7 +144,6 @@ var NAVTREEINDEX5 =
 "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html":[22,0,0,42],
 "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#a151e499b5da3afcaea3326bfb35d3c36":[22,0,0,42,11],
 "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#a209f52c2128670486fa0df251261bf80":[22,0,0,42,5],
-"d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#a45b37b294222fbd105071e20e86ba3a1":[22,0,0,42,12],
 "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#a7d7b102126f4b2455df46e31906cb189":[22,0,0,42,7],
 "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#a842aa25ccb3ab6f600c3775f68e64871":[22,0,0,42,1],
 "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#aa4a1025e0d27d3e8f0c97081e2419875":[22,0,0,42,10],
@@ -154,7 +151,7 @@ var NAVTREEINDEX5 =
 "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#abd90cf0b647d60af5bb130b7fe162bd2":[22,0,0,42,4],
 "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#ac391fe5ce2043b272fe4191b98e26f52":[22,0,0,42,3],
 "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#ac89cf719251905b8e0af7f5ed4e42036":[22,0,0,42,0],
-"d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#ad098c3dad4ee1a7363b6f2de5d875861":[22,0,0,42,13],
+"d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#ad098c3dad4ee1a7363b6f2de5d875861":[22,0,0,42,12],
 "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#ad2b577cf0e7a7cc9eb671677b42cb914":[22,0,0,42,8],
 "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#aecb8ed9927ded35a8b35dd570bf53170":[22,0,0,42,2],
 "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#af7acc1d446fc49ea446f8ae20f58518c":[22,0,0,42,9],
@@ -249,5 +246,8 @@ var NAVTREEINDEX5 =
 "da/d49/structLightweight_1_1SqlMigration_1_1ChecksumVerificationResult.html#ae89a23f74516602d7c4e773d768b0436":[20,7,2,1],
 "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html":[20,3,15],
 "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#a005b078df5fc4a050cff113564a3c03c":[20,3,15,1],
-"da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#a110f55753102b397dee9f26192fb1295":[20,3,15,9]
+"da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#a110f55753102b397dee9f26192fb1295":[20,3,15,9],
+"da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#a25a32f6bdaa186db2f20b2683bcede27":[20,3,15,8],
+"da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#a27f9b5b92afec1d8ca21de0eb978fbce":[20,3,15,4],
+"da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#a2f2d1f5684e8d4290b9ad733f0c77835":[20,3,15,7]
 };

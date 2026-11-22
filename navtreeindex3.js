@@ -1,6 +1,5 @@
 var NAVTREEINDEX3 =
 {
-"d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#a04fd31415705ccc61b63eec99a7bf1f3":[20,6,1,6],
 "d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#a1f03a5faa280b0ae0ee688e3b9f40208":[20,6,1,1],
 "d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#a294bef751b01e0f8e110c989afff2814":[20,6,1,0],
 "d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#a3e8f610544a01c1fde5de73f85573377":[20,6,1,7],
@@ -249,5 +248,6 @@ var NAVTREEINDEX3 =
 "d7/d53/structLightweight_1_1SqlTime.html#ad2fa6d376c7fd1ca95119d08e0e6b814":[20,1,11,9],
 "d7/d53/structLightweight_1_1SqlTime.html#aeac9fe591411b84af0285ea3f4152892":[20,1,11,6],
 "d7/d6d/ChunkPlanner_8hpp_source.html":[23,0,1,4,2],
-"d7/d76/SyncWait_8hpp_source.html":[23,0,1,0,11]
+"d7/d76/SyncWait_8hpp_source.html":[23,0,1,0,11],
+"d7/d79/UnicodeUpgradeProgress_8hpp_source.html":[23,0,1,43]
 };
