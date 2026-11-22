@@ -611,9 +611,14 @@ TEST_CASE_METHOD(SqlTestFixture,
     };
     auto const _ = ScopedSqlNullLogger {};
 
-    // While connecting, the failure fails the connect rather than leaving the journal mode unapplied.
+    // While connecting, the failure fails the connect rather than leaving the journal mode unapplied. It
+    // reports its own error, not the one an earlier failed connect left behind.
     auto connection = SqlConnection { std::nullopt, impatientWal };
+    CHECK_FALSE(connection.Connect(SqlConnectionString { "DRIVER={Lightweight No Such Driver}" }));
+    auto const earlierError = connection.LastError();
+    REQUIRE(earlierError.sqlState != SqlErrorInfo {}.sqlState);
     CHECK_FALSE(connection.Connect(WithSqliteDatabaseFile(path)));
+    CHECK(connection.LastError().sqlState != earlierError.sqlState);
 
     // On an open connection, the setter reports it.
     auto open = SqlConnection { WithSqliteDatabaseFile(path), SqliteConnectionSettings { .busyTimeout = {} } };
@@ -857,5 +862,52 @@ TEST_CASE_METHOD(SqlTestFixture,
         CHECK(ConnectReportingSqlState(unseenSpelling(upperCaseMask), sqlState));
         CHECK(std::filesystem::exists(path));
         RemoveSqliteDatabaseFiles(path);
+    }
+}
+TEST_CASE_METHOD(SqlTestFixture, "SqlConnection: Connect on a connected connection", "[SqlConnection]")
+{
+    auto conn = SqlConnection {};
+    REQUIRE(conn.IsAlive());
+
+    SECTION("No statement allocated")
+    {
+        auto const sessionBefore = conn.SessionId();
+        REQUIRE(conn.Connect(SqlConnection::DefaultConnectionString()));
+        CHECK(conn.SessionId() != sessionBefore);
+        CHECK(SqlStatement { conn }.ExecuteDirectScalar<int>("SELECT 42") == std::optional { 42 });
+    }
+
+    SECTION("A statement still allocated")
+    {
+        // On SQLite the attempt names another database file, so a refused one shows which target the
+        // connection reports afterwards.
+        auto const isSqlite = conn.ServerType() == SqlServerType::SQLITE;
+        auto const path = ScratchSqliteDatabasePath("connect-refused");
+        auto const cleanup = detail::Finally([&] {
+            if (isSqlite)
+                RemoveSqliteDatabaseFiles(path);
+        });
+        auto const target = isSqlite ? WithSqliteDatabaseFile(path) : SqlConnection::DefaultConnectionString();
+        auto const connectionStringBefore = conn.ConnectionString();
+
+        auto stmt = SqlStatement { conn };
+        stmt.Prepare("SELECT 42");
+        auto const sessionBefore = conn.SessionId();
+        if (conn.Connect(target))
+        {
+            // The session ended; the statement gets a fresh handle on its next use.
+            CHECK(conn.SessionId() != sessionBefore);
+            CHECK(conn.ConnectionString().value == target.value);
+        }
+        else
+        {
+            // The driver refused to end the session while a statement is allocated (the SQLite ODBC
+            // driver does): the refusal is reported and the session goes on untouched, connection
+            // string included.
+            CHECK(conn.LastError().sqlState == "25000");
+            CHECK(conn.SessionId() == sessionBefore);
+            CHECK(conn.ConnectionString().value == connectionStringBefore.value);
+        }
+        CHECK(stmt.ExecuteDirectScalar<int>("SELECT 42") == std::optional { 42 });
     }
 }

@@ -361,6 +361,7 @@ struct SqlConnection::Data
     SqlRetrySettings connectRetrySettings;          // How Connect() retries a transient failure.
     SqlRetrySleeper* connectRetrySleeper = nullptr; // Waits between connect attempts; null = ThreadSleeper().
     uint64_t sessionId = 0; // Identifies the current connected session (0 while not connected), see SessionId().
+    std::optional<SqlErrorInfo> lastConnectError; // Why the last Connect() failed, kept for LastError()
 };
 
 SqlConnection::SqlConnection():
@@ -775,18 +776,11 @@ bool SqlConnection::Connect(SqlConnectionDataSource const& info) noexcept
 std::expected<void, SqlErrorInfo> SqlConnection::ConnectOnce(SqlConnectionDataSource const& info) noexcept
 {
     ZoneScopedN("SqlConnection::ConnectOnce(DataSource)");
+    // A refused end of the current session leaves that session, and its settings, untouched.
+    if (auto ended = EndCurrentSession(); !ended)
+        return ended;
     m_data->defaultPrefetchDepth = info.defaultPrefetchDepth;
     m_data->requestedPreparedStatementCacheCapacity = info.preparedStatementCacheCapacity;
-
-    // Handles prepared against the previous session die with the disconnect below.
-    m_data->preparedStatementCache.Clear();
-    m_data->sessionId = 0;
-
-    if (m_hDbc)
-    {
-        detail::UnregisterAnsiOnlyHandle(m_hDbc);
-        SQLDisconnect(m_hDbc);
-    }
 
     // Prepare the three input strings once, *outside* the scoped lock: as UTF-16, so the
     // W-variant `SQLConnectW` call below marks this DBC handle as a Unicode application - which
@@ -897,8 +891,8 @@ std::expected<void, SqlErrorInfo> SqlConnection::ConnectOnce(SqlConnectionDataSo
         return std::unexpected(std::move(error));
     }
 
-    if (!PostConnect())
-        return std::unexpected(LastError());
+    if (auto posted = PostConnect(); !posted)
+        return posted;
     RememberDriverTextEntry(driverKey, m_acceptsWideQueryText);
 
     SqlLogger::GetLogger().OnConnectionOpened(*this);
@@ -921,24 +915,18 @@ bool SqlConnection::Connect(SqlConnectionString sqlConnectionString) noexcept
     if (m_handleOwnership == SqlHandleOwnership::Borrowed)
         return false; // The owner of the handle decides what it is connected to.
     EnsureHandlesAllocated();
-    m_data->connectionString = std::move(sqlConnectionString);
-    return ConnectWithRetry([this] { return ConnectOnce(); });
+    return ConnectWithRetry([this, &sqlConnectionString] { return ConnectOnce(sqlConnectionString); });
 }
 
-std::expected<void, SqlErrorInfo> SqlConnection::ConnectOnce() noexcept
+std::expected<void, SqlErrorInfo> SqlConnection::ConnectOnce(SqlConnectionString const& connectionString) noexcept
 {
     // One zone per attempt, so retries show up individually in a capture.
     ZoneScopedN("SqlConnection::ConnectOnce(ConnectionString)");
+    // A refused end of the current session leaves that session, and the connection string naming it,
+    // untouched.
+    if (auto ended = EndCurrentSession(); !ended)
+        return ended;
     m_data->dataSourceName.reset();
-    // Handles prepared against the previous session die with the disconnect below.
-    m_data->preparedStatementCache.Clear();
-    m_data->sessionId = 0;
-
-    if (m_hDbc)
-    {
-        detail::UnregisterAnsiOnlyHandle(m_hDbc);
-        SQLDisconnect(m_hDbc);
-    }
 
     // Prepare both forms of the connection string *before* the scoped lock. The wide one,
     // through `SQLDriverConnectW`, puts this DBC handle into Unicode-app mode for the rest of
@@ -951,6 +939,8 @@ std::expected<void, SqlErrorInfo> SqlConnection::ConnectOnce() noexcept
     auto driverKey = std::string {};
     try
     {
+        if (&m_data->connectionString != &connectionString)
+            m_data->connectionString = connectionString;
         auto const sanitized = SqlConnectionString::SanitizePwd(m_data->connectionString.value);
         ZoneTextObject(sanitized);
         wConnectionString = detail::OdbcWideArg { m_data->connectionString.value };
@@ -997,8 +987,8 @@ std::expected<void, SqlErrorInfo> SqlConnection::ConnectOnce() noexcept
     if (!SQL_SUCCEEDED(sqlResult))
         return std::unexpected(LastError());
 
-    if (!PostConnect())
-        return std::unexpected(LastError());
+    if (auto posted = PostConnect(); !posted)
+        return posted;
     RememberDriverTextEntry(driverKey, m_acceptsWideQueryText);
     SqlLogger::GetLogger().OnConnectionOpened(*this);
     LIGHTWEIGHT_STATS_CONNECTION_OPENED();
@@ -1020,9 +1010,16 @@ bool SqlConnection::ConnectWithRetry(Attempt const& attempt) noexcept
         auto state = SqlRetryState {};
         while (true)
         {
+            // This attempt's failure, if any, is reported on its own: LastError() falls back to the
+            // recorded one when the driver keeps no diagnostic.
+            m_data->lastConnectError.reset();
             auto const outcome = attempt();
             if (outcome)
+            {
+                m_data->lastConnectError.reset();
                 return true;
+            }
+            m_data->lastConnectError = outcome.error();
 
             auto const decision = policy.Decide(outcome.error(), state);
             if (!decision)
@@ -1065,7 +1062,31 @@ void SqlConnection::DetectServer()
     ApplyPreparedStatementCacheCapacity();
 }
 
-bool SqlConnection::PostConnect()
+std::expected<void, SqlErrorInfo> SqlConnection::EndCurrentSession() noexcept
+{
+    // Handles prepared against the current session die with the disconnect below; freeing the pooled
+    // ones first also matters to a driver that refuses to disconnect while statements are allocated.
+    m_data->preparedStatementCache.Clear();
+
+    if (!m_hDbc)
+        return {};
+
+    auto const wasConnected = m_data->sessionId != 0;
+    auto const sqlResult = SQLDisconnect(m_hDbc);
+    if (wasConnected && !SQL_SUCCEEDED(sqlResult))
+    {
+        // The session goes on: e.g. the SQLite ODBC driver refuses to disconnect ("25000 unfinished
+        // statements") while statements are still allocated on the connection. Report that, rather
+        // than the "connection name in use" the connect attempt on the still-connected handle would.
+        return std::unexpected(LastError());
+    }
+
+    detail::UnregisterAnsiOnlyHandle(m_hDbc);
+    m_data->sessionId = 0;
+    return {};
+}
+
+std::expected<void, SqlErrorInfo> SqlConnection::PostConnect()
 {
     // A new session: statement handles allocated in an earlier one died with its disconnect.
     m_data->sessionId = gNextSessionId++;
@@ -1085,12 +1106,12 @@ bool SqlConnection::PostConnect()
     // SQLite's busy timeout and journal mode (see SqliteConnectionSettings). A requested journal mode
     // that cannot be applied fails the connect rather than leaving the connection in a mode the
     // application did not ask for.
-    if (auto const applied = ApplySqliteSettings(); !applied)
+    if (auto applied = ApplySqliteSettings(); !applied)
     {
         SqlLogger::GetLogger().OnError(applied.error());
-        return false;
+        return applied;
     }
-    return true;
+    return {};
 }
 
 void SqlConnection::EnsureHandlesAllocated()
@@ -1105,7 +1126,12 @@ void SqlConnection::EnsureHandlesAllocated()
 
 SqlErrorInfo SqlConnection::LastError() const
 {
-    return SqlErrorInfo::FromConnectionHandle(m_hDbc);
+    // Some drivers (the SQLite ODBC driver) hand out a diagnostic record only once, and a failed
+    // Connect() has already read its own: fall back to what Connect() recorded.
+    auto info = SqlErrorInfo::FromConnectionHandle(m_hDbc);
+    if (info.sqlState == SqlErrorInfo {}.sqlState && m_data && m_data->lastConnectError)
+        return *m_data->lastConnectError;
+    return info;
 }
 
 uint64_t SqlConnection::SessionId() const noexcept

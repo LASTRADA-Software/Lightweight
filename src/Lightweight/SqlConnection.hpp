@@ -376,6 +376,9 @@ class SqlConnection final
     ///
     /// This method can be called on a connection that has been closed via Close().
     /// If the ODBC handles have been freed, they will be automatically reallocated.
+    /// Called on a connected connection, it ends the current session first (statements of that session
+    /// get a fresh handle on their next use). A driver may refuse that while statements are allocated
+    /// (the SQLite ODBC driver does); then it fails with that refusal and the current session goes on.
     /// A transient failure is retried as @ref SetConnectRetrySettings configures.
     /// It always fails on a borrowed connection (see @ref Borrow).
     ///
@@ -387,6 +390,9 @@ class SqlConnection final
     ///
     /// This method can be called on a connection that has been closed via Close().
     /// If the ODBC handles have been freed, they will be automatically reallocated.
+    /// Called on a connected connection, it ends the current session first (statements of that session
+    /// get a fresh handle on their next use). A driver may refuse that while statements are allocated
+    /// (the SQLite ODBC driver does); then it fails with that refusal and the current session goes on.
     /// A transient failure is retried as @ref SetConnectRetrySettings configures.
     /// It always fails on a borrowed connection (see @ref Borrow).
     ///
@@ -395,6 +401,9 @@ class SqlConnection final
     LIGHTWEIGHT_API bool Connect(SqlConnectionString sqlConnectionString) noexcept;
 
     /// Retrieves the last error information with respect to this SQL connection handle.
+    ///
+    /// After a failed Connect(), this is why it failed, also with a driver that reports a diagnostic
+    /// only once (Connect() itself has read it by then).
     [[nodiscard]] LIGHTWEIGHT_API SqlErrorInfo LastError() const;
 
     /// Retrieves the name of the database in use.
@@ -696,14 +705,19 @@ class SqlConnection final
     void EnsureHandlesAllocated();
 
     /// Detects the server type and applies the connect-time session settings.
-    /// @return `false` if a requested session setting could not be applied (the error is logged).
-    [[nodiscard]] bool PostConnect();
+    /// @return The error, if a requested session setting could not be applied (it is also logged).
+    [[nodiscard]] std::expected<void, SqlErrorInfo> PostConnect();
+
+    /// @brief Ends the current session (if any) before a connect: clears the prepared-statement cache and
+    /// disconnects. Fails, leaving the session as it was, when the driver refuses to disconnect.
+    [[nodiscard]] std::expected<void, SqlErrorInfo> EndCurrentSession() noexcept;
 
     /// One attempt of Connect(SqlConnectionDataSource const&).
     [[nodiscard]] std::expected<void, SqlErrorInfo> ConnectOnce(SqlConnectionDataSource const& info) noexcept;
 
-    /// One attempt of Connect(SqlConnectionString).
-    [[nodiscard]] std::expected<void, SqlErrorInfo> ConnectOnce() noexcept;
+    /// One attempt of Connect(SqlConnectionString). The connection string becomes the stored one once the
+    /// current session ended, so a refused attempt leaves ConnectionString() naming the session that goes on.
+    [[nodiscard]] std::expected<void, SqlErrorInfo> ConnectOnce(SqlConnectionString const& connectionString) noexcept;
 
     /// Runs @p attempt, retrying a transient failure as the connect-retry settings say.
     /// @return True once an attempt succeeded; false when the policy gave up.
