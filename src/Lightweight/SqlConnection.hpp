@@ -367,6 +367,10 @@ class SqlConnection final
     ///
     /// A borrowed connection (see @ref Borrow) only detaches from its handle, leaving it connected.
     ///
+    /// The statements and cursors of the connection end with its session: executing one, or fetching
+    /// from a cursor, fails with SQLSTATE 08003 afterwards. Reading a column of a cursor's current row
+    /// after the connection was closed is not allowed.
+    ///
     /// This does not return the connection to any pool: `SqlConnection` owns its handles outright.
     /// Connection pooling is provided separately by `Lightweight::Pool` in
     /// `DataMapper/Pool.hpp`, which recycles pooled `DataMapper` instances.
@@ -694,6 +698,21 @@ class SqlConnection final
     [[nodiscard]] LIGHTWEIGHT_API Async::IAsyncBackend& AsyncBackend();
 
   private:
+    friend class SqlStatement;
+
+    /// @brief Records a statement handle a @c SqlStatement allocated on this connection (or took from the
+    /// prepared-statement cache), so @ref Close() can free it before disconnecting.
+    /// @param hStmt The statement handle.
+    void TrackStatementHandle(SQLHSTMT hStmt);
+
+    /// @brief Forgets a statement handle recorded by @ref TrackStatementHandle: it was freed, or parked in
+    /// the prepared-statement cache, which frees its own handles.
+    /// @param hStmt The statement handle.
+    void UntrackStatementHandle(SQLHSTMT hStmt) noexcept;
+
+    /// @brief Frees the prepared-statement cache's handles and the ones @ref TrackStatementHandle recorded.
+    void FreeStatementHandles() noexcept;
+
     /// Selects the private constructor that borrows a handle, keeping it out of overload resolution
     /// for the public constructors.
     struct BorrowTag

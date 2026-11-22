@@ -362,6 +362,9 @@ struct SqlConnection::Data
     SqlRetrySleeper* connectRetrySleeper = nullptr; // Waits between connect attempts; null = ThreadSleeper().
     uint64_t sessionId = 0; // Identifies the current connected session (0 while not connected), see SessionId().
     std::optional<SqlErrorInfo> lastConnectError; // Why the last Connect() failed, kept for LastError()
+    // Statement handles of the current session held by SqlStatement objects (pooled ones belong to the
+    // cache): Close() frees them before disconnecting. One entry per live statement, not per row.
+    std::vector<SQLHSTMT> statementHandles;
 };
 
 SqlConnection::SqlConnection():
@@ -1091,7 +1094,39 @@ std::expected<void, SqlErrorInfo> SqlConnection::EndCurrentSession() noexcept
 
     detail::UnregisterAnsiOnlyHandle(m_hDbc);
     m_data->sessionId = 0;
+    m_data->statementHandles.clear(); // the driver freed them with the disconnect
     return {};
+}
+
+void SqlConnection::FreeStatementHandles() noexcept
+{
+    if (!m_data)
+        return;
+    m_data->preparedStatementCache.Clear();
+    for (auto* const hStmt: m_data->statementHandles)
+    {
+        detail::UnregisterAnsiOnlyHandle(hStmt);
+        SQLFreeHandle(SQL_HANDLE_STMT, hStmt);
+    }
+    m_data->statementHandles.clear();
+}
+
+void SqlConnection::TrackStatementHandle(SQLHSTMT hStmt)
+{
+    if (m_data)
+        m_data->statementHandles.push_back(hStmt);
+}
+
+void SqlConnection::UntrackStatementHandle(SQLHSTMT hStmt) noexcept
+{
+    if (!m_data)
+        return;
+    auto& handles = m_data->statementHandles;
+    if (auto const it = std::ranges::find(handles, hStmt); it != handles.end())
+    {
+        *it = handles.back();
+        handles.pop_back();
+    }
 }
 
 std::expected<void, SqlErrorInfo> SqlConnection::PostConnect()
@@ -1158,8 +1193,7 @@ void SqlConnection::Close() noexcept
     if (m_handleOwnership == SqlHandleOwnership::Borrowed)
     {
         // Statement handles are children of the DBC handle, which outlives this connection: free ours.
-        if (m_data)
-            m_data->preparedStatementCache.Clear();
+        FreeStatementHandles();
         m_hDbc = {};
         return;
     }
@@ -1167,12 +1201,16 @@ void SqlConnection::Close() noexcept
     SqlLogger::GetLogger().OnConnectionClosed(*this);
     LIGHTWEIGHT_STATS_CONNECTION_CLOSED();
 
-    // Statement handles are children of the DBC handle: free the pooled ones before it goes away.
-    if (m_data)
-        m_data->preparedStatementCache.Clear();
+    // Statement handles are children of the DBC handle: free them before it goes away. The pooled ones,
+    // and the ones live SqlStatement objects still hold: ODBC lets SQLDisconnect free those, but the
+    // SQLite ODBC driver refuses to disconnect while any is allocated (25000 "unfinished statements",
+    // its database stays open). The statements see the session ended (SessionId() changed) and forget
+    // their handle without freeing it again.
+    FreeStatementHandles();
 
     detail::UnregisterAnsiOnlyHandle(m_hDbc);
-    SQLDisconnect(m_hDbc);
+    if (!SQL_SUCCEEDED(SQLDisconnect(m_hDbc)))
+        SqlLogger::GetLogger().OnError(SqlErrorInfo::FromConnectionHandle(m_hDbc));
     SQLFreeHandle(SQL_HANDLE_DBC, m_hDbc);
     SQLFreeHandle(SQL_HANDLE_ENV, m_hEnv);
 

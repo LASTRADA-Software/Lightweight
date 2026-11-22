@@ -734,10 +734,21 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     /// @return The SQLExecDirect return code.
     [[nodiscard]] SQLRETURN ExecDirectOnHandle(std::string_view query);
 
-    /// @brief Records a freshly allocated handle: the connection session it belongs to and, for a
-    /// connection to an ANSI-only driver, that its diagnostics are read through the ANSI entry points
-    /// (see detail::RegisterAnsiOnlyHandle()).
-    void RegisterHandleTextEntry() noexcept;
+    /// @brief Records a freshly allocated handle: the connection session it belongs to, the handle with
+    /// the connection (which frees it on Close()) and, for a connection to an ANSI-only driver, that its
+    /// diagnostics are read through the ANSI entry points (see detail::RegisterAnsiOnlyHandle()).
+    void RegisterHandleTextEntry();
+    /// @brief Fails with SQLSTATE 08003 when the statement's handle belongs to a connection session that has
+    /// ended (Close(), a re-connect): the handle is gone, and with it what was prepared on it. One session
+    /// compare per execution.
+    LIGHTWEIGHT_API void RequireCurrentSession();
+    /// @brief Fails with SQLSTATE 08003 like RequireCurrentSession(), without forgetting the handle of an
+    /// ended session: for the const queries of the current result, which must not hand that handle to the
+    /// driver either.
+    void RequireLiveHandle() const;
+    /// @brief Whether the statement's handle belongs to the connection's current session (always true for a
+    /// moved-from statement, which has nothing to check against).
+    [[nodiscard]] bool HasLiveHandle() const noexcept;
 
     /// @brief Gives up the statement handle this statement holds: hands it back to the connection's
     /// prepared-statement cache, or frees it. Used by the destructor and by move assignment.
@@ -745,7 +756,7 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
 
     /// @brief Forgets the statement handle when it died with an earlier session of the connection
     /// (see SqlConnection::SessionId()), without freeing or pooling it.
-    void ForgetHandleOfEndedSession() noexcept;
+    LIGHTWEIGHT_API void ForgetHandleOfEndedSession() noexcept;
 
     /// @brief Describes every parameter of the prepared query.
     ///
@@ -892,6 +903,12 @@ class [[nodiscard]] SqlResultCursor
     }
 
     /// Fetches the next row of the result set.
+    ///
+    /// A cursor does not outlive its connection's session: once the connection is closed (or connected
+    /// again), FetchRow() fails with SQLSTATE 08003, so the usual @c while (cursor.FetchRow()) loop stops
+    /// there. Reading a column of the current row after the connection was closed is not allowed.
+    /// @return @c true for a row, @c false at the end of the result set.
+    /// @throws SqlException 08003 when the connection's session ended; the driver's error otherwise.
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE bool FetchRow()
     {
         return m_stmt->FetchRow();
@@ -1484,11 +1501,6 @@ inline LIGHTWEIGHT_FORCE_INLINE SqlConnection const& SqlStatement::Connection() 
     return *m_connection;
 }
 
-inline LIGHTWEIGHT_FORCE_INLINE SqlErrorInfo SqlStatement::LastError() const
-{
-    return SqlErrorInfo::FromStatementHandle(m_hStmt);
-}
-
 inline LIGHTWEIGHT_FORCE_INLINE SQLHSTMT SqlStatement::NativeHandle() const noexcept
 {
     return m_hStmt;
@@ -1546,6 +1558,7 @@ inline LIGHTWEIGHT_FORCE_INLINE void SqlStatement::BindOutputColumns(Args*... ar
         return;
     }
 
+    RequireCurrentSession(); // one compare per bind call; 08003 once the session ended
     RequireIndicators();
     NoteOutputColumnBoundDirectly();
 
@@ -1591,6 +1604,7 @@ void SqlStatement::BindOutputColumnsToRecord(Records*... records)
         return;
     }
 
+    RequireCurrentSession(); // one compare per bind call; 08003 once the session ended
     RequireIndicators();
     NoteOutputColumnBoundDirectly();
 
@@ -1629,6 +1643,7 @@ inline LIGHTWEIGHT_FORCE_INLINE void SqlStatement::BindOutputColumn(SQLUSMALLINT
 template <SqlInputParameterBinder Arg>
 inline LIGHTWEIGHT_FORCE_INLINE void SqlStatement::BindInputParameter(SQLSMALLINT columnIndex, Arg const& arg)
 {
+    RequireCurrentSession(); // one compare per bind call; 08003 once the session ended
     // tell Execute() that we don't know the expected count
     m_expectedParameterCount = (std::numeric_limits<decltype(m_expectedParameterCount)>::max)();
     RequireSuccess(SqlDataBinder<Arg>::InputParameter(m_hStmt, static_cast<SQLUSMALLINT>(columnIndex), arg, *this));
@@ -1653,6 +1668,7 @@ SqlResultCursor SqlStatement::Execute(Args const&... args)
 
     ZoneScopedN("SqlStatement::Execute");
     ZoneTextObject(m_preparedQuery);
+    RequireCurrentSession();
     SqlLogger::GetLogger().OnExecute(m_preparedQuery);
 
     if (!(m_expectedParameterCount == (std::numeric_limits<decltype(m_expectedParameterCount)>::max)()
@@ -1790,6 +1806,7 @@ SqlResultCursor SqlStatement::ExecuteBatchNative(FirstColumnBatch const& firstCo
 
     ZoneScopedN("SqlStatement::ExecuteBatchNative");
     ZoneTextObject(m_preparedQuery);
+    RequireCurrentSession();
 
     if (m_expectedParameterCount != 1 + sizeof...(moreColumnBatches))
         throw std::invalid_argument { "Invalid number of columns" };
@@ -1850,6 +1867,7 @@ SqlResultCursor SqlStatement::ExecuteBatchSoft(FirstColumnBatch const& firstColu
 {
     ZoneScopedN("SqlStatement::ExecuteBatchSoft");
     ZoneTextObject(m_preparedQuery);
+    RequireCurrentSession();
 
     if (m_expectedParameterCount != 1 + sizeof...(moreColumnBatches))
         throw std::invalid_argument { "Invalid number of columns" };
@@ -1888,6 +1906,7 @@ SqlResultCursor SqlStatement::ExecuteBatch(Rows const& rows, ColumnAccessors con
 {
     ZoneScopedN("SqlStatement::ExecuteBatch(row-major)");
     ZoneTextObject(m_preparedQuery);
+    RequireCurrentSession();
 
     using RowElem = std::ranges::range_value_t<Rows>;
 
@@ -2131,6 +2150,7 @@ void SqlStatement::FetchAllRowWise(std::vector<Record>& out, std::size_t arrayDe
 {
     ZoneScopedN("SqlStatement::FetchAllRowWise");
     ZoneTextObject(m_preparedQuery);
+    RequireCurrentSession(); // before the guard below touches the handle: 08003 once the session ended
 
     static_assert(sizeof...(ColumnAccessors) >= 1, "FetchAllRowWise requires at least one column accessor");
     constexpr std::size_t columnCount = sizeof...(ColumnAccessors);
@@ -2771,7 +2791,15 @@ inline LIGHTWEIGHT_FORCE_INLINE void SqlStatement::CloseCursor() noexcept
     // statement — start from a clean single-row state. Resets the prefetch lifecycle to Unarmed.
     // The column bindings and their callbacks stay: SQLFreeStmt(SQL_CLOSE) does not unbind, and the next
     // execution of the prepared statement fetches into them again.
+    // A cursor kept across its connection's Close() or re-connect holds a handle the driver freed: forget
+    // it (one session compare per cursor) and touch nothing.
+    ForgetHandleOfEndedSession();
     ResetPrefetchState();
+    if (m_hStmt == SQL_NULL_HSTMT)
+    {
+        SqlLogger::GetLogger().OnFetchEnd();
+        return;
+    }
 
     // SQL Server batches and DML/DDL row-count tokens produce multiple result
     // sets per SQLExecDirect. SQLFreeStmt(SQL_CLOSE) only discards the current

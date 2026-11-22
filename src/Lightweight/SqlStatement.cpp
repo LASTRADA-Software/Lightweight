@@ -545,14 +545,18 @@ void SqlStatement::ReleaseHandle() noexcept
     if (ReleasePreparedHandle())
         return;
 
+    if (m_connection)
+        m_connection->UntrackStatementHandle(m_hStmt);
     detail::UnregisterAnsiOnlyHandle(m_hStmt);
     SQLFreeHandle(SQL_HANDLE_STMT, m_hStmt);
     m_hStmt = SQL_NULL_HSTMT;
 }
 
-void SqlStatement::RegisterHandleTextEntry() noexcept
+void SqlStatement::RegisterHandleTextEntry()
 {
     m_sessionId = m_connection->SessionId();
+    if (m_hStmt != SQL_NULL_HSTMT)
+        m_connection->TrackStatementHandle(m_hStmt);
     if (m_hStmt != SQL_NULL_HSTMT && !m_connection->AcceptsWideQueryText())
         detail::RegisterAnsiOnlyHandle(m_hStmt, m_connection->NativeHandle());
 }
@@ -567,12 +571,14 @@ void SqlStatement::SetQueryTimeout(std::chrono::seconds timeout)
     if (timeout < std::chrono::seconds::zero())
         throw std::invalid_argument("The query timeout must not be negative.");
 
+    RequireCurrentSession();
     RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_QUERY_TIMEOUT, OdbcIntAttr(static_cast<SQLULEN>(timeout.count())), 0));
     m_data->queryTimeout = timeout;
 }
 
 std::chrono::seconds SqlStatement::QueryTimeout() const
 {
+    RequireLiveHandle();
     auto timeout = SQLULEN {};
     RequireSuccess(SQLGetStmtAttr(m_hStmt, SQL_ATTR_QUERY_TIMEOUT, &timeout, 0, nullptr));
     return std::chrono::seconds { static_cast<std::chrono::seconds::rep>(timeout) };
@@ -598,6 +604,49 @@ bool SqlStatement::ReleasePreparedHandle() noexcept
 {
     auto* const cache = UsablePreparedStatementCache();
     return cache != nullptr && ReleasePreparedHandle(*cache);
+}
+
+namespace
+{
+    /// The error of executing or fetching through a statement whose connection session ended.
+    SqlErrorInfo EndedSessionError()
+    {
+        return SqlErrorInfo {
+            .nativeErrorCode = 0,
+            .sqlState = "08003",
+            .message = "The statement was prepared in a connection session that has ended (the connection was closed "
+                       "or connected again): prepare it again.",
+        };
+    }
+} // namespace
+
+void SqlStatement::RequireCurrentSession()
+{
+    ForgetHandleOfEndedSession();
+    RequireLiveHandle();
+}
+
+bool SqlStatement::HasLiveHandle() const noexcept
+{
+    return m_connection == nullptr || (m_hStmt != SQL_NULL_HSTMT && m_connection->SessionId() == m_sessionId);
+}
+
+void SqlStatement::RequireLiveHandle() const
+{
+    if (HasLiveHandle())
+        return;
+
+    // A statement with a connection holds a handle unless its session ended (or the connection was never
+    // connected): every execution fails the same way until it is prepared again on a live session.
+    throw SqlException(EndedSessionError());
+}
+
+SqlErrorInfo SqlStatement::LastError() const
+{
+    // The diagnostics of a handle that died with an ended session are gone with it.
+    if (!HasLiveHandle())
+        return EndedSessionError();
+    return SqlErrorInfo::FromStatementHandle(m_hStmt);
 }
 
 void SqlStatement::ForgetHandleOfEndedSession() noexcept
@@ -644,6 +693,7 @@ bool SqlStatement::ReleasePreparedHandle(SqlPreparedStatementCache& cache) noexc
     if (m_data->queryTimeout != std::chrono::seconds::zero())
         SQLSetStmtAttr(m_hStmt, SQL_ATTR_QUERY_TIMEOUT, OdbcIntAttr(0), 0);
 
+    m_connection->UntrackStatementHandle(m_hStmt); // the cache owns it now
     cache.Release(m_preparedQuery,
                   SqlPreparedStatementCache::PreparedHandle { .nativeHandle = m_hStmt, .parameterCount = parameterCount });
 
@@ -691,11 +741,13 @@ bool SqlStatement::AcquirePreparedHandle(SqlPreparedStatementCache& cache, std::
     // Whatever we still hold was not worth pooling (it carries no prepared query), so it is surplus now.
     if (m_hStmt != SQL_NULL_HSTMT)
     {
+        m_connection->UntrackStatementHandle(m_hStmt);
         detail::UnregisterAnsiOnlyHandle(m_hStmt);
         SQLFreeHandle(SQL_HANDLE_STMT, m_hStmt);
     }
 
     m_hStmt = pooled->nativeHandle;
+    m_connection->TrackStatementHandle(m_hStmt);
     m_sessionId = m_connection->SessionId(); // pooled handles belong to the current session
     ApplyQueryTimeoutToNewHandle();
     // Both counts: m_expectedParameterCount is what Execute() validates against, m_preparedParameterCount
@@ -991,6 +1043,7 @@ SqlResultCursor SqlStatement::ExecuteWithVariants(std::vector<SqlVariant> const&
 {
     ZoneScopedN("SqlStatement::ExecuteWithVariants");
     ZoneTextObject(m_preparedQuery);
+    RequireCurrentSession();
     SqlLogger::GetLogger().OnExecute(m_preparedQuery);
 
     if (!(m_expectedParameterCount == (std::numeric_limits<decltype(m_expectedParameterCount)>::max)() && args.empty())
@@ -1050,6 +1103,7 @@ SqlResultCursor SqlStatement::ExecuteBatch(std::span<SqlRawColumn const> columns
 {
     ZoneScopedN("SqlStatement::ExecuteBatch");
     ZoneTextObject(m_preparedQuery);
+    RequireCurrentSession();
     ZoneValue(rowCount);
     SqlLogger::GetLogger().OnExecute(m_preparedQuery);
 
@@ -1071,6 +1125,7 @@ SqlResultCursor SqlStatement::ExecuteBatch(std::span<SqlRawColumn const> columns
 {
     ZoneScopedN("SqlStatement::ExecuteBatch(status)");
     ZoneTextObject(m_preparedQuery);
+    RequireCurrentSession();
     ZoneValue(rowCount);
     SqlLogger::GetLogger().OnExecute(m_preparedQuery);
 
@@ -1145,6 +1200,7 @@ RowArrayCursor SqlStatement::ExecuteBatchFetch(std::string_view query, std::size
 // Retrieves the number of rows affected by the last query.
 size_t SqlStatement::NumRowsAffected() const
 {
+    RequireLiveHandle();
     SQLLEN numRowsAffected {};
     RequireSuccess(SQLRowCount(m_hStmt, &numRowsAffected));
     return static_cast<size_t>(numRowsAffected);
@@ -1153,6 +1209,7 @@ size_t SqlStatement::NumRowsAffected() const
 // Retrieves the number of columns affected by the last query.
 size_t SqlStatement::NumColumnsAffected() const
 {
+    RequireLiveHandle();
     if (!m_numColumns)
     {
         SQLSMALLINT numColumns {};
@@ -1658,6 +1715,14 @@ std::expected<void, SqlErrorInfo> SqlStatement::RunPostProcessCallbacks(std::sou
 
 std::expected<bool, SqlErrorInfo> SqlStatement::TryFetchRow(std::source_location location) noexcept
 {
+    // A cursor kept across its connection's Close() (or Close() and Connect()) holds a handle the driver freed:
+    // one compare per row keeps the fetch loop from handing it to the driver, or reading a stale block.
+    if (m_connection != nullptr && m_connection->SessionId() != m_sessionId)
+    {
+        ForgetHandleOfEndedSession();
+        return MakeUnexpected(EndedSessionError(), m_preparedQuery, location);
+    }
+
     if (m_data->prefetchMode == Data::PrefetchMode::Unarmed)
         ArmPrefetchOnFirstFetch();
 
@@ -1691,6 +1756,8 @@ std::expected<bool, SqlErrorInfo> SqlStatement::TryFetchRow(std::source_location
 
 void SqlStatement::ConsumePendingResults(std::source_location location)
 {
+    // A cursor kept across its connection's Close() must not drain a freed handle: 08003 instead.
+    RequireCurrentSession();
     m_data->declaredOutputColumnSizes.clear(); // the next result set's columns may differ
     while (true)
     {
@@ -1934,6 +2001,12 @@ void RowArrayCursor::ResetStatementState() noexcept
     if (!m_stmt)
         return;
 
+    // A cursor kept across its connection's Close() or re-connect must not touch the handle: the driver
+    // freed it, and its address may belong to another statement by now.
+    m_stmt->ForgetHandleOfEndedSession();
+    if (m_stmt->NativeHandle() == SQL_NULL_HSTMT)
+        return;
+
     // Restore the statement handle to a single-row, unbound state so it can be safely reused for
     // another query. Failures here are non-fatal (best-effort cleanup), so we don't go through
     // RequireSuccess which would throw.
@@ -1954,6 +2027,7 @@ RowArrayCursor::~RowArrayCursor() noexcept
 std::size_t RowArrayCursor::FetchArray()
 {
     ZoneScopedN("RowArrayCursor::FetchArray");
+    m_stmt->RequireCurrentSession(); // one compare per block; 08003 once the session ended
 
     m_rowsFetched = 0;
     auto const rc = SQLFetchScroll(m_stmt->NativeHandle(), SQL_FETCH_NEXT, 0);
