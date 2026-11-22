@@ -700,6 +700,10 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     /// prepared-statement cache, or frees it. Used by the destructor and by move assignment.
     void ReleaseHandle() noexcept;
 
+    /// @brief Forgets the statement handle when it died with an earlier session of the connection
+    /// (see SqlConnection::SessionId()), without freeing or pooling it.
+    void ForgetHandleOfEndedSession() noexcept;
+
     /// @brief Describes every parameter of the prepared query.
     ///
     /// The MS SQL Server driver refuses @c SQLDescribeParam() (07009) once any parameter of the

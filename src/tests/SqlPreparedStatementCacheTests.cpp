@@ -522,3 +522,39 @@ TEST_CASE_METHOD(SqlTestFixture,
     CHECK(cache.Size() == 0);
     CHECK(SelectValue(stmt, 2) == 20);
 }
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "PreparedStatementCache: a statement used after its session ended gets a fresh handle",
+                 "[SqlPreparedStatementCache]")
+{
+    auto connection = MakeSeededConnection();
+    auto const& cache = connection.PreparedStatementCache();
+
+    auto stmt = SqlStatement { connection };
+    CHECK(SelectValue(stmt, 1) == 10);
+
+    connection.Close();
+    REQUIRE(connection.Connect(SqlConnection::DefaultConnectionString()));
+    connection.SetPreparedStatementCacheCapacity(8);
+
+    SECTION("Preparing the same query again")
+    {
+        CHECK(SelectValue(stmt, 2) == 20);
+    }
+
+    SECTION("Preparing another query")
+    {
+        stmt.Prepare("SELECT id FROM stmt_cache WHERE value = ?");
+        // The handle that died with the old session must not have been parked for the old query.
+        CHECK(cache.Size() == 0);
+        auto cursor = stmt.Execute(30);
+        REQUIRE(cursor.FetchRow());
+        CHECK(cursor.GetColumn<int>(1) == 3);
+    }
+
+    SECTION("Executing directly")
+    {
+        CHECK(stmt.ExecuteDirectScalar<int>("SELECT value FROM stmt_cache WHERE id = 3") == std::optional { 30 });
+        CHECK(cache.Size() == 0);
+    }
+}

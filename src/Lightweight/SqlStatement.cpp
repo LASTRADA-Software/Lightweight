@@ -490,7 +490,8 @@ void SqlStatement::ReleaseHandle() noexcept
     // Likewise when the connection has connected again since (Connect() disconnects first) or was
     // replaced by move assignment: the handle died with the session it was allocated in, and must
     // neither be freed again nor handed to the new session's cache.
-    if (m_connection && m_connection->SessionId() != m_sessionId)
+    ForgetHandleOfEndedSession();
+    if (m_hStmt == SQL_NULL_HSTMT)
         return;
 
     // Hand the prepared handle back to the connection's pool, so the next statement preparing the same
@@ -553,8 +554,26 @@ bool SqlStatement::ReleasePreparedHandle() noexcept
     return cache != nullptr && ReleasePreparedHandle(*cache);
 }
 
+void SqlStatement::ForgetHandleOfEndedSession() noexcept
+{
+    if (m_hStmt == SQL_NULL_HSTMT || m_connection == nullptr || m_connection->SessionId() == m_sessionId)
+        return;
+
+    // The driver freed this handle together with the session it belonged to (Close(), a re-connect, or
+    // the connection being move-assigned): it must be neither freed again nor pooled, and what it was
+    // prepared for is gone with it.
+    detail::UnregisterAnsiOnlyHandle(m_hStmt);
+    m_hStmt = SQL_NULL_HSTMT;
+    m_preparedQuery.clear();
+    m_expectedParameterCount = 0;
+    m_preparedParameterCount = 0;
+    m_reusedPreparedQuery = false;
+    m_numColumns.reset();
+}
+
 bool SqlStatement::ReleasePreparedHandle(SqlPreparedStatementCache& cache) noexcept
 {
+    ForgetHandleOfEndedSession();
     if (m_hStmt == SQL_NULL_HSTMT || m_preparedQuery.empty())
         return false;
 
@@ -604,8 +623,9 @@ void SqlStatement::ReleasePreparedHandleForDirectExecution()
     // first: a later Prepare() of that query text then still finds it. This matters for the DataMapper,
     // which drives its INSERT through one statement and immediately reuses it for the direct
     // last-insert-id query.
-    if (ReleasePreparedHandle())
-        EnsureStatementHandle();
+    ForgetHandleOfEndedSession();
+    ReleasePreparedHandle();
+    EnsureStatementHandle();
 }
 
 bool SqlStatement::AcquirePreparedHandle(SqlPreparedStatementCache& cache, std::string_view query)
@@ -651,6 +671,10 @@ void SqlStatement::Prepare(std::string_view query) &
     ZoneTextObject(query);
     SqlLogger::GetLogger().OnPrepare(query);
     LIGHTWEIGHT_STATS_SCOPE(::Lightweight::SqlStatisticsOperation::Prepare);
+
+    // A handle that died with an earlier session of the connection is replaced by a fresh one.
+    ForgetHandleOfEndedSession();
+    EnsureStatementHandle();
 
     // Preparing the very same query text again is a wasted round-trip: the handle already holds that
     // prepared statement. It is a common shape - one loader, one INSERT or one QuerySingle repeated
