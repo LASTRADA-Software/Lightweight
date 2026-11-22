@@ -728,7 +728,9 @@ TEST_CASE_METHOD(SqlTestFixture,
 
     auto const connectionString =
         WithDriverSpelling(WithSqliteDatabaseFile(path), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-    auto acceptsWideText = true;
+    // Only the non-Windows checks below depend on it: the Windows driver manager supplies the wide
+    // entry points itself, so the narrowed file name never comes into play there.
+    [[maybe_unused]] auto acceptsWideText = true;
     auto connectDiagnostics = CountingDiagnosticSource {};
     {
         auto connection = [&] {

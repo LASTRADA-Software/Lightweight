@@ -1177,6 +1177,28 @@ inline auto MakeLargeText(size_t size)
     return text;
 }
 
+/// Reads an environment variable portably: through @c getenv_s on Windows, where @c std::getenv is
+/// deprecated, and @c std::getenv elsewhere.
+/// @param name The variable's name.
+/// @return Its value, or @c std::nullopt when it is not set.
+inline std::optional<std::string> ReadEnvironmentVariable(char const* name)
+{
+#if defined(_WIN32) || defined(_WIN64)
+    auto size = std::size_t {};
+    if (getenv_s(&size, nullptr, 0, name) != 0 || size == 0)
+        return std::nullopt;
+    auto value = std::string(size, '\0');
+    if (getenv_s(&size, value.data(), value.size(), name) != 0)
+        return std::nullopt;
+    value.resize(size - 1); // size counts the terminating NUL
+    return value;
+#else
+    if (auto const* const value = std::getenv(name); value != nullptr)
+        return std::string { value };
+    return std::nullopt;
+#endif
+}
+
 inline bool IsGithubActions()
 {
 #if defined(_WIN32) || defined(_WIN64)

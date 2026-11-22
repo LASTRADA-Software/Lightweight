@@ -439,8 +439,8 @@ TEST_CASE_METHOD(SqlTestFixture, "RowWiseFetch.benchmark: block fetch vs per-row
     using std::chrono::microseconds;
     using std::chrono::steady_clock;
 
-    auto const* const rowsEnv = std::getenv("ROWFETCH_BENCH_ROWS");
-    std::size_t const rowCount = rowsEnv != nullptr ? std::stoul(rowsEnv) : 500'000;
+    auto const rowsEnv = ReadEnvironmentVariable("ROWFETCH_BENCH_ROWS");
+    std::size_t const rowCount = rowsEnv.has_value() ? std::stoul(*rowsEnv) : 500'000;
     constexpr int reps = 5;
 
     auto const nullLogger = ScopedSqlNullLogger {};
