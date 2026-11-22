@@ -1825,6 +1825,25 @@ if(_pace_cache_chosen)
         endforeach()
     endif()
 
+    # clang-cl + ccache: track header dependencies with /showIncludes, not a depfile.
+    #
+    # For clang-cl, CMake asks for a gcc-style depfile (`-clang:-MD -clang:-MT<obj> -clang:-MF<file>`).
+    # ccache (verified with 4.11) does not recognise `-clang:-MF` as an output of the compile, so a cache
+    # hit restores the object file and NOT the depfile. Ninja (`deps = gcc`) then records no header
+    # dependencies for that object -- `ninja -t deps <obj>` shows `#deps 0` -- and every later edit of a
+    # header it includes silently leaves the object stale. A hit is common: touching a header without
+    # changing it, or editing it back (a stash and pop, a revert), is enough. The /showIncludes notes
+    # are compiler output, which ccache stores and replays on a hit, so switching clang-cl back to the
+    # MSVC dependency format keeps the dependency graph whole while keeping the cache.
+    if(_pace_cache_chosen STREQUAL "ccache")
+        foreach(_lang IN ITEMS C CXX)
+            if(CMAKE_${_lang}_COMPILER_ID STREQUAL "Clang" AND CMAKE_${_lang}_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
+                set(CMAKE_DEPFILE_FLAGS_${_lang} "/showIncludes")
+                set(CMAKE_${_lang}_DEPFILE_FORMAT msvc)
+            endif()
+        endforeach()
+    endif()
+
     # --- make the objects relocatable, where the driver can be asked to -------
     #
     # A cache hit replays an object BUILT SOMEWHERE ELSE, and a compiler with
