@@ -51,6 +51,7 @@ set(SOURCE_FILES
     CxxModelPrinterTests.cpp
     CxxModelRelationTests.cpp
     DataBinderTests.cpp
+    NarrowTextCodePageTests.cpp
     DataSourceEnumeratorTests.cpp
     Ddl2CppColumnTypeTests.cpp
     PluginDiscoveryTests.cpp

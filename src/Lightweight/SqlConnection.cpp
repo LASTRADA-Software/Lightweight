@@ -88,6 +88,26 @@ namespace
 #endif
     }
 
+    /// Tells how narrow strings are bound on a connection to @p serverType made with @p connectionString.
+    ///
+    /// The SQLite ODBC driver's @c OEMCP option (Windows only) makes it convert @c SQL_C_CHAR with the
+    /// thread's ANSI code page; the driver reads the option as true when it starts with Y, T or a non-zero digit.
+    detail::NarrowTextBinding DetectNarrowTextBinding(SqlServerType serverType,
+                                                      [[maybe_unused]] SqlConnectionString const& connectionString)
+    {
+#if defined(_WIN32) || defined(_WIN64)
+        if (serverType == SqlServerType::SQLITE)
+        {
+            auto const options = ParseConnectionString(connectionString);
+            if (auto const option = options.find("OEMCP");
+                option != options.end() && !option->second.empty()
+                && std::string_view { "YyTt123456789" }.contains(option->second.front()))
+                return detail::NarrowTextBinding::WideFromProcessCodePage;
+        }
+#endif
+        return detail::NarrowTextBindingOf(serverType);
+    }
+
     /// The ODBC entry point family a connect call hands its text to.
     enum class OdbcTextEntry : std::uint8_t
     {
@@ -365,6 +385,7 @@ SqlConnection::SqlConnection(SqlConnection&& other) noexcept:
     m_queryFormatter { other.m_queryFormatter },
     m_driverName { std::move(other.m_driverName) },
     m_acceptsWideQueryText { other.m_acceptsWideQueryText },
+    m_narrowTextBinding { other.m_narrowTextBinding },
     m_stringTruncationMode { other.m_stringTruncationMode },
     m_handleOwnership { other.m_handleOwnership },
     m_data { other.m_data }
@@ -390,6 +411,7 @@ SqlConnection& SqlConnection::operator=(SqlConnection&& other) noexcept
     m_queryFormatter = other.m_queryFormatter;
     m_driverName = std::move(other.m_driverName);
     m_acceptsWideQueryText = other.m_acceptsWideQueryText;
+    m_narrowTextBinding = other.m_narrowTextBinding;
     m_stringTruncationMode = other.m_stringTruncationMode;
     m_handleOwnership = other.m_handleOwnership;
     m_data = other.m_data;
@@ -972,6 +994,7 @@ void SqlConnection::DetectServer()
 
     // Decided before the first statement is issued, so every statement takes the right entry point.
     m_acceptsWideQueryText = DriverAcceptsWideQueryText(m_hDbc);
+    m_narrowTextBinding = DetectNarrowTextBinding(m_serverType, m_data->connectionString);
 
     // The server type is only known now, so this is the earliest point at which the backend capability
     // gate on the prepared-statement cache can be evaluated.

@@ -273,6 +273,14 @@ LIGHTWEIGHT_API std::u16string ToUtf16(std::u8string_view u8InputString);
 /// @ingroup Unicode
 LIGHTWEIGHT_API std::u16string ToUtf16(std::string const& localeInputString);
 
+/// Converts from UTF-16 to a local 8-bit string, the inverse of @c ToUtf16(std::string const&).
+///
+/// On Windows the result is in the process ANSI code page; characters it cannot represent become its
+/// default character (usually @c ?), never a best-fit look-alike. Elsewhere the result is UTF-8.
+///
+/// @ingroup Unicode
+LIGHTWEIGHT_API std::string ToLocaleString(std::u16string_view u16InputString);
+
 /// Converts from UTF-8 to UTF-32.
 ///
 /// @ingroup Unicode

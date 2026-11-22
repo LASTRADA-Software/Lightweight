@@ -43,6 +43,43 @@ enum class SqlServerType : uint8_t
     return SqlServerType::UNKNOWN;
 }
 
+namespace detail
+{
+    /// How the narrow (@c char) string binders exchange text with a backend's driver.
+    enum class NarrowTextBinding : uint8_t
+    {
+        /// Bound as @c SQL_C_CHAR; the driver keeps the bytes as they are.
+        Narrow,
+        /// Bound as @c SQL_C_WCHAR, converting the narrow text as UTF-8.
+        WideFromUtf8,
+        /// Bound as @c SQL_C_WCHAR, converting the narrow text with the process ANSI code page.
+        WideFromProcessCodePage,
+    };
+
+    /// Returns how narrow strings are bound on @p serverType when the connection options do not decide it.
+    ///
+    /// psqlODBC on Windows transcodes @c SQL_C_CHAR through the system code page, so PostgreSQL binds
+    /// narrow strings wide and treats them as UTF-8. A connection may refine this; see
+    /// @c SqlConnection::NarrowTextBindingMode().
+    ///
+    /// @param serverType The backend server type.
+    /// @return The binding the narrow string binders use on that backend.
+    [[nodiscard]] constexpr NarrowTextBinding NarrowTextBindingOf(SqlServerType serverType) noexcept
+    {
+        switch (serverType)
+        {
+            case SqlServerType::POSTGRESQL:
+                return NarrowTextBinding::WideFromUtf8;
+            case SqlServerType::MICROSOFT_SQL:
+            case SqlServerType::SQLITE:
+            case SqlServerType::MYSQL:
+            case SqlServerType::UNKNOWN:
+                return NarrowTextBinding::Narrow;
+        }
+        return NarrowTextBinding::Narrow;
+    }
+} // namespace detail
+
 } // namespace Lightweight
 
 template <>

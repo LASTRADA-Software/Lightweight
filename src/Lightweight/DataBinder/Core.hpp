@@ -100,6 +100,12 @@ class LIGHTWEIGHT_API SqlDataBinderCallback
     /// @return The driver name of the database.
     [[nodiscard]] virtual std::string const& DriverName() const noexcept = 0;
 
+    /// @return How the narrow (@c char) string binders exchange text with the driver.
+    [[nodiscard]] virtual detail::NarrowTextBinding NarrowTextBindingMode() const noexcept
+    {
+        return detail::NarrowTextBindingOf(ServerType());
+    }
+
     /// Resolves the SQL type the server declares for an input parameter of the prepared statement.
     ///
     /// A binder that has no value to derive the type from - a NULL - uses this to bind with a type

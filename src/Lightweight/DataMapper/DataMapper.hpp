@@ -1186,19 +1186,25 @@ namespace detail
         return RecordHasNarrowFixedStringColumnImpl<Record>(std::make_index_sequence<RecordMemberCount<Record>> {});
     }
 
+    /// @brief Whether narrow text array-bound as @c SQL_C_CHAR round-trips byte-exact on @p serverType with
+    /// @p narrowTextBinding (see @ref SqlConnection::RoundTripsNarrowTextByteExact).
+    inline bool NarrowTextBindsInPlace(SqlServerType serverType, NarrowTextBinding narrowTextBinding) noexcept
+    {
+        return SqlConnection::RoundTripsNarrowTextByteExact(serverType) && narrowTextBinding == NarrowTextBinding::Narrow;
+    }
+
     /// @brief Whether @p Record may use the row-wise fetch fast path on @p serverType: it is row-wise
     /// fetchable, the driver supports row-array fetch, and any narrow fixed-string column round-trips
     /// byte-exact there. Single runtime gate composed from connection capabilities + the compile-time
     /// record shape, so business logic never branches on the server type directly.
     template <typename Record>
-    bool CanRowWiseFetchOn(SqlServerType serverType)
+    bool CanRowWiseFetchOn(SqlServerType serverType, NarrowTextBinding narrowTextBinding)
     {
         if constexpr (!CanRowWiseFetchRecord<Record>())
             return false;
         else
             return SqlConnection::SupportsNativeRowArrayFetch(serverType)
-                   && (!RecordHasNarrowFixedStringColumn<Record>()
-                       || SqlConnection::RoundTripsNarrowTextByteExact(serverType));
+                   && (!RecordHasNarrowFixedStringColumn<Record>() || NarrowTextBindsInPlace(serverType, narrowTextBinding));
     }
 
     // --- Two-record tuple (JOIN) fast path ----------------------------------------------------------
@@ -1240,14 +1246,14 @@ namespace detail
     /// @p serverType (row-wise fetchable + driver supports row-array fetch + any narrow fixed-string
     /// column round-trips byte-exact there). The tuple counterpart of @ref CanRowWiseFetchOn.
     template <typename First, typename Second>
-    bool CanRowWiseFetchTupleOn(SqlServerType serverType)
+    bool CanRowWiseFetchTupleOn(SqlServerType serverType, NarrowTextBinding narrowTextBinding)
     {
         if constexpr (!CanRowWiseFetchTuple<First, Second>())
             return false;
         else
             return SqlConnection::SupportsNativeRowArrayFetch(serverType)
                    && ((!RecordHasNarrowFixedStringColumn<First>() && !RecordHasNarrowFixedStringColumn<Second>())
-                       || SqlConnection::RoundTripsNarrowTextByteExact(serverType));
+                       || NarrowTextBindsInPlace(serverType, narrowTextBinding));
     }
 
     /// Accessor tuple for member @p I of the @p TupleIndex-th sub-record, or empty for non-columns.
@@ -1899,7 +1905,7 @@ void SqlAllFieldsQueryBuilder<Record, QueryOptions, Execution>::ReadResults(SqlS
     // the per-row path below; this only collapses ODBC round-trips (the win on high-latency links).
     if constexpr (detail::CanRowWiseFetchRecord<Record>())
     {
-        if (detail::CanRowWiseFetchOn<Record>(sqlServerType))
+        if (detail::CanRowWiseFetchOn<Record>(sqlServerType, reader.NarrowTextBindingMode()))
         {
             detail::ReadAllRowWise(reader, records);
             return;
@@ -1935,7 +1941,7 @@ void SqlAllFieldsQueryBuilder<std::tuple<FirstRecord, SecondRecord>, QueryOption
     // blocks (one SQLFetchScroll per block) instead of one SQLFetch per row. Identical results.
     if constexpr (detail::CanRowWiseFetchTuple<FirstRecord, SecondRecord>())
     {
-        if (detail::CanRowWiseFetchTupleOn<FirstRecord, SecondRecord>(sqlServerType))
+        if (detail::CanRowWiseFetchTupleOn<FirstRecord, SecondRecord>(sqlServerType, reader.NarrowTextBindingMode()))
         {
             detail::ReadAllRowWiseTuple<FirstRecord, SecondRecord>(reader, records);
             return;

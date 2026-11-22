@@ -130,6 +130,26 @@ std::u16string ToUtf16(std::string const& localeInputString)
 #endif
 }
 
+std::string ToLocaleString(std::u16string_view u16InputString)
+{
+#if defined(_WIN32) || defined(_WIN64)
+    auto const* const wideInput = reinterpret_cast<wchar_t const*>(u16InputString.data());
+    auto const wideLength = static_cast<int>(u16InputString.size());
+    // Best fit would turn an unrepresentable character into a look-alike (U+221E into "8"); the UTF-8 code page takes no
+    // flags.
+    DWORD const flags = GetACP() == CP_UTF8 ? 0 : WC_NO_BEST_FIT_CHARS;
+    std::string localeString;
+    localeString.resize(
+        static_cast<size_t>(WideCharToMultiByte(CP_ACP, flags, wideInput, wideLength, nullptr, 0, nullptr, nullptr)));
+    WideCharToMultiByte(
+        CP_ACP, flags, wideInput, wideLength, localeString.data(), static_cast<int>(localeString.size()), nullptr, nullptr);
+    return localeString;
+#else
+    auto const u8String = ToUtf8(u16InputString);
+    return { reinterpret_cast<char const*>(u8String.data()), u8String.size() };
+#endif
+}
+
 std::wstring ToStdWideString(std::u8string_view u8InputString)
 {
     if constexpr (sizeof(wchar_t) == 2)

@@ -292,6 +292,11 @@ std::string const& SqlStatement::DriverName() const noexcept
     return m_connection->DriverName();
 }
 
+detail::NarrowTextBinding SqlStatement::NarrowTextBindingMode() const noexcept
+{
+    return m_connection->NarrowTextBindingMode();
+}
+
 SqlStatement::SqlStatement():
     m_data { new Data {
                  .ownedConnection = SqlConnection(),

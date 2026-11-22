@@ -416,6 +416,21 @@ class SqlConnection final
     /// whose driver manager converts wide text to the code page an ANSI driver expects.
     [[nodiscard]] bool AcceptsWideQueryText() const noexcept;
 
+    /// @brief How the narrow (@c char) string binders exchange text with this connection's driver.
+    ///
+    /// PostgreSQL binds narrow strings wide as UTF-8 (see @c detail::NarrowTextBindingOf). The SQLite ODBC
+    /// driver on Windows converts @c SQL_C_CHAR between UTF-8 and the thread's ANSI code page when the
+    /// connection string enables its @c OEMCP option. That code page differs from the process one whenever
+    /// the user's format locale differs from the system locale, so such a connection binds narrow strings
+    /// wide and converts them with the process ANSI code page, the encoding narrow strings carry on Windows.
+    /// The option is read from the connection string only (key case-insensitive, value true when it starts with
+    /// Y, T or a non-zero digit, as the driver reads it). An @c OEMCP set only in a DSN's configuration, or on a
+    /// borrowed connection handle, is not seen: such a connection keeps the narrow binding, so pass the option
+    /// in the connection string to get the conversion.
+    ///
+    /// @return The binding the narrow string binders use on this connection.
+    [[nodiscard]] detail::NarrowTextBinding NarrowTextBindingMode() const noexcept;
+
     /// Retrieves a query formatter suitable for the SQL server being connected.
     [[nodiscard]] SqlQueryFormatter const& QueryFormatter() const noexcept;
 
@@ -468,7 +483,8 @@ class SqlConnection final
     /// mangling non-ASCII bytes — its single-row binder therefore reads narrow strings via @c SQL_C_WCHAR.
     /// That wide round-trip needs an external per-cell buffer + conversion, which cannot be expressed as an
     /// in-place row-wise array bind, so a record carrying a fixed-capacity string falls back to the per-row
-    /// path on PostgreSQL. MS SQL Server and SQLite read @c SQL_C_CHAR verbatim and stay on the fast path.
+    /// path on PostgreSQL. MS SQL Server and SQLite read @c SQL_C_CHAR verbatim and stay on the fast path,
+    /// unless the connection converts narrow text (see @ref NarrowTextBindingMode).
     ///
     /// @param serverType The backend server type to test.
     /// @return `true` if narrow character data round-trips byte-exact on that backend.
@@ -709,6 +725,7 @@ class SqlConnection final
     SqlQueryFormatter const* m_queryFormatter {};
     std::string m_driverName;
     bool m_acceptsWideQueryText = true;
+    detail::NarrowTextBinding m_narrowTextBinding = detail::NarrowTextBinding::Narrow;
     SqlStringTruncationMode m_stringTruncationMode = SqlStringTruncationMode::Truncate;
     SqlHandleOwnership m_handleOwnership = SqlHandleOwnership::Owned;
 
@@ -729,6 +746,11 @@ inline std::string const& SqlConnection::DriverName() const noexcept
 inline bool SqlConnection::AcceptsWideQueryText() const noexcept
 {
     return m_acceptsWideQueryText;
+}
+
+inline detail::NarrowTextBinding SqlConnection::NarrowTextBindingMode() const noexcept
+{
+    return m_narrowTextBinding;
 }
 
 inline SqlQueryFormatter const& SqlConnection::QueryFormatter() const noexcept

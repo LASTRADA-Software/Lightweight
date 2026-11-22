@@ -296,6 +296,7 @@ using Lightweight::ThreadSleeper;
 using Lightweight::Through;
 using Lightweight::ThroughRecordOf;
 using Lightweight::ToBoundSql;
+using Lightweight::ToLocaleString;
 using Lightweight::ToSql;
 using Lightweight::ToStdWideString;
 using Lightweight::ToStringView;
