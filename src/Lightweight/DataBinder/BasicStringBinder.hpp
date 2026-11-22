@@ -212,12 +212,67 @@ namespace detail
         return GetRawColumnArrayData<SQL_C_WCHAR>(stmt, column, result, indicator);
     }
 
+    /// @brief Binds the UTF-16 staging buffer @p staging to @p column, e.g. after a read moved it.
+    /// @param stmt The statement handle the column is bound on.
+    /// @param column The 1-based column index.
+    /// @param staging The staging buffer to bind; its size is the bound capacity in UTF-16 code units.
+    /// @param indicator The column's length/indicator buffer.
+    /// @return The @c SQLBindCol result.
+    inline SQLRETURN BindUtf16Staging(SQLHSTMT stmt,
+                                      SQLUSMALLINT column,
+                                      std::u16string& staging,
+                                      SQLLEN* indicator) noexcept
+    {
+        return SQLBindCol(
+            stmt, column, SQL_C_WCHAR, staging.data(), static_cast<SQLLEN>(staging.size() * sizeof(char16_t)), indicator);
+    }
+
+    /// @brief Unbinds @p column (data and indicator) after its staging buffer could not be bound again, so
+    /// the driver keeps no pointer to storage that has moved. @p indicator is left at @c SQL_NO_TOTAL: the
+    /// next row is then read through @c SQLGetData, and the staging buffer bound again.
+    /// @param stmt The statement handle the column is bound on.
+    /// @param column The 1-based column index.
+    /// @param indicator The column's length/indicator buffer.
+    inline void UnbindUtf16Staging(SQLHSTMT stmt, SQLUSMALLINT column, SQLLEN* indicator) noexcept
+    {
+        (void) SQLBindCol(stmt, column, SQL_C_WCHAR, nullptr, 0, nullptr);
+        *indicator = SQL_NO_TOTAL;
+    }
+
+    /// @brief Binds the staging buffer @p staging to @p column again, or unbinds the column (see
+    /// UnbindUtf16Staging()) and fails with the driver's error.
+    /// @param stmt The statement handle the column is bound on.
+    /// @param column The 1-based column index.
+    /// @param staging The staging buffer to bind.
+    /// @param indicator The column's length/indicator buffer.
+    /// @throws SqlException The driver's error when it refuses the bind.
+    inline void RequireUtf16StagingBound(SQLHSTMT stmt, SQLUSMALLINT column, std::u16string& staging, SQLLEN* indicator)
+    {
+        if (SQL_SUCCEEDED(BindUtf16Staging(stmt, column, staging, indicator)))
+            return;
+        // The diagnostics are read before the unbind replaces them; the column is unbound on every exit.
+        auto info = [&] {
+            try
+            {
+                return SqlErrorInfo::FromStatementHandle(stmt);
+            }
+            catch (...)
+            {
+                UnbindUtf16Staging(stmt, column, indicator);
+                throw;
+            }
+        }();
+        UnbindUtf16Staging(stmt, column, indicator);
+        throw SqlException(std::move(info));
+    }
+
     /// @brief Reads the current row's text out of a UTF-16 staging buffer bound with @c SQLBindCol.
     ///
-    /// The staging buffer is bound for the whole result set, so it is never shrunk: the row's text is
+    /// The staging buffer is bound as long as the column binding, so it is never shrunk: the row's text is
     /// returned as a view into it. Only a value longer than the buffer (known total) grows it: the whole
     /// value is read with @c SQLGetData and the column is re-bound to the grown buffer, so later rows of
-    /// that length fit without another re-read.
+    /// that length fit without another re-read. A driver that cannot read a bound column again (MS SQL
+    /// Server) fails the fetch with 22001 instead (see ThrowBoundValueNotReadable()).
     ///
     /// @param stmt The statement handle the column is bound on.
     /// @param column The 1-based column index.
@@ -225,18 +280,36 @@ namespace detail
     ///                including the slot for the null terminator the driver writes.
     /// @param indicator The column's length/indicator buffer.
     /// @return The row's text (empty on NULL); valid until the next fetch.
-    inline std::u16string_view ReadBoundUtf16Staging(SQLHSTMT stmt,
-                                                     SQLUSMALLINT column,
-                                                     std::u16string& staging,
-                                                     SQLLEN* indicator) noexcept
+    /// @throws SqlException 22001 when the value is longer than the buffer and cannot be read again. The
+    ///         callers are post-process callbacks, which the fetch runs inside its exception handler.
+    /// @param getData Reads a chunk of the column as @c SQL_C_WCHAR (see ReadBoundValueOfUnknownLength()).
+    template <typename GetData>
+    std::u16string_view ReadBoundUtf16Staging(
+        SQLHSTMT stmt, SQLUSMALLINT column, std::u16string& staging, SQLLEN* indicator, GetData const& getData)
     {
         if (*indicator == SQL_NULL_DATA)
             return {};
         if (*indicator == SQL_NO_TOTAL)
         {
-            // Length unknown: the driver filled the buffer and null-terminated it.
-            auto const text = std::u16string_view { staging.data(), staging.size() };
-            return text.substr(0, text.find(u'\0'));
+            // Longer than the buffer, length unknown: read it again in full. The read may have moved the
+            // staging buffer when it fails half-way too, so the column is bound to it again on every exit
+            // (or unbound, should that bind fail): the binding outlives this row, and the driver must never
+            // write into freed storage.
+            auto read = std::size_t { 0 };
+            try
+            {
+                read = ReadBoundValueOfUnknownLength<ContainerBufferOperations, sizeof(char16_t), 0>(
+                    stmt, column, SQL_C_WCHAR, &staging, indicator, getData);
+            }
+            catch (...)
+            {
+                // The failed read is the error to report.
+                if (!SQL_SUCCEEDED(BindUtf16Staging(stmt, column, staging, indicator)))
+                    UnbindUtf16Staging(stmt, column, indicator);
+                throw;
+            }
+            RequireUtf16StagingBound(stmt, column, staging, indicator);
+            return { staging.data(), read };
         }
 
         auto const totalChars = static_cast<size_t>(*indicator) / sizeof(char16_t);
@@ -244,15 +317,27 @@ namespace detail
             return { staging.data(), totalChars };
 
         // Truncated with a known total: grow, re-read the whole value, and bind the grown buffer.
+        auto const totalBytes = *indicator;
         staging.resize(totalChars + 1);
         auto const bufferLength = static_cast<SQLLEN>(staging.size() * sizeof(char16_t));
-        auto const rv = SQLGetData(stmt, column, SQL_C_WCHAR, staging.data(), bufferLength, indicator);
-        (void) rv;
-        assert(SQL_SUCCEEDED(rv));
-        auto const rebound = SQLBindCol(stmt, column, SQL_C_WCHAR, staging.data(), bufferLength, indicator);
-        (void) rebound;
-        assert(SQL_SUCCEEDED(rebound));
+        auto const rv = getData(staging.data(), bufferLength, indicator);
+        RequireUtf16StagingBound(stmt, column, staging, indicator);
+        if (!SQL_SUCCEEDED(rv))
+            ThrowBoundValueNotReadable(stmt, column, totalBytes); // the next rows fit the grown buffer
         return { staging.data(), totalChars };
+    }
+
+    /// @brief ReadBoundUtf16Staging() reading through @c SQLGetData.
+    /// @return The row's text (empty on NULL); valid until the next fetch.
+    inline std::u16string_view ReadBoundUtf16Staging(SQLHSTMT stmt,
+                                                     SQLUSMALLINT column,
+                                                     std::u16string& staging,
+                                                     SQLLEN* indicator)
+    {
+        return ReadBoundUtf16Staging(
+            stmt, column, staging, indicator, [&](SQLPOINTER target, SQLLEN length, SQLLEN* lengthIndicator) {
+                return SQLGetData(stmt, column, SQL_C_WCHAR, target, length, lengthIndicator);
+            });
     }
 
     template <typename StringType>
@@ -263,7 +348,10 @@ namespace detail
 
         // Owned by the post-process callback, which lives exactly as long as the column binding.
         auto u16String = std::make_shared<std::u16string>();
-        u16String->resize(!result->empty() ? result->size() : 255);
+        // At least the minimum size and a slot for the terminator the driver writes: the variable may still
+        // hold a shorter previous value when it is bound again.
+        u16String->resize(
+            (std::max) (result->size(), cb.MinimumOutputColumnSize(column, SqlOutputColumnLength::Characters) + 1));
 
         cb.PlanPostProcessOutputColumn([stmt, column, result, indicator, u16String]() {
             auto const text = ReadBoundUtf16Staging(stmt, column, *u16String, indicator);
@@ -585,7 +673,8 @@ struct SqlDataBinder<AnsiStringType>
             // The staging buffer is owned by the post-process callback, which lives exactly as long as
             // the column binding, so the driver writes into live memory on every fetch of the result set.
             auto u16String = std::make_shared<std::u16string>();
-            u16String->resize(StringTraits::Size(result) != 0 ? StringTraits::Size(result) : 255);
+            u16String->resize((std::max) (static_cast<std::size_t>(StringTraits::Size(result)),
+                                          cb.MinimumOutputColumnSize(column, SqlOutputColumnLength::Characters) + 1));
 
             cb.PlanPostProcessOutputColumn([stmt, column, result, indicator, u16String, binding]() {
                 auto const narrowText =
@@ -613,8 +702,11 @@ struct SqlDataBinder<AnsiStringType>
 
         if constexpr (requires { AnsiStringType::Capacity; })
             StringTraits::Resize(result, AnsiStringType::Capacity);
-        else if (StringTraits::Size(result) == 0)
-            StringTraits::Resize(result, 255);
+        else if (auto const columnSize = cb.MinimumOutputColumnSize(column, SqlOutputColumnLength::Octets) + 1;
+                 StringTraits::Size(result) < columnSize)
+            // At least the column's byte length and the terminator the driver writes into the bound buffer:
+            // the variable may still hold a shorter previous value when it is bound again.
+            StringTraits::Resize(result, static_cast<SQLLEN>(columnSize));
 
         // Per ODBC spec, BufferLength for SQL_C_CHAR must include space for the
         // null terminator. SqlFixedString<N> backs its data with _data[N+1] for
@@ -648,8 +740,10 @@ struct SqlDataBinder<AnsiStringType>
         // NB: If the indicator is greater than the buffer size, we have a truncation.
         if (*indicator == SQL_NO_TOTAL)
         {
-            // We have a truncation and the server does not know how much data is left.
-            StringTraits::Resize(result, static_cast<SQLLEN>(StringTraits::Size(result)) - 1);
+            // Longer than the buffer, length unknown: read it again in full.
+            auto const read =
+                detail::ReadBoundValueOfUnknownLength<StringTraits, 1, 0>(stmt, column, SQL_C_CHAR, result, indicator);
+            StringTraits::Resize(result, static_cast<SQLLEN>(read));
         }
         else if (*indicator == SQL_NULL_DATA)
         {
@@ -671,8 +765,8 @@ struct SqlDataBinder<AnsiStringType>
             StringTraits::Resize(result, totalCharsRequired + 1);
             auto const sqlResult =
                 SQLGetData(stmt, column, SQL_C_CHAR, StringTraits::Data(result), totalCharsRequired + 1, indicator);
-            (void) sqlResult;
-            assert(SQL_SUCCEEDED(sqlResult));
+            if (!SQL_SUCCEEDED(sqlResult))
+                detail::ThrowBoundValueNotReadable(stmt, column, totalCharsRequired);
             assert(*indicator == totalCharsRequired);
             StringTraits::Resize(result, totalCharsRequired);
         }
@@ -835,8 +929,10 @@ struct SqlDataBinder<Utf16StringType>
     {
         if constexpr (requires { Utf16StringType::Capacity; })
             StringTraits::Resize(result, Utf16StringType::Capacity);
-        else if (StringTraits::Size(result) == 0)
-            StringTraits::Resize(result, 255);
+        else if (auto const columnSize = cb.MinimumOutputColumnSize(column, SqlOutputColumnLength::Characters);
+                 StringTraits::Size(result) < columnSize)
+            // At least the column's length: the variable may still hold a shorter previous value.
+            StringTraits::Resize(result, static_cast<SQLLEN>(columnSize));
 
         if constexpr (requires { StringTraits::PostProcessOutputColumn(result, *indicator); })
         {
@@ -853,17 +949,23 @@ struct SqlDataBinder<Utf16StringType>
                 if (*indicator == SQL_NULL_DATA)
                     StringTraits::Resize(result, 0);
                 else if (*indicator == SQL_NO_TOTAL)
-                    ; // We don't know the size of the data
+                {
+                    // Longer than the buffer, length unknown: read it again in full.
+                    auto const read = detail::ReadBoundValueOfUnknownLength<StringTraits, sizeof(CharType), 1>(
+                        stmt, column, CType, result, indicator);
+                    StringTraits::Resize(result, static_cast<SQLLEN>(read));
+                }
                 else if (*indicator <= static_cast<SQLLEN>(result->size() * sizeof(char16_t)))
                     result->resize(static_cast<size_t>(*indicator) / sizeof(char16_t));
                 else
                 {
                     auto const totalCharsRequired = static_cast<size_t>(*indicator) / sizeof(char16_t);
+                    auto const totalBytes = *indicator;
                     *indicator += sizeof(char16_t); // Add space to hold the null terminator
                     result->resize(totalCharsRequired);
                     auto const sqlResult = SQLGetData(stmt, column, SQL_C_WCHAR, result->data(), *indicator, indicator);
-                    (void) sqlResult;
-                    assert(SQL_SUCCEEDED(sqlResult));
+                    if (!SQL_SUCCEEDED(sqlResult))
+                        detail::ThrowBoundValueNotReadable(stmt, column, totalBytes);
                     assert(std::cmp_equal(*indicator, totalCharsRequired * sizeof(char16_t)));
                 }
             });

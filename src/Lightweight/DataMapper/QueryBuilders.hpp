@@ -392,8 +392,8 @@ class [[nodiscard]] SqlAllFieldsQueryBuilder final:
     {
     }
 
-    static void ReadResults(SqlServerType sqlServerType, SqlResultCursor reader, std::vector<Record>* records);
-    static void ReadResult(SqlServerType sqlServerType, SqlResultCursor reader, std::optional<Record>* optionalRecord);
+    static void ReadResults(SqlConnection const& connection, SqlResultCursor reader, std::vector<Record>* records);
+    static void ReadResult(SqlConnection const& connection, SqlResultCursor reader, std::optional<Record>* optionalRecord);
 };
 
 /// @brief Specialization of SqlAllFieldsQueryBuilder for the case when we return std::tuple
@@ -425,7 +425,7 @@ class [[nodiscard]] SqlAllFieldsQueryBuilder<std::tuple<FirstRecord, SecondRecor
     {
     }
 
-    static void ReadResults(SqlServerType sqlServerType, SqlResultCursor reader, std::vector<RecordType>* records);
+    static void ReadResults(SqlConnection const& connection, SqlResultCursor reader, std::vector<RecordType>* records);
 };
 
 } // namespace Lightweight

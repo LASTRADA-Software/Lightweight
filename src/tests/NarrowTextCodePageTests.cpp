@@ -11,6 +11,7 @@
     #include <odbcinst.h>
 #endif
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <format>
@@ -588,6 +589,73 @@ TEST_CASE_METHOD(SqlTestFixture,
         REQUIRE(texts.size() == static_cast<std::size_t>(BoundOnceCodePageRowCount));
         for (auto const i: std::views::iota(0, BoundOnceCodePageRowCount))
             CHECK(texts[static_cast<std::size_t>(i)] == BoundOnceCodePageText(i));
+    }
+}
+
+namespace
+{
+
+/// Lengths of 300, 5000 and 70000 characters between short ones; a negative length is a NULL row.
+constexpr auto BoundLongCodePageLengths = std::array<int, 11> { 5, 300, -1, 5000, 2, 70000, 0, 300, -1, 70000, 7 };
+
+/// Row @p row's text in the process code page: "äöüßñ" on odd rows, then ASCII letters up to the row's length.
+std::optional<std::string> BoundLongCodePageText(std::size_t row)
+{
+    auto const length = BoundLongCodePageLengths.at(row);
+    if (length < 0)
+        return std::nullopt;
+    auto text = row % 2 == 1 ? ToProcessCodePage(UnicodeText) : std::string {};
+    text.resize((std::max) (text.size(), static_cast<std::size_t>(length)), static_cast<char>('a' + (row % 26)));
+    return text;
+}
+
+} // namespace
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "Narrow columns bound once grow for long values under OEMCP and a foreign thread locale",
+                 "[SqlDataBinder][Unicode][BindOnce]")
+{
+    if (SqlConnection {}.ServerType() != SqlServerType::SQLITE)
+        return;
+
+    auto connection = ConnectWithDriverCodePage();
+    REQUIRE(connection.NarrowTextBindingMode() == detail::NarrowTextBinding::WideFromProcessCodePage);
+    auto const threadLocale = ScopedForeignThreadLocale {};
+
+    auto stmt = SqlStatement { connection };
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("NarrowBoundLong")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Integer {})
+            .Column("Text", SqlColumnTypeDefinitions::Text {})
+            .Column("Short", SqlColumnTypeDefinitions::Varchar { .size = 400 });
+    });
+    stmt.Prepare(R"(INSERT INTO "NarrowBoundLong" ("Id", "Text", "Short") VALUES (?, ?, ?))");
+    for (auto const row: std::views::iota(std::size_t { 0 }, BoundLongCodePageLengths.size()))
+    {
+        auto const text = BoundLongCodePageText(row);
+        auto const shortText = text.transform([](std::string const& value) { return value.substr(0, 400); });
+        std::ignore = stmt.Execute(static_cast<int>(row), text, shortText);
+    }
+
+    for (auto const depth: std::array { std::size_t { 1 }, PrefetchDepthDefault })
+    {
+        INFO("prefetch depth " << depth);
+        connection.SetDefaultPrefetchDepth(depth);
+
+        auto text = std::optional<std::string> {};
+        auto shortText = std::string {};
+        auto cursor = stmt.ExecuteDirect(R"(SELECT "Text", "Short" FROM "NarrowBoundLong" ORDER BY "Id")");
+        cursor.BindOutputColumns(&text, &shortText);
+        auto rows = std::size_t { 0 };
+        while (cursor.FetchRow())
+        {
+            INFO("row " << rows << ", length " << BoundLongCodePageLengths.at(rows));
+            auto const expected = BoundLongCodePageText(rows);
+            CHECK(text == expected);
+            CHECK(shortText == expected.value_or(std::string {}).substr(0, 400));
+            ++rows;
+        }
+        CHECK(rows == BoundLongCodePageLengths.size());
     }
 }
 

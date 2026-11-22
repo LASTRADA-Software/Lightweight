@@ -132,7 +132,7 @@ struct SqlDataBinder<std::optional<T>>
     /// The pre-fetch step of @ref OutputColumn: engages the optional again after a NULL row.
     /// @param step The planned step; its target is the bound optional.
     /// @return @c SQL_SUCCESS.
-    static SQLRETURN Reengage(SqlOutputColumnPreFetch& step, SQLHSTMT /*stmt*/) noexcept
+    static SQLRETURN Reengage(SqlOutputColumnPreFetch& step, SQLHSTMT /*stmt*/)
     {
         auto* const result = static_cast<OptionalValue*>(step.target);
         if (!result->has_value())

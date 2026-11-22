@@ -418,6 +418,9 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     void CloseCursor() noexcept;
 
     /// @brief Binds the given output column variables to the result columns of this statement.
+    ///
+    /// The binding outlives the result set and the cursor: executing the prepared statement again
+    /// fetches into the same variables. Preparing or directly executing another query drops it.
     /// @tparam Args ODBC-bindable output column types.
     /// @param args Pointers to caller-owned storage for each result column, in order.
     template <SqlOutputColumnBinder... Args>
@@ -524,6 +527,8 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     LIGHTWEIGHT_API void PlanPostExecuteCallback(std::function<void()>&& cb) override;
     LIGHTWEIGHT_API void PlanPostProcessOutputColumn(std::function<void()>&& cb) override;
     LIGHTWEIGHT_API void PlanPreFetchOutputColumn(SqlOutputColumnPreFetch const& step) override;
+    [[nodiscard]] LIGHTWEIGHT_API std::size_t MinimumOutputColumnSize(SQLUSMALLINT column,
+                                                                      SqlOutputColumnLength length) override;
     /// @brief Starts binding output column @p column: drops the column's previously planned pre-fetch
     /// and post-process callbacks and attributes the ones planned next to it, so re-binding a column
     /// replaces its callbacks instead of accumulating them.
@@ -538,6 +543,13 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     LIGHTWEIGHT_API void ResetOutputColumnCallbacks() noexcept;
     /// @brief Drops the pre-fetch and post-process callbacks planned for output column @p column.
     LIGHTWEIGHT_API void DropOutputColumnCallbacks(SQLUSMALLINT column) noexcept;
+    /// @brief Forgets every output column binding: the recorded prefetch bindings and the binders'
+    /// callbacks. Called right where the columns are unbound with @c SQL_UNBIND, and only there: closing
+    /// a cursor keeps the bindings for the next execution of the prepared statement.
+    LIGHTWEIGHT_API void DropOutputColumnBindings() noexcept;
+    /// @brief Notes that an output column was bound with @c SQLBindCol rather than recorded, so a
+    /// later result set of this binding keeps the per-row path that fills it.
+    LIGHTWEIGHT_API void NoteOutputColumnBoundDirectly() noexcept;
     [[nodiscard]] LIGHTWEIGHT_API SqlServerType ServerType() const noexcept override;
     [[nodiscard]] LIGHTWEIGHT_API std::string const& DriverName() const noexcept override;
     [[nodiscard]] LIGHTWEIGHT_API detail::NarrowTextBinding NarrowTextBindingMode() const noexcept override;
@@ -606,6 +618,12 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     [[nodiscard]] std::size_t EffectivePrefetchDepth() const noexcept;
     /// @brief Arms (or disables) block-prefetch on the first fetch of a result set; idempotent.
     void ArmPrefetchOnFirstFetch() noexcept;
+    /// @brief Issues the deferred SQLBindCol calls of a bound-column loop, once per per-row result set.
+    [[nodiscard]] std::expected<void, SqlErrorInfo> IssueDeferredBinds(std::source_location location) noexcept;
+    /// @brief Runs the binders' pre-fetch steps, which restore the bound buffers before the next fetch.
+    [[nodiscard]] std::expected<void, SqlErrorInfo> RunPreFetchSteps(std::source_location location) noexcept;
+    /// @brief Runs the binders' post-process callbacks on the row just fetched.
+    [[nodiscard]] std::expected<void, SqlErrorInfo> RunPostProcessCallbacks(std::source_location location) noexcept;
     /// @brief Fetches the next logical row from the block buffer, refilling the block and running the
     /// recorded bound-column scatters as needed. @return true if a row is available.
     [[nodiscard]] std::expected<bool, SqlErrorInfo> FetchRowPrefetched() noexcept;
@@ -1529,6 +1547,7 @@ inline LIGHTWEIGHT_FORCE_INLINE void SqlStatement::BindOutputColumns(Args*... ar
     }
 
     RequireIndicators();
+    NoteOutputColumnBoundDirectly();
 
     SQLUSMALLINT i = 0;
     ((++i, BindOutputColumnNow<Args>(i, args)), ...);
@@ -1543,7 +1562,12 @@ template <SqlOutputColumnBinder T>
 inline LIGHTWEIGHT_FORCE_INLINE void SqlStatement::BindOutputColumnNow(SQLUSMALLINT column, T* arg)
 {
     BeginOutputColumnBinding(column);
-    RequireSuccess(SqlDataBinder<T>::OutputColumn(m_hStmt, column, arg, GetIndicatorForColumn(column), *this));
+    auto const sqlReturn = SqlDataBinder<T>::OutputColumn(m_hStmt, column, arg, GetIndicatorForColumn(column), *this);
+    // A binder can have planned callbacks before it failed; the column is not bound, so they must not
+    // run on the following fetches (the diagnostics stay on the handle for RequireSuccess).
+    if (!SQL_SUCCEEDED(sqlReturn))
+        DropOutputColumnCallbacks(column);
+    RequireSuccess(sqlReturn);
 }
 
 template <typename... Records>
@@ -1568,6 +1592,7 @@ void SqlStatement::BindOutputColumnsToRecord(Records*... records)
     }
 
     RequireIndicators();
+    NoteOutputColumnBoundDirectly();
 
     SQLUSMALLINT i = 0;
     ((EnumerateRecordMembers(*records,
@@ -1595,6 +1620,7 @@ inline LIGHTWEIGHT_FORCE_INLINE void SqlStatement::BindOutputColumn(SQLUSMALLINT
     }
 
     RequireIndicators();
+    NoteOutputColumnBoundDirectly();
 
     BindOutputColumnNow<T>(columnIndex, arg);
 }
@@ -2135,7 +2161,7 @@ void SqlStatement::FetchAllRowWise(std::vector<Record>& out, std::size_t arrayDe
         SQLSetStmtAttr(m_hStmt, SQL_ATTR_ROW_STATUS_PTR, nullptr, 0);
         SQLSetStmtAttr(m_hStmt, SQL_ATTR_ROWS_FETCHED_PTR, nullptr, 0);
         // clang-format on
-        ResetOutputColumnCallbacks();
+        DropOutputColumnBindings();
         ClearBatchIndicators();
     });
 
@@ -2743,8 +2769,9 @@ inline LIGHTWEIGHT_FORCE_INLINE void SqlStatement::CloseCursor() noexcept
     // Tear down any block-prefetch first: the RowArrayCursor destructor unbinds the columns and
     // restores SQL_ATTR_ROW_ARRAY_SIZE so the SQLFreeStmt(SQL_CLOSE) below — and the next query on this
     // statement — start from a clean single-row state. Resets the prefetch lifecycle to Unarmed.
+    // The column bindings and their callbacks stay: SQLFreeStmt(SQL_CLOSE) does not unbind, and the next
+    // execution of the prepared statement fetches into them again.
     ResetPrefetchState();
-    ResetOutputColumnCallbacks();
 
     // SQL Server batches and DML/DDL row-count tokens produce multiple result
     // sets per SQLExecDirect. SQLFreeStmt(SQL_CLOSE) only discards the current

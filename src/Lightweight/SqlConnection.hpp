@@ -451,6 +451,12 @@ class SqlConnection final
     /// @return The binding the narrow string binders use on this connection.
     [[nodiscard]] detail::NarrowTextBinding NarrowTextBindingMode() const noexcept;
 
+    /// Whether the driver can read a column bound with @c SQLBindCol again with @c SQLGetData
+    /// (@c SQL_GD_BOUND in @c SQL_GETDATA_EXTENSIONS). The SQLite and PostgreSQL drivers can; MS SQL
+    /// Server's cannot, so there a bound value longer than its buffer cannot be read in full. Asked once
+    /// per connect.
+    [[nodiscard]] bool ReadsBoundColumnsAgain() const noexcept;
+
     /// Retrieves a query formatter suitable for the SQL server being connected.
     [[nodiscard]] SqlQueryFormatter const& QueryFormatter() const noexcept;
 
@@ -751,6 +757,7 @@ class SqlConnection final
     std::string m_driverName;
     bool m_acceptsWideQueryText = true;
     detail::NarrowTextBinding m_narrowTextBinding = detail::NarrowTextBinding::Narrow;
+    bool m_readsBoundColumnsAgain = true;
     SqlStringTruncationMode m_stringTruncationMode = SqlStringTruncationMode::Truncate;
     SqlHandleOwnership m_handleOwnership = SqlHandleOwnership::Owned;
 
@@ -776,6 +783,11 @@ inline bool SqlConnection::AcceptsWideQueryText() const noexcept
 inline detail::NarrowTextBinding SqlConnection::NarrowTextBindingMode() const noexcept
 {
     return m_narrowTextBinding;
+}
+
+inline bool SqlConnection::ReadsBoundColumnsAgain() const noexcept
+{
+    return m_readsBoundColumnsAgain;
 }
 
 inline SqlQueryFormatter const& SqlConnection::QueryFormatter() const noexcept

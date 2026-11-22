@@ -986,17 +986,20 @@ inline void detail::AdoptRelationLoadSource(DataMapper& dataMapper, std::shared_
 namespace detail
 {
     /// Whether @p T is a column type whose buffer may have to grow while fetching (e.g. a string long
-    /// enough to be truncated into the initially bound buffer).
+    /// enough to be truncated into the initially bound buffer): every string and binary type whose
+    /// binder binds a growable buffer, and a @c std::optional of one.
     ///
     /// @tparam T The *value* type of the column, i.e. `Field<...>::ValueType`, never the `Field<...>`
     ///           wrapper itself.
     template <typename T>
     inline constexpr bool IsGrowableColumnType =
-        detail::OneOf<T, std::string, std::wstring, std::u16string, std::u32string, SqlBinary> || IsSqlDynamicString<T>
-        || IsSqlDynamicBinary<T>;
+        detail::OneOf<T, std::string, std::wstring, std::u8string, std::u16string, std::u32string, SqlText, SqlBinary>
+        || IsSqlDynamicString<T> || IsSqlDynamicBinary<T>;
 
-    /// Whether a single output column of value type @p T can safely be bound up front on @p
-    /// sqlServerType.
+    template <typename T>
+    inline constexpr bool IsGrowableColumnType<std::optional<T>> = IsGrowableColumnType<T>;
+
+    /// Whether a single output column of value type @p T can safely be bound up front.
     ///
     /// Takes the column's *value* type, not a `Field<...>` wrapper: the sole caller projects a single
     /// field and only has `ReferencedFieldTypeOf<Field>` (the ValueType) to hand. This previously
@@ -1005,33 +1008,31 @@ namespace detail
     /// the growable ones it exists to exclude.
     ///
     /// @tparam T The column's value type.
-    /// @param sqlServerType The server being queried.
+    /// @param readsBoundColumnsAgain The connection's SqlConnection::ReadsBoundColumnsAgain().
     /// @return `true` if the column may be bound with `BindOutputColumn`, `false` if it has to be read
     ///         per row with `GetColumn` instead.
     template <typename T>
-    constexpr bool CanSafelyBindOutputColumn(SqlServerType sqlServerType) noexcept
+    constexpr bool CanSafelyBindOutputColumn(bool readsBoundColumnsAgain) noexcept
     {
-        if (sqlServerType != SqlServerType::MICROSOFT_SQL)
-            return true;
-
-        // Test if we have some columns that might not be sufficient to store the result (e.g. string truncation),
-        // then don't call BindOutputColumn but SQLFetch to get the result, because
-        // regrowing previously bound columns is not supported in MS-SQL's ODBC driver, so it seems.
-        return !IsGrowableColumnType<T>;
+        // A growable column's value can be longer than its bound buffer, and the binder then reads it again
+        // with SQLGetData. A driver without SQL_GD_BOUND (MS SQL Server) refuses that, so such a value would
+        // fail the fetch, and a buffer of the column's declared length would be kept per record: read these
+        // columns per row instead, which sizes each value to itself.
+        return readsBoundColumnsAgain || !IsGrowableColumnType<T>;
     }
 
-    /// Whether every output column of @p Record can safely be bound up front on @p sqlServerType.
+    /// Whether every output column of @p Record can safely be bound up front.
     ///
     /// The record-wide counterpart of @ref CanSafelyBindOutputColumn: one growable member is enough to
     /// force the whole record onto the per-row `GetColumn` path.
     ///
     /// @tparam Record The record being fetched.
-    /// @param sqlServerType The server being queried.
+    /// @param readsBoundColumnsAgain The connection's SqlConnection::ReadsBoundColumnsAgain().
     /// @return `true` if the columns may be bound with `BindOutputColumns`.
     template <DataMapperRecord Record>
-    constexpr bool CanSafelyBindOutputColumns(SqlServerType sqlServerType) noexcept
+    constexpr bool CanSafelyBindOutputColumns(bool readsBoundColumnsAgain) noexcept
     {
-        if (sqlServerType != SqlServerType::MICROSOFT_SQL)
+        if (readsBoundColumnsAgain)
             return true;
 
         bool result = true;
@@ -1351,9 +1352,9 @@ namespace detail
     }
 
     template <typename Record>
-    bool ReadSingleResult(SqlServerType sqlServerType, SqlResultCursor& reader, Record& record)
+    bool ReadSingleResult(SqlConnection const& connection, SqlResultCursor& reader, Record& record)
     {
-        auto const outputColumnsBound = CanSafelyBindOutputColumns<Record>(sqlServerType);
+        auto const outputColumnsBound = CanSafelyBindOutputColumns<Record>(connection.ReadsBoundColumnsAgain());
 
         if (outputColumnsBound)
             BindAllOutputColumns(reader, record);
@@ -1537,7 +1538,7 @@ std::vector<Record> SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>
                                       this->_query.searchCondition.condition,
                                       this->_query.orderBy,
                                       this->_query.groupBy));
-    Derived::ReadResults(stmt.Connection().ServerType(), stmt.ExecuteWithVariants(_boundInputs), &records);
+    Derived::ReadResults(stmt.Connection(), stmt.ExecuteWithVariants(_boundInputs), &records);
     if constexpr (DataMapperRecord<Record>)
     {
         // This can be called when record type is not plain aggregate type
@@ -1577,7 +1578,8 @@ auto SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::AllImpl() -> 
                                       this->_query.orderBy,
                                       this->_query.groupBy));
     auto reader = stmt.ExecuteWithVariants(_boundInputs);
-    auto const outputColumnsBound = detail::CanSafelyBindOutputColumn<value_type>(stmt.Connection().ServerType());
+    auto const outputColumnsBound =
+        detail::CanSafelyBindOutputColumn<value_type>(stmt.Connection().ReadsBoundColumnsAgain());
     while (true)
     {
         auto& value = result.emplace_back();
@@ -1615,7 +1617,7 @@ auto SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::AllImpl() -> 
                                       this->_query.groupBy));
 
     auto reader = stmt.ExecuteWithVariants(_boundInputs);
-    auto const outputColumnsBound = detail::CanSafelyBindOutputColumns<Record>(stmt.Connection().ServerType());
+    auto const outputColumnsBound = detail::CanSafelyBindOutputColumns<Record>(stmt.Connection().ReadsBoundColumnsAgain());
     while (true)
     {
         auto& record = records.emplace_back();
@@ -1654,7 +1656,7 @@ std::optional<Record> SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOption
                                         this->_query.orderBy,
                                         this->_query.groupBy,
                                         1));
-    Derived::ReadResult(stmt.Connection().ServerType(), stmt.ExecuteWithVariants(_boundInputs), &record);
+    Derived::ReadResult(stmt.Connection(), stmt.ExecuteWithVariants(_boundInputs), &record);
     if constexpr (QueryOptions.loadRelations)
     {
         if (record)
@@ -1711,7 +1713,7 @@ auto SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::FirstImpl() -
 
     auto& record = optionalRecord.emplace();
     auto reader = stmt.ExecuteWithVariants(_boundInputs);
-    auto const outputColumnsBound = detail::CanSafelyBindOutputColumns<Record>(stmt.Connection().ServerType());
+    auto const outputColumnsBound = detail::CanSafelyBindOutputColumns<Record>(stmt.Connection().ReadsBoundColumnsAgain());
     if (outputColumnsBound)
 #if defined(LIGHTWEIGHT_CXX26_REFLECTION)
         reader.BindOutputColumns(&(record.[:ReferencedFields:])...);
@@ -1758,7 +1760,7 @@ std::vector<Record> SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>
                                         this->_query.orderBy,
                                         this->_query.groupBy,
                                         n));
-    Derived::ReadResults(stmt.Connection().ServerType(), stmt.ExecuteWithVariants(_boundInputs), &records);
+    Derived::ReadResults(stmt.Connection(), stmt.ExecuteWithVariants(_boundInputs), &records);
 
     if constexpr (QueryOptions.loadRelations)
     {
@@ -1789,7 +1791,7 @@ std::vector<Record> SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>
                                this->_query.groupBy,
                                offset,
                                limit));
-    Derived::ReadResults(stmt.Connection().ServerType(), stmt.ExecuteWithVariants(_boundInputs), &records);
+    Derived::ReadResults(stmt.Connection(), stmt.ExecuteWithVariants(_boundInputs), &records);
     if constexpr (QueryOptions.loadRelations)
     {
         for (auto& record: records)
@@ -1822,7 +1824,7 @@ std::vector<Record> SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>
                                limit));
 
     auto reader = stmt.ExecuteWithVariants(_boundInputs);
-    auto const outputColumnsBound = detail::CanSafelyBindOutputColumns<Record>(stmt.Connection().ServerType());
+    auto const outputColumnsBound = detail::CanSafelyBindOutputColumns<Record>(stmt.Connection().ReadsBoundColumnsAgain());
     while (true)
     {
         auto& record = records.emplace_back();
@@ -1871,7 +1873,7 @@ template <auto... ReferencedFields>
                                         n));
 
     auto reader = stmt.ExecuteWithVariants(_boundInputs);
-    auto const outputColumnsBound = detail::CanSafelyBindOutputColumns<Record>(stmt.Connection().ServerType());
+    auto const outputColumnsBound = detail::CanSafelyBindOutputColumns<Record>(stmt.Connection().ReadsBoundColumnsAgain());
     while (true)
     {
         auto& record = records.emplace_back();
@@ -1903,7 +1905,7 @@ template <auto... ReferencedFields>
 }
 
 template <typename Record, DataMapperOptions QueryOptions, SqlQueryExecutionMode Execution>
-void SqlAllFieldsQueryBuilder<Record, QueryOptions, Execution>::ReadResults(SqlServerType sqlServerType,
+void SqlAllFieldsQueryBuilder<Record, QueryOptions, Execution>::ReadResults(SqlConnection const& connection,
                                                                             SqlResultCursor reader,
                                                                             std::vector<Record>* records)
 {
@@ -1913,7 +1915,7 @@ void SqlAllFieldsQueryBuilder<Record, QueryOptions, Execution>::ReadResults(SqlS
     // the per-row path below; this only collapses ODBC round-trips (the win on high-latency links).
     if constexpr (detail::CanRowWiseFetchRecord<Record>())
     {
-        if (detail::CanRowWiseFetchOn<Record>(sqlServerType, reader.NarrowTextBindingMode()))
+        if (detail::CanRowWiseFetchOn<Record>(connection.ServerType(), reader.NarrowTextBindingMode()))
         {
             detail::ReadAllRowWise(reader, records);
             return;
@@ -1923,7 +1925,7 @@ void SqlAllFieldsQueryBuilder<Record, QueryOptions, Execution>::ReadResults(SqlS
     while (true)
     {
         Record& record = records->emplace_back();
-        if (!detail::ReadSingleResult(sqlServerType, reader, record))
+        if (!detail::ReadSingleResult(connection, reader, record))
         {
             records->pop_back();
             break;
@@ -1932,24 +1934,25 @@ void SqlAllFieldsQueryBuilder<Record, QueryOptions, Execution>::ReadResults(SqlS
 }
 
 template <typename Record, DataMapperOptions QueryOptions, SqlQueryExecutionMode Execution>
-void SqlAllFieldsQueryBuilder<Record, QueryOptions, Execution>::ReadResult(SqlServerType sqlServerType,
+void SqlAllFieldsQueryBuilder<Record, QueryOptions, Execution>::ReadResult(SqlConnection const& connection,
                                                                            SqlResultCursor reader,
                                                                            std::optional<Record>* optionalRecord)
 {
     Record& record = optionalRecord->emplace();
-    if (!detail::ReadSingleResult(sqlServerType, reader, record))
+    if (!detail::ReadSingleResult(connection, reader, record))
         optionalRecord->reset();
 }
 
 template <typename FirstRecord, typename SecondRecord, DataMapperOptions QueryOptions, SqlQueryExecutionMode Execution>
 void SqlAllFieldsQueryBuilder<std::tuple<FirstRecord, SecondRecord>, QueryOptions, Execution>::ReadResults(
-    SqlServerType sqlServerType, SqlResultCursor reader, std::vector<RecordType>* records)
+    SqlConnection const& connection, SqlResultCursor reader, std::vector<RecordType>* records)
 {
     // Fast path: a JOIN row of two row-bindable records is bound row-wise over the tuple and fetched in
     // blocks (one SQLFetchScroll per block) instead of one SQLFetch per row. Identical results.
     if constexpr (detail::CanRowWiseFetchTuple<FirstRecord, SecondRecord>())
     {
-        if (detail::CanRowWiseFetchTupleOn<FirstRecord, SecondRecord>(sqlServerType, reader.NarrowTextBindingMode()))
+        if (detail::CanRowWiseFetchTupleOn<FirstRecord, SecondRecord>(connection.ServerType(),
+                                                                      reader.NarrowTextBindingMode()))
         {
             detail::ReadAllRowWiseTuple<FirstRecord, SecondRecord>(reader, records);
             return;
@@ -1964,8 +1967,10 @@ void SqlAllFieldsQueryBuilder<std::tuple<FirstRecord, SecondRecord>, QueryOption
         using FirstRecordType = std::remove_cvref_t<decltype(firstRecord)>;
         using SecondRecordType = std::remove_cvref_t<decltype(secondRecord)>;
 
-        auto const outputColumnsBoundFirst = detail::CanSafelyBindOutputColumns<FirstRecordType>(sqlServerType);
-        auto const outputColumnsBoundSecond = detail::CanSafelyBindOutputColumns<SecondRecordType>(sqlServerType);
+        auto const outputColumnsBoundFirst =
+            detail::CanSafelyBindOutputColumns<FirstRecordType>(connection.ReadsBoundColumnsAgain());
+        auto const outputColumnsBoundSecond =
+            detail::CanSafelyBindOutputColumns<SecondRecordType>(connection.ReadsBoundColumnsAgain());
         auto const canSafelyBindAll = outputColumnsBoundFirst && outputColumnsBoundSecond;
 
         if (canSafelyBindAll)
@@ -2732,7 +2737,7 @@ std::optional<Record> DataMapper::QuerySingle(PrimaryKeyTypes&&... primaryKeys)
     // `return std::nullopt;` here defeats NRVO in both GCC and Clang (verified: it forces a move-construct
     // into the caller's storage at a new address), which would leave that captured pointer dangling.
     auto resultRecord = std::optional<Record> { Record {} };
-    if (detail::ReadSingleResult(_stmt.Connection().ServerType(), reader, *resultRecord))
+    if (detail::ReadSingleResult(_stmt.Connection(), reader, *resultRecord))
     {
         SetModifiedState<ModifiedState::NotModified>(resultRecord.value());
 
@@ -2766,7 +2771,7 @@ std::optional<Record> DataMapper::QuerySingle(SqlSelectQueryBuilder selectQuery,
     auto reader = _stmt.Execute(std::forward<Args>(args)...);
 
     auto resultRecord = std::optional<Record> { Record {} };
-    if (!detail::ReadSingleResult(_stmt.Connection().ServerType(), reader, *resultRecord))
+    if (!detail::ReadSingleResult(_stmt.Connection(), reader, *resultRecord))
         return std::nullopt;
 
     if (resultRecord)
@@ -2812,7 +2817,8 @@ std::vector<Record> DataMapper::Query(std::string_view sqlQueryString, InputPara
     {
         static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
 
-        bool const canSafelyBindOutputColumns = detail::CanSafelyBindOutputColumns<Record>(_stmt.Connection().ServerType());
+        bool const canSafelyBindOutputColumns =
+            detail::CanSafelyBindOutputColumns<Record>(_stmt.Connection().ReadsBoundColumnsAgain());
 
         _stmt.Prepare(sqlQueryString);
         auto reader = _stmt.Execute(std::forward<InputParameters>(inputParameters)...);
@@ -2894,7 +2900,7 @@ std::vector<std::tuple<First, Second, Rest...>> DataMapper::Query(SqlSelectQuery
         bool result = true;
         Reflection::template_for<0, std::tuple_size_v<value_type>>([&]<auto I>() {
             using TupleElement = std::decay_t<std::tuple_element_t<I, value_type>>;
-            result &= detail::CanSafelyBindOutputColumns<TupleElement>(_stmt.Connection().ServerType());
+            result &= detail::CanSafelyBindOutputColumns<TupleElement>(_stmt.Connection().ReadsBoundColumnsAgain());
         });
         return result;
     }();
@@ -2945,7 +2951,8 @@ std::vector<Record> DataMapper::Query(SqlSelectQueryBuilder::ComposedQuery const
     auto records = std::vector<Record> {};
 
     // TODO: We could optimize this further by only considering ElementMask fields in Record.
-    bool const canSafelyBindOutputColumns = detail::CanSafelyBindOutputColumns<Record>(_stmt.Connection().ServerType());
+    bool const canSafelyBindOutputColumns =
+        detail::CanSafelyBindOutputColumns<Record>(_stmt.Connection().ReadsBoundColumnsAgain());
 
     auto reader = _stmt.Execute(std::forward<InputParameters>(inputParameters)...);
 

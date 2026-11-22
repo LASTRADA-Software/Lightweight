@@ -376,20 +376,29 @@ TEST_CASE_METHOD(SqlTestFixture, "TestQuerySparseDynamicData", "[DataMapper]")
 // checks pin that contract: taking a `Field<...>` wrapper instead made the trait's answer vacuously
 // "safe to bind" for every type, which is only observable at runtime on MS SQL Server. Asserting it
 // directly catches the regression on any backend, and at compile time.
-static_assert(!detail::CanSafelyBindOutputColumn<std::string>(SqlServerType::MICROSOFT_SQL));
-static_assert(!detail::CanSafelyBindOutputColumn<SqlDynamicAnsiString<16000>>(SqlServerType::MICROSOFT_SQL));
-static_assert(!detail::CanSafelyBindOutputColumn<SqlDynamicUtf16String<16000>>(SqlServerType::MICROSOFT_SQL));
-static_assert(!detail::CanSafelyBindOutputColumn<SqlBinary>(SqlServerType::MICROSOFT_SQL));
+// The answer follows the connection's ReadsBoundColumnsAgain() (false: MS SQL Server's driver).
+static_assert(!detail::CanSafelyBindOutputColumn<std::string>(false));
+static_assert(!detail::CanSafelyBindOutputColumn<SqlDynamicAnsiString<16000>>(false));
+static_assert(!detail::CanSafelyBindOutputColumn<SqlDynamicUtf16String<16000>>(false));
+static_assert(!detail::CanSafelyBindOutputColumn<SqlBinary>(false));
+// Every growable string type, and an optional of one, counts.
+static_assert(!detail::CanSafelyBindOutputColumn<SqlText>(false));
+static_assert(!detail::CanSafelyBindOutputColumn<std::u8string>(false));
+static_assert(!detail::CanSafelyBindOutputColumn<std::wstring>(false));
+static_assert(!detail::CanSafelyBindOutputColumn<std::optional<std::string>>(false));
+static_assert(!detail::CanSafelyBindOutputColumn<std::optional<std::u8string>>(false));
+static_assert(!detail::CanSafelyBindOutputColumn<std::optional<SqlText>>(false));
 
-// Fixed-width types stay bindable, and every non-MS-SQL backend binds regardless.
-static_assert(detail::CanSafelyBindOutputColumn<int>(SqlServerType::MICROSOFT_SQL));
-static_assert(detail::CanSafelyBindOutputColumn<SqlAnsiString<32>>(SqlServerType::MICROSOFT_SQL));
-static_assert(detail::CanSafelyBindOutputColumn<std::string>(SqlServerType::SQLITE));
-static_assert(detail::CanSafelyBindOutputColumn<std::string>(SqlServerType::POSTGRESQL));
+// Fixed-width types stay bindable, and a driver that reads bound columns again binds regardless.
+static_assert(detail::CanSafelyBindOutputColumn<int>(false));
+static_assert(detail::CanSafelyBindOutputColumn<std::optional<int>>(false));
+static_assert(detail::CanSafelyBindOutputColumn<SqlAnsiString<32>>(false));
+static_assert(detail::CanSafelyBindOutputColumn<std::string>(true));
+static_assert(detail::CanSafelyBindOutputColumn<std::optional<SqlText>>(true));
 
 // The record-wide sibling agrees: one growable member is enough to unbind the whole record.
-static_assert(!detail::CanSafelyBindOutputColumns<TestDynamicData>(SqlServerType::MICROSOFT_SQL));
-static_assert(detail::CanSafelyBindOutputColumns<TestDynamicData>(SqlServerType::SQLITE));
+static_assert(!detail::CanSafelyBindOutputColumns<TestDynamicData>(false));
+static_assert(detail::CanSafelyBindOutputColumns<TestDynamicData>(true));
 
 TEST_CASE_METHOD(SqlTestFixture, "TestQueryAllSingleDynamicField", "[DataMapper]")
 {
@@ -764,3 +773,105 @@ TEST_CASE_METHOD(SqlTestFixture, "Moving a DataMapper releases the moved-from st
 }
 
 // NOLINTEND(bugprone-unchecked-optional-access)
+
+/// A record of growable text members only: the DataMapper decides by these alone whether it binds.
+/// At namespace scope, not in an anonymous namespace: MSVC cannot reflect a type with internal linkage.
+struct LongTextRecord
+{
+    static constexpr std::string_view TableName = "LongTextRecord";
+
+    Field<int, PrimaryKey::AutoAssign> Id;
+    Field<SqlText> Text;
+    Field<std::optional<std::string>> MaybeText;
+    Field<std::u8string> Utf8;
+    Field<std::optional<std::u8string>> MaybeUtf8;
+};
+
+namespace
+{
+
+/// Row @p id's values: 1000 and 70000 characters, a short one, and NULLs.
+struct LongTextRow
+{
+    int id;
+    std::size_t length;
+    bool maybeIsNull;
+};
+
+constexpr auto LongTextRows = std::array {
+    LongTextRow { .id = 1, .length = 1000, .maybeIsNull = false },
+    LongTextRow { .id = 2, .length = 70000, .maybeIsNull = true },
+    LongTextRow { .id = 3, .length = 12, .maybeIsNull = false },
+    LongTextRow { .id = 4, .length = 70000, .maybeIsNull = false },
+};
+
+std::string LongNarrow(LongTextRow const& row, char fill)
+{
+    auto text = std::string(row.length, fill);
+    return text;
+}
+
+std::u8string LongUtf8(LongTextRow const& row)
+{
+    auto text = std::u8string(u8"Grüße-");
+    text.resize(row.length, u8'u');
+    return text;
+}
+
+void CheckLongTextRecord(LongTextRecord const& record)
+{
+    auto const& row = LongTextRows.at(static_cast<std::size_t>(record.Id.Value() - 1));
+    INFO("record " << row.id << ", length " << row.length);
+    CHECK(record.Text.Value().value == LongNarrow(row, 't'));
+    CHECK(record.MaybeText.Value() == (row.maybeIsNull ? std::nullopt : std::optional { LongNarrow(row, 'm') }));
+    CHECK((record.Utf8.Value() == LongUtf8(row))); // no printer for u8string
+    CHECK((record.MaybeUtf8.Value() == (row.maybeIsNull ? std::nullopt : std::optional { LongUtf8(row) })));
+}
+
+} // namespace
+
+TEST_CASE_METHOD(SqlTestFixture, "DataMapper reads long text into growable and optional members", "[DataMapper]")
+{
+    auto dm = DataMapper {};
+    {
+        // MAX / TEXT columns, so every length fits.
+        auto stmt = SqlStatement { dm.Connection() };
+        stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+            migration.CreateTable("LongTextRecord")
+                .PrimaryKey("Id", SqlColumnTypeDefinitions::Integer {})
+                .RequiredColumn("Text", SqlColumnTypeDefinitions::Text {})
+                .Column("MaybeText", SqlColumnTypeDefinitions::Text {})
+                .RequiredColumn("Utf8", SqlColumnTypeDefinitions::NVarchar { .size = 0 })
+                .Column("MaybeUtf8", SqlColumnTypeDefinitions::NVarchar { .size = 0 });
+        });
+        stmt.Prepare(
+            R"(INSERT INTO "LongTextRecord" ("Id", "Text", "MaybeText", "Utf8", "MaybeUtf8") VALUES (?, ?, ?, ?, ?))");
+        for (auto const& row: LongTextRows)
+            (void) stmt.Execute(row.id,
+                                SqlText { LongNarrow(row, 't') },
+                                row.maybeIsNull ? std::optional<std::string> {} : std::optional { LongNarrow(row, 'm') },
+                                LongUtf8(row),
+                                row.maybeIsNull ? std::optional<std::u8string> {} : std::optional { LongUtf8(row) });
+    }
+
+    auto const all = dm.Query<LongTextRecord>().All();
+    REQUIRE(all.size() == LongTextRows.size());
+    for (auto const& record: all)
+        CheckLongTextRecord(record);
+
+    for (auto const& row: LongTextRows)
+    {
+        auto const single = dm.QuerySingle<LongTextRecord>(row.id);
+        REQUIRE(single.has_value());
+        if (single.has_value())
+            CheckLongTextRecord(*single);
+    }
+
+    auto iterated = std::size_t { 0 };
+    for (auto const& record: SqlRowIterator<LongTextRecord> { dm.Connection() })
+    {
+        CheckLongTextRecord(record);
+        ++iterated;
+    }
+    CHECK(iterated == LongTextRows.size());
+}
