@@ -7,12 +7,14 @@
 #include "SqlLogger.hpp"
 
 #include <array>
+#include <atomic>
 #include <chrono>
 #include <cstddef>
 #include <cstdlib>
 #include <format>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <print>
 #include <ranges>
 #include <utility>
@@ -37,24 +39,21 @@ namespace
     class SqlStandardLogger: public SqlLogger
     {
       private:
-        std::chrono::time_point<std::chrono::system_clock> _currentTime;
-        std::string _currentTimeStr;
-        std::mutex _mutex;
+        /// Serializes calls into the message writer, which statements on any thread may reach at once.
+        /// Recursive, so a writer that itself logs -- or runs SQL that does -- re-enters instead of
+        /// deadlocking.
+        std::recursive_mutex _writerMutex;
 
       protected:
-        void Tick()
-        {
-            auto const _ = std::scoped_lock { _mutex };
-            _currentTime = std::chrono::system_clock::now();
-            auto const nowMs = time_point_cast<std::chrono::milliseconds>(_currentTime);
-            _currentTimeStr = std::format("{:%F %X}.{:03}", _currentTime, nowMs.time_since_epoch().count() % 1'000);
-        }
-
+        /// Formats a message and hands it to the message writer, one message at a time.
         template <typename... Args>
         void WriteMessage(std::format_string<Args...> const& fmt, Args&&... args)
         {
-            if (_messageWriter)
-                _messageWriter(std::format(fmt, std::forward<Args>(args)...));
+            if (!_messageWriter)
+                return;
+            auto message = std::format(fmt, std::forward<Args>(args)...);
+            auto const _ = std::scoped_lock { _writerMutex };
+            _messageWriter(std::move(message));
         }
 
       public:
@@ -101,6 +100,11 @@ namespace
         void OnFetchEnd() override {}
     };
 
+    /// Set once the calling thread's trace state is destroyed, at thread exit -- which for the main thread
+    /// comes before static destruction, where statements still report to the logger (#649). Trivially
+    /// destructible, so it stays readable for as long as the thread runs any code at all.
+    constinit thread_local bool threadTraceRetired = false;
+
     class SqlTraceLogger: public SqlStandardLogger
     {
         enum class State : uint8_t
@@ -112,14 +116,54 @@ namespace
             Error
         };
 
-        State _state = State::Idle;
-        std::string _lastPreparedQuery;
+        /// What the logger knows of the statement work in progress on one thread.
+        ///
+        /// Each thread has its own: a statement is driven by one thread at a time -- the async layer
+        /// offloads each synchronous call whole -- so statements on different threads neither race on
+        /// this state nor lend each other their query or binds.
+        struct TraceState
+        {
+            State state = State::Idle;
+            std::string lastPreparedQuery;
 
-        std::chrono::steady_clock::time_point _startedAt {};
-        std::vector<std::pair<std::string_view, std::string>> _binds;
-        size_t _fetchRowCount {};
+            std::chrono::steady_clock::time_point startedAt {};
+            std::vector<std::pair<std::string /*name*/, std::string /*value*/>> binds;
+            size_t fetchRowCount {};
+        };
 
+        /// A thread's TraceState, which marks the thread retired once it is destroyed.
+        ///
+        /// It writes nothing on the way out: on the main thread that happens after main() returned,
+        /// when whatever the message writer refers to may already be gone.
+        struct ThreadTrace
+        {
+            TraceState state;
+
+            ThreadTrace() = default;
+            ThreadTrace(ThreadTrace const&) = delete;
+            ThreadTrace(ThreadTrace&&) = delete;
+            ThreadTrace& operator=(ThreadTrace const&) = delete;
+            ThreadTrace& operator=(ThreadTrace&&) = delete;
+
+            ~ThreadTrace()
+            {
+                threadTraceRetired = true;
+            }
+        };
+
+        /// Guards the scoped timers, which, unlike statement work, may start and stop on different
+        /// threads when a coroutine resumes elsewhere.
+        std::mutex _scopedTimersMutex;
         std::unordered_map<std::string /*tag*/, std::chrono::steady_clock::time_point /*startTime*/> _scopedTimers;
+
+        /// @return The calling thread's trace state, or nullptr once the thread has destroyed it.
+        static TraceState* Current()
+        {
+            if (threadTraceRetired)
+                return nullptr;
+            thread_local auto trace = ThreadTrace {};
+            return &trace.state;
+        }
 
       public:
         SqlTraceLogger(SupportBindLogging supportBindLogging = SupportBindLogging::Yes):
@@ -129,14 +173,14 @@ namespace
 
         void OnError(SqlError error, std::source_location sourceLocation) override
         {
-            _state = State::Error;
+            MarkError();
             SqlStandardLogger::OnError(error, sourceLocation);
             WriteDetails(sourceLocation);
         }
 
         void OnError(SqlErrorInfo const& errorInfo, std::source_location sourceLocation) override
         {
-            _state = State::Error;
+            MarkError();
             SqlStandardLogger::OnError(errorInfo, sourceLocation);
             WriteDetails(sourceLocation);
         }
@@ -145,44 +189,60 @@ namespace
                               std::string_view query,
                               std::source_location sourceLocation) override
         {
-            _state = State::Error;
+            MarkError();
             SqlStandardLogger::OnError(errorInfo, sourceLocation);
             WriteDetails(sourceLocation, query);
         }
 
         void OnScopedTimerStart(std::string const& tag) override
         {
-            _scopedTimers[tag] = std::chrono::steady_clock::now();
+            {
+                auto const _ = std::scoped_lock { _scopedTimersMutex };
+                _scopedTimers[tag] = std::chrono::steady_clock::now();
+            }
 
             WriteMessage("[{}] Scoped timer started", tag);
         }
 
         void OnScopedTimerStop(std::string const& tag) override
         {
-            auto const start = _scopedTimers.at(tag);
             auto const end = std::chrono::steady_clock::now();
-            _scopedTimers.erase(_scopedTimers.find(tag));
+            auto start = std::optional<std::chrono::steady_clock::time_point> {};
+            {
+                auto const _ = std::scoped_lock { _scopedTimersMutex };
+                if (auto const found = _scopedTimers.find(tag); found != _scopedTimers.end())
+                {
+                    start = found->second;
+                    _scopedTimers.erase(found);
+                }
+            }
 
-            auto const duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+            // Throwing here would terminate the process from ~SqlScopedTimeLogger.
+            if (!start)
+            {
+                WriteMessage("[{}] Scoped timer finished: no matching start", tag);
+                return;
+            }
 
+            auto const duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - *start);
             WriteMessage("[{}] Scoped timer finished: Took {}ms", tag, duration.count());
         }
 
         void OnConnectionOpened(SqlConnection const& connection) override
         {
-            _state = State::Idle;
+            MarkIdle();
             WriteMessage("Connection {} opened: {}", connection.ConnectionId(), connection.ConnectionString().Sanitized());
         }
 
         void OnConnectionClosed(SqlConnection const& connection) override
         {
-            _state = State::Idle;
+            MarkIdle();
             WriteMessage("Connection {} closed.", connection.ConnectionId());
         }
 
         void OnConnectionIdle(SqlConnection const& /*connection*/) override
         {
-            _state = State::Idle;
+            MarkIdle();
             // nothing to log, for now
         }
 
@@ -193,118 +253,161 @@ namespace
 
         void OnPrepare(std::string_view const& query) override
         {
-            if (_state == State::Executing || _state == State::Fetching)
-                OnFetchEnd();
+            auto* const trace = Current();
+            if (!trace)
+                return;
+            if (trace->state == State::Executing || trace->state == State::Fetching)
+                EndFetch(*trace);
 
-            _state = State::Preparing;
-            _lastPreparedQuery = query;
-            _startedAt = std::chrono::steady_clock::now();
+            // A statement that failed is never written out, so its binds must not pass to this one.
+            trace->binds.clear();
+            trace->state = State::Preparing;
+            trace->lastPreparedQuery = query;
+            trace->startedAt = std::chrono::steady_clock::now();
         }
 
         void OnBind(std::string_view const& name, std::string value) override
         {
-            _binds.emplace_back(name, std::move(value));
+            if (auto* const trace = Current())
+                trace->binds.emplace_back(name, std::move(value));
         }
 
         void OnExecuteDirect(std::string_view const& query) override
         {
-            if (_state == State::Executing || _state == State::Fetching)
-                OnFetchEnd();
+            auto* const trace = Current();
+            if (!trace)
+                return;
+            if (trace->state == State::Executing || trace->state == State::Fetching)
+                EndFetch(*trace);
 
-            _state = State::Executing;
-            _lastPreparedQuery = query;
-            _startedAt = std::chrono::steady_clock::now();
-            _fetchRowCount = 0;
+            trace->binds.clear(); // a direct execution binds nothing; drop what a failed statement left
+            trace->state = State::Executing;
+            trace->lastPreparedQuery = query;
+            trace->startedAt = std::chrono::steady_clock::now();
+            trace->fetchRowCount = 0;
         }
 
         void OnExecute(std::string_view const& query) override
         {
-            if (_state == State::Executing)
-                OnFetchEnd();
+            auto* const trace = Current();
+            if (!trace)
+                return;
+            if (trace->state == State::Executing)
+                EndFetch(*trace);
 
-            _state = State::Executing;
-            _lastPreparedQuery = query;
-            _startedAt = std::chrono::steady_clock::now();
-            _fetchRowCount = 0;
+            trace->state = State::Executing;
+            trace->lastPreparedQuery = query;
+            trace->startedAt = std::chrono::steady_clock::now();
+            trace->fetchRowCount = 0;
         }
 
         void OnExecuteBatch() override
         {
-            WriteMessage("ExecuteBatch: {}", _lastPreparedQuery);
-            _state = State::Executing;
-            _startedAt = std::chrono::steady_clock::now();
-            _fetchRowCount = 0;
+            if (auto* const trace = Current())
+                ExecuteBatch(*trace);
         }
 
         void OnExecuteNativeBatch(std::string_view query) override
         {
-            if (_state == State::Executing || _state == State::Fetching)
-                OnFetchEnd();
+            auto* const trace = Current();
+            if (!trace)
+                return;
+            if (trace->state == State::Executing || trace->state == State::Fetching)
+                EndFetch(*trace);
 
-            _lastPreparedQuery = query;
-            OnExecuteBatch();
+            trace->lastPreparedQuery = query;
+            ExecuteBatch(*trace);
         }
 
         void OnFetchRow() override
         {
-            _state = State::Fetching;
-            ++_fetchRowCount;
+            if (auto* const trace = Current())
+            {
+                trace->state = State::Fetching;
+                ++trace->fetchRowCount;
+            }
         }
 
         void OnFetchEnd() override
         {
-            if (_state != State::Executing && _state != State::Fetching)
+            if (auto* const trace = Current())
+                EndFetch(*trace);
+        }
+
+      private:
+        void MarkError()
+        {
+            if (auto* const trace = Current())
+                trace->state = State::Error;
+        }
+
+        void MarkIdle()
+        {
+            if (auto* const trace = Current())
+                trace->state = State::Idle;
+        }
+
+        /// Announces a batch execution of the query last prepared on this thread.
+        void ExecuteBatch(TraceState& trace)
+        {
+            WriteMessage("ExecuteBatch: {}", trace.lastPreparedQuery);
+            trace.state = State::Executing;
+            trace.startedAt = std::chrono::steady_clock::now();
+            trace.fetchRowCount = 0;
+        }
+
+        /// Writes out the statement work @p trace holds, if any, and resets it.
+        void EndFetch(TraceState& trace)
+        {
+            if (trace.state != State::Executing && trace.state != State::Fetching)
                 return;
 
+            // Take the pending work out before writing it, so a writer that runs SQL itself finds this
+            // thread idle rather than writing the same statement again.
+            auto const pending = std::exchange(trace, TraceState {});
+
             auto const stoppedAt = std::chrono::steady_clock::now();
-            auto const duration = std::chrono::duration_cast<std::chrono::microseconds>(stoppedAt - _startedAt);
+            auto const duration = std::chrono::duration_cast<std::chrono::microseconds>(stoppedAt - pending.startedAt);
             auto const seconds = std::chrono::duration_cast<std::chrono::seconds>(duration);
             auto const microseconds = std::chrono::duration_cast<std::chrono::microseconds>(duration - seconds);
             auto const durationStr = std::format("{}.{:06}", seconds.count(), microseconds.count());
 
             auto const rowCountStr = [&]() -> std::string {
-                if (_fetchRowCount == 0)
+                if (pending.fetchRowCount == 0)
                     return "";
-                if (_fetchRowCount == 1)
+                if (pending.fetchRowCount == 1)
                     return " [1 row]";
-                return std::format(" [{} rows]", _fetchRowCount);
+                return std::format(" [{} rows]", pending.fetchRowCount);
             }();
 
-            if (_binds.empty())
+            if (pending.binds.empty())
             {
-                WriteMessage("[{}]{} {}", durationStr, rowCountStr, _lastPreparedQuery);
-            }
-            else
-            {
-                std::stringstream output;
-                size_t count = 0;
-
-                for (auto const& [name, value]: _binds)
-                {
-                    if (count)
-                        output << ", ";
-                    ++count;
-
-                    if (name.empty())
-                        output << std::format("{}", value);
-                    else
-                        output << std::format("{}={}", name, value);
-                }
-
-                WriteMessage("[{}]{} {} WITH [{}]", durationStr, rowCountStr, _lastPreparedQuery, output.str());
+                WriteMessage("[{}]{} {}", durationStr, rowCountStr, pending.lastPreparedQuery);
+                return;
             }
 
-            _lastPreparedQuery.clear();
-            _state = State::Idle;
-            _fetchRowCount = 0;
-            _binds.clear();
+            std::stringstream output;
+            size_t count = 0;
+
+            for (auto const& [name, value]: pending.binds)
+            {
+                if (count)
+                    output << ", ";
+                ++count;
+
+                if (name.empty())
+                    output << std::format("{}", value);
+                else
+                    output << std::format("{}={}", name, value);
+            }
+
+            WriteMessage("[{}]{} {} WITH [{}]", durationStr, rowCountStr, pending.lastPreparedQuery, output.str());
         }
 
-      private:
         /// Writes the details of an error.
         ///
-        /// This logger is shared by every statement of the process, so what it last heard of is only a
-        /// hint, and it is labelled as one: the failed query is named as such only when it is known.
+        /// This logger is shared by every statement of the calling thread, so what it last heard of is
+        /// only a hint, and it is labelled as one: the failed query is named as such only when it is known.
         ///
         /// @param sourceLocation Where the error was reported from.
         /// @param failedQuery The query the error belongs to; empty if that is unknown.
@@ -315,8 +418,8 @@ namespace
             stream << std::format("  Source: {}:{}", sourceLocation.file_name(), sourceLocation.line());
             if (!failedQuery.empty())
                 stream << std::format("  Query: {}", failedQuery);
-            else if (!_lastPreparedQuery.empty())
-                stream << std::format("  Last logged query (not necessarily the failed one): {}", _lastPreparedQuery);
+            else if (auto const* const trace = Current(); trace && !trace->lastPreparedQuery.empty())
+                stream << std::format("  Last logged query (not necessarily the failed one): {}", trace->lastPreparedQuery);
 
 #if __has_include(<stacktrace>)
             stream << std::format("  Stack trace:");
@@ -378,17 +481,19 @@ SqlLogger& SqlLogger::TraceLogger()
 }
 
 // Constant-initialized, so it is valid even while other translation units' statics are still being
-// initialized; nullptr selects the null logger.
-static constinit SqlLogger* theDefaultLogger = nullptr;
+// initialized; nullptr selects the null logger. Atomic, because every statement on every thread reads
+// it while SetLogger() may replace it.
+static constinit std::atomic<SqlLogger*> theDefaultLogger = nullptr;
 
 SqlLogger& SqlLogger::GetLogger()
 {
-    return theDefaultLogger ? *theDefaultLogger : NullLogger();
+    auto* const logger = theDefaultLogger.load(std::memory_order_acquire);
+    return logger ? *logger : NullLogger();
 }
 
 void SqlLogger::SetLogger(SqlLogger& logger)
 {
-    theDefaultLogger = &logger;
+    theDefaultLogger.store(&logger, std::memory_order_release);
 }
 
 } // namespace Lightweight

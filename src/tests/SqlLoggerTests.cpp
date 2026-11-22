@@ -9,11 +9,15 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <algorithm>
+#include <format>
 #include <ranges>
+#include <semaphore>
 #include <source_location>
 #include <span>
 #include <stdexcept>
 #include <string>
+#include <thread>
+#include <utility>
 #include <variant>
 #include <vector>
 
@@ -342,6 +346,27 @@ TEST_CASE("SqlLogger::TraceLogger.OnError logs the error and includes source-loc
     CHECK(containsAny("Source:"));
 }
 
+TEST_CASE("SqlLogger::TraceLogger does not carry a failed statement's binds into the next one", "[SqlLogger]")
+{
+    auto& logger = SqlLogger::TraceLogger();
+    auto captured = std::vector<std::string> {};
+    logger.SetLoggingSink([&](std::string message) { captured.push_back(std::move(message)); });
+    auto const restore = detail::Finally([&] { logger.SetLoggingSink({}); });
+
+    logger.OnPrepare("INSERT INTO T VALUES (?)");
+    logger.OnExecute("INSERT INTO T VALUES (?)");
+    logger.OnBind("", "42");
+    logger.OnError(SqlError::FAILURE, std::source_location::current());
+
+    logger.OnPrepare("SELECT ?");
+    logger.OnExecute("SELECT ?");
+    logger.OnBind("", "7");
+    logger.OnFetchEnd();
+
+    REQUIRE_FALSE(captured.empty());
+    CHECK(captured.back().contains("SELECT ? WITH [7]"));
+}
+
 TEST_CASE("SqlLogger::TraceLogger.OnError(SqlErrorInfo) logs SQLSTATE and message", "[SqlLogger]")
 {
     auto& logger = SqlLogger::TraceLogger();
@@ -558,4 +583,164 @@ TEST_CASE("SqlLogger: the statement-aware hooks reach a logger that overrides on
 
     base.OnExecuteNativeBatch("INSERT INTO T VALUES (?)");
     CHECK(logger.batchExecuted == 1);
+}
+
+// ================================================================================================
+// The trace logger from several threads (#706)
+// ================================================================================================
+
+TEST_CASE("SqlLogger::TraceLogger keeps each thread's query and binds on its own line", "[SqlLogger]")
+{
+    auto& logger = SqlLogger::TraceLogger();
+    auto captured = std::vector<std::string> {};
+    logger.SetLoggingSink([&](std::string message) { captured.push_back(std::move(message)); });
+    auto const restore = detail::Finally([&] { logger.SetLoggingSink({}); });
+
+    // The two threads take strict turns, so nothing here runs concurrently: what is tested is whose
+    // statement each line describes, not the absence of a data race.
+    auto aTurn = std::binary_semaphore { 1 };
+    auto bTurn = std::binary_semaphore { 0 };
+
+    auto threadA = std::jthread { [&] {
+        aTurn.acquire();
+        logger.OnPrepare("SELECT 'thread A'");
+        logger.OnBind("a", "1");
+        bTurn.release();
+
+        aTurn.acquire();
+        logger.OnExecute("SELECT 'thread A'");
+        logger.OnFetchEnd();
+        bTurn.release();
+    } };
+
+    auto threadB = std::jthread { [&] {
+        bTurn.acquire();
+        logger.OnPrepare("SELECT 'thread B'");
+        logger.OnBind("b", "2");
+        aTurn.release();
+
+        bTurn.acquire();
+        logger.OnExecute("SELECT 'thread B'");
+        logger.OnFetchEnd();
+    } };
+
+    threadA.join();
+    threadB.join();
+
+    auto const lineOf = [&](std::string_view query) -> std::string {
+        auto const found =
+            std::ranges::find_if(captured, [&](std::string const& message) { return message.contains(query); });
+        return found != captured.end() ? *found : std::string {};
+    };
+    auto const lineA = lineOf("thread A");
+    auto const lineB = lineOf("thread B");
+
+    CHECK(lineA.contains("a=1"));
+    CHECK_FALSE(lineA.contains("b=2"));
+    CHECK(lineB.contains("b=2"));
+    CHECK_FALSE(lineB.contains("a=1"));
+}
+
+TEST_CASE("SqlLogger::TraceLogger reports a scoped timer stopped without a start instead of throwing", "[SqlLogger]")
+{
+    auto& logger = SqlLogger::TraceLogger();
+    auto captured = std::vector<std::string> {};
+    logger.SetLoggingSink([&](std::string message) { captured.push_back(std::move(message)); });
+    auto const restore = detail::Finally([&] { logger.SetLoggingSink({}); });
+
+    // ~SqlScopedTimeLogger makes this call, so throwing here would terminate the process.
+    CHECK_NOTHROW(logger.OnScopedTimerStop("never-started"));
+
+    REQUIRE(captured.size() == 1);
+    CHECK(captured.front().contains("[never-started] Scoped timer finished"));
+}
+
+TEST_CASE("SqlLogger::TraceLogger times a scoped timer that stops on another thread", "[SqlLogger]")
+{
+    auto& logger = SqlLogger::TraceLogger();
+    auto captured = std::vector<std::string> {};
+    logger.SetLoggingSink([&](std::string message) { captured.push_back(std::move(message)); });
+    auto const restore = detail::Finally([&] { logger.SetLoggingSink({}); });
+
+    // As a coroutine holding a SqlScopedTimeLogger does when it resumes on another executor thread.
+    std::jthread { [&] { logger.OnScopedTimerStart("hop"); } }.join();
+    logger.OnScopedTimerStop("hop");
+
+    REQUIRE(captured.size() == 2);
+    CHECK(captured.back().contains("[hop] Scoped timer finished: Took"));
+}
+
+TEST_CASE("SqlLogger::TraceLogger lets a logging sink log in turn", "[SqlLogger]")
+{
+    auto& logger = SqlLogger::TraceLogger();
+    auto captured = std::vector<std::string> {};
+    auto nested = false;
+    logger.SetLoggingSink([&](std::string message) {
+        captured.push_back(std::move(message));
+        if (!std::exchange(nested, true))
+            logger.OnWarning("from inside the sink");
+    });
+    auto const restore = detail::Finally([&] { logger.SetLoggingSink({}); });
+
+    logger.OnWarning("outer");
+
+    REQUIRE(captured.size() == 2);
+    CHECK(captured[0].contains("outer"));
+    CHECK(captured[1].contains("from inside the sink"));
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlLogger::TraceLogger serves statements on several threads at once", "[SqlLogger]")
+{
+    constexpr auto ThreadCount = 4;
+    constexpr auto Iterations = 25;
+
+    // Each thread names itself twice: in its query text and in the value it binds.
+    constexpr auto MarkerBase = 70'001;
+
+    auto captured = std::vector<std::string> {};
+    auto& trace = SqlLogger::TraceLogger();
+    trace.SetLoggingSink([&](std::string message) { captured.push_back(std::move(message)); });
+    auto const restoreSink = detail::Finally([&] { trace.SetLoggingSink({}); });
+    LoggerSwap const swap { trace };
+
+    {
+        auto threads = std::vector<std::jthread> {};
+        for (auto const threadIndex: std::views::iota(0, ThreadCount))
+        {
+            threads.emplace_back([threadIndex, Iterations = Iterations, MarkerBase = MarkerBase] {
+                auto connection = SqlConnection {};
+                auto statement = SqlStatement { connection };
+                auto const marker = MarkerBase + threadIndex;
+                for ([[maybe_unused]] auto const _: std::views::iota(0, Iterations))
+                {
+                    statement.Prepare(std::format("SELECT ? AS t{}", marker));
+                    auto cursor = statement.Execute(marker);
+                    while (cursor.FetchRow())
+                        ;
+                }
+            });
+        }
+    } // joins
+
+    for (auto const threadIndex: std::views::iota(0, ThreadCount))
+    {
+        auto const query = std::format("AS t{}", MarkerBase + threadIndex);
+        auto const binds = std::format("WITH [{}]", MarkerBase + threadIndex);
+        auto lines = captured | std::views::filter([&](std::string const& message) { return message.contains(query); });
+
+        CHECK(std::ranges::distance(lines) == Iterations);
+        for (auto const& line: lines)
+        {
+            INFO(line);
+            CHECK(line.contains(binds));
+            // Only the query and bind fragments: the duration a line opens with may hold any digits.
+            for (auto const other: std::views::iota(0, ThreadCount))
+            {
+                if (other == threadIndex)
+                    continue;
+                CHECK_FALSE(line.contains(std::format("AS t{}", MarkerBase + other)));
+                CHECK_FALSE(line.contains(std::format("[{}]", MarkerBase + other)));
+            }
+        }
+    }
 }

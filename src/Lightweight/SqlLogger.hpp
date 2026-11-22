@@ -51,6 +51,10 @@ class SqlLogger
 
     /// Sets the logging sink for the logger.
     ///
+    /// The built-in loggers call the sink for one message at a time, even when statements on several
+    /// threads log at once, so the sink itself need not be thread-safe. Replacing the sink is not
+    /// synchronized: do it while no other thread is logging.
+    ///
     /// @param writer A function that takes a message string and writes it to the desired output.
     LIGHTWEIGHT_API void SetLoggingSink(MessageWriter writer = {});
 
@@ -160,6 +164,12 @@ class SqlLogger
     LIGHTWEIGHT_API static SqlLogger& StandardLogger();
 
     /// Retrieves a logger that logs to the trace logger.
+    ///
+    /// It follows each thread's statement work separately, so statements running on several threads
+    /// at once each get lines of their own, naming their own query and bound values. A statement is
+    /// expected to be driven by one thread from prepare to the end of its fetch, as the async layer
+    /// does by offloading each call whole; one whose calls are split across threads -- a coroutine that
+    /// binds, then resumes elsewhere to execute -- has its line written incomplete.
     LIGHTWEIGHT_API static SqlLogger& TraceLogger();
 
     /// Retrieves the currently configured logger.
