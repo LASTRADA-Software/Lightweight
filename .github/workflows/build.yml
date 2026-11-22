@@ -162,6 +162,13 @@ jobs:
       - name: "Install ninja"
         run: |
           choco install ninja
+      - name: "Install LLVM (clang-cl)"
+        # The runner's MSVC STL requires Clang 22 or newer; pin the version instead of relying on the image.
+        if: ${{ matrix.preset == 'clangcl-debug' }}
+        run: |
+          choco install llvm --version=22.1.8 --allow-downgrade -y
+          "C:\Program Files\LLVM\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          & "C:\Program Files\LLVM\bin\clang-cl.exe" --version
       - name: "Generate build files"
         # MSVC/clang-cl need /Z7 rather than /Zi for sccache to be able to cache
         # objects: /Zi writes debug info to a shared .pdb, which defeats caching.
