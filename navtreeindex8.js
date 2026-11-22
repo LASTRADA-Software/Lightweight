@@ -1,9 +1,5 @@
 var NAVTREEINDEX8 =
 {
-"de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#ab999c7e4572e60e907a06615d040bb2e":[22,0,0,95,26],
-"de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#ac09e28d78f83019dd589b4a0bd60e7f0":[22,0,0,95,34],
-"de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#ac24a16b0918accd0c3cd16eba27207d0":[22,0,0,95,17],
-"de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#ac39aa0f150f42dec783b4a02282feb8d":[22,0,0,95,25],
 "de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#ad1d38c21c3e67ddebe2a0067635db84b":[22,0,0,95,9],
 "de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#ad376d833dc0842efcac387964ad361c3":[22,0,0,95,18],
 "de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#ae2373ce3c7dccf02a0a956aa0217a9b1":[22,0,0,95,27],
@@ -249,5 +245,9 @@ var NAVTREEINDEX8 =
 "de/dd3/ThreadPoolExecutor_8hpp_source.html":[23,0,1,0,14],
 "de/dd9/classLightweight_1_1SqlInsertQueryBuilder.html":[20,8,6],
 "de/dd9/classLightweight_1_1SqlInsertQueryBuilder.html#a56e97e4531a1f7f1fb125397397139df":[20,8,6,0],
-"de/dd9/classLightweight_1_1SqlInsertQueryBuilder.html#a860d9eb4bef46431e061c9a72d4fe8f2":[20,8,6,3]
+"de/dd9/classLightweight_1_1SqlInsertQueryBuilder.html#a860d9eb4bef46431e061c9a72d4fe8f2":[20,8,6,3],
+"de/dd9/classLightweight_1_1SqlInsertQueryBuilder.html#a9216791e7f16456f43eb1ad2a74942a8":[20,8,6,2],
+"de/dd9/classLightweight_1_1SqlInsertQueryBuilder.html#ae9dcfc1dd432fa11965fa0315f252bee":[20,8,6,1],
+"de/dfb/structLightweight_1_1SqlMigration_1_1PreMigrateStepOptions.html":[20,7,11],
+"de/dfb/structLightweight_1_1SqlMigration_1_1PreMigrateStepOptions.html#ab7ff0829d0bb5ab7d6875170f0d5bf06":[20,7,11,0]
 };
