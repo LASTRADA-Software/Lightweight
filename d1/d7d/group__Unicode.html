@@ -287,7 +287,7 @@ requires std::same_as&lt;T, char32_t&gt; || (std::same_as&lt;T, wchar_t&gt; &amp
       </table>
 </div><div class="memdoc">
 <p>Converts from UTF-16 to a local 8-bit string, the inverse of <code><a class="el" href="../../d1/d7d/group__Unicode.html#ga3b6f1e516cb7b6384ac8e9405b41f2b0">ToUtf16(std::string const&amp;)</a></code>.</p>
-<p>On Windows the result is in the process ANSI code page; characters it cannot represent become its default character. Elsewhere the result is UTF-8. </p>
+<p>On Windows the result is in the process ANSI code page; characters it cannot represent become its default character (usually <code></code>?), never a best-fit look-alike. Elsewhere the result is UTF-8. </p>
 
 </div>
 </div>
