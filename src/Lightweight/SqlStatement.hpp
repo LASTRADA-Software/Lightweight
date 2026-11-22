@@ -23,12 +23,15 @@
 #include "TracyProfiler.hpp"
 #include "Utils.hpp"
 
+#include <reflection-cpp/reflection.hpp>
+
 #include <algorithm>
 #include <array>
 #include <chrono>
 #include <cstdint>
 #include <cstring>
 #include <expected>
+#include <format>
 #include <functional>
 #include <optional>
 #include <ranges>
@@ -69,6 +72,8 @@ concept SqlNamedProjectionQueryObject = SqlQueryObject<QueryObject> && requires(
 class SqlResultCursor;
 class SqlVariantRowCursor;
 class RowArrayCursor;
+template <typename T>
+class SqlRowIterator;
 
 /// @brief High level API for (prepared) raw SQL statements
 ///
@@ -389,6 +394,8 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
   private:
     friend class SqlResultCursor;
     friend class RowArrayCursor;
+    template <typename T>
+    friend class SqlRowIterator;
 
     [[nodiscard]] LIGHTWEIGHT_API size_t NumRowsAffected() const;
     [[nodiscard]] LIGHTWEIGHT_API size_t NumColumnsAffected() const;
@@ -1358,6 +1365,11 @@ class SqlRowIterator
         auto& stmt = it.Statement();
         stmt.Prepare(it.Statement().Query(RecordTableName<T>).Select().template Fields<T>().Build(_queryCustomizer).All());
         it.SetCursor(stmt.Execute());
+        // The rows are read with GetColumn, so the column types are known before the first fetch: a member
+        // type the block buffer cannot rebuild keeps the result set on the per-row path, as in
+        // ExecuteDirectScalar, instead of failing the read.
+        if (!ColumnsArePrefetchConvertible())
+            stmt.MarkPrefetchBindingUnsupported();
         ++it;
         return it;
     }
@@ -1369,6 +1381,9 @@ class SqlRowIterator
     }
 
   private:
+    /// @return Whether the block buffer can serve every column member of @c T to @c GetColumn.
+    static constexpr bool ColumnsArePrefetchConvertible() noexcept;
+
     SqlConnection* _connection;
     QueryCustomizer _queryCustomizer = [](SqlSelectQueryBuilder& /*query*/) {
     };
@@ -2342,6 +2357,22 @@ namespace detail
 } // end namespace detail
 
 template <typename T>
+constexpr bool SqlRowIterator<T>::ColumnsArePrefetchConvertible() noexcept
+{
+    auto convertible = true;
+    EnumerateRecordMembers<T>([&convertible]<size_t I, typename FieldType>() {
+        if constexpr (RecordColumnMember<FieldType>)
+        {
+            if constexpr (FieldWithStorage<FieldType>)
+                convertible = convertible && detail::PrefetchConvertible<typename FieldType::ValueType>;
+            else
+                convertible = convertible && detail::PrefetchConvertible<FieldType>;
+        }
+    });
+    return convertible;
+}
+
+template <typename T>
 inline T SqlStatement::ConvertCell(RowArrayCursor const& cursor, std::size_t row, SQLUSMALLINT column) const
 {
     // Dispatch the target type to the matching reconstruction helper. The arming allowlist keeps the
@@ -2365,9 +2396,18 @@ inline T SqlStatement::ConvertCell(RowArrayCursor const& cursor, std::size_t row
         return detail::ReadArithmeticCell<T>(cursor, row, column);
     else
         // A target type the block buffer cannot reconstruct (e.g. a user type with a custom binder). The
-        // bound path declines prefetch for such targets (see PrefetchConvertible); reaching here via a raw
-        // GetColumn returns a default rather than crashing.
-        return T {};
+        // bound path and ExecuteDirectScalar decline prefetch for such targets (see PrefetchConvertible);
+        // a raw GetColumn only learns the type once the block is fetched, too late to fall back.
+        throw SqlException(SqlErrorInfo {
+            .nativeErrorCode = 0,
+            .sqlState = "HY000",
+            .message =
+                std::format("Column {} cannot be read as {} from a block-prefetched result set: the type's binder needs the "
+                            "per-row fetch. Bind it with BindOutputColumns() before the first FetchRow(), or disable "
+                            "block prefetch with SqlConnection::SetDefaultPrefetchDepth(1).",
+                            column,
+                            Reflection::TypeNameOf<T>),
+        });
 }
 
 template <SqlOutputColumnBinder T>
@@ -2505,6 +2545,9 @@ template <typename T>
 inline std::optional<T> SqlStatement::ExecuteDirectScalar(std::string_view const& query, std::source_location location)
 {
     auto cursor = ExecuteDirect(query, location);
+    // The type is known before the first fetch: keep a type the block buffer cannot rebuild on the per-row path.
+    if constexpr (!detail::PrefetchConvertible<T>)
+        MarkPrefetchBindingUnsupported();
     RequireSuccess(FetchRow());
     return GetNullableColumn<T>(1);
 }

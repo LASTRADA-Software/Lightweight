@@ -215,8 +215,13 @@ wall-clock time of large result sets.
 Lightweight transparently reduces these round-trips: on the first `FetchRow()` of a result set it
 inspects the columns and, when eligible, fetches whole **blocks** of rows per `SQLFetchScroll`
 round-trip (ODBC row-array binding) and serves your `FetchRow()` / `GetColumn<T>()` calls from that
-buffer. **No code change is required** — the loops above, `SqlRowIterator<T>`, `SqlVariantRowCursor`
-and the `DataMapper` all benefit automatically.
+buffer. The loops above, `SqlRowIterator<T>`, `SqlVariantRowCursor` and the `DataMapper` benefit without
+a code change. One exception: the block buffer holds each value as a built-in type, so `GetColumn<T>()` of
+a type with a custom `SqlDataBinder` cannot be served from it. Where the type is known before the first
+fetch (a bound output column, `ExecuteDirectScalar<T>()`, the members of a `SqlRowIterator<T>` record) the
+result set keeps the per-row path; a raw `GetColumn<T>()` of such a type on a block-prefetched result set
+throws a `SqlException` — bind that column before the first `FetchRow()`, or disable prefetch (see
+[data-binder.md](data-binder.md#custom-types-and-block-prefetch)).
 
 The depth is a connection-level setting (default `Lightweight::PrefetchDepthDefault`, 1000 rows). A
 value `<= 1` disables prefetch and restores one `SQLFetch` per row:

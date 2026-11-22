@@ -112,6 +112,21 @@ The `GetColumn()` function retrieves the custom type from the SQL statement.
 Calling `GetColumn()` is usually less efficient than calling `OutputColumn()` because it requires
 an additional copy operation.
 
+### Custom types and block prefetch
+
+By default a connection fetches eligible result sets (all columns numeric, temporal or GUID) in blocks
+of rows and serves `GetColumn<T>()` from that block buffer (see "Transparent block-prefetch" in
+[usage.md](usage.md)). The block buffer holds the column's value as a built-in type; it cannot run a
+custom binder. Where the column type is known before the first fetch, Lightweight keeps such a result
+set on the per-row path, so the custom binder runs: a column bound with `BindOutputColumns()`,
+`ExecuteDirectScalar<CustomType>()`, and the members of a record read with `SqlRowIterator<T>`.
+
+A raw `GetColumn<CustomType>()` on a result set that is already block-prefetched learns the type too late
+and throws a `SqlException` (SQLSTATE `HY000`) instead of returning a wrong value. Two ways out:
+
+- bind the column with `BindOutputColumns()` (or `BindOutputColumn()`) before the first `FetchRow()`, or
+- disable block prefetch for the connection with `SqlConnection::SetDefaultPrefetchDepth(1)`.
+
 ## Inspect()
 
 The `Inspect()` function is used to provide a human-readable representation of the custom type.

@@ -7,9 +7,12 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <algorithm>
+#include <array>
 #include <cstdint>
 #include <format>
 #include <optional>
+#include <ostream>
 #include <ranges>
 #include <string>
 #include <tuple>
@@ -945,4 +948,161 @@ TEST_CASE_METHOD(SqlTestFixture, "Per-row fallback: a GUID column reads into std
     auto const text = cursor.GetColumn<std::string>(1);
     // The textual form differs in case between drivers; the value must not.
     CHECK(SqlGuid::TryParse(text) == guid);
+}
+
+// ------------------------------------------------------------------------------------------------
+// A user type whose binder composes a built-in binder cannot be rebuilt from the block buffer
+// ------------------------------------------------------------------------------------------------
+
+namespace PrefetchTests
+{
+
+/// A user type with its own binder, stored as a DOUBLE.
+struct Celsius
+{
+    double degrees {};
+
+    constexpr auto operator<=>(Celsius const&) const noexcept = default;
+};
+
+std::ostream& operator<<(std::ostream& os, Celsius const& value)
+{
+    return os << std::format("Celsius({})", value.degrees);
+}
+
+} // namespace PrefetchTests
+
+template <>
+struct Lightweight::SqlDataBinder<PrefetchTests::Celsius>
+{
+    using Celsius = PrefetchTests::Celsius;
+
+    static constexpr auto ColumnType = SqlDataBinder<double>::ColumnType;
+
+    static SQLRETURN InputParameter(SQLHSTMT stmt,
+                                    SQLUSMALLINT column,
+                                    Celsius const& value,
+                                    SqlDataBinderCallback& cb) noexcept
+    {
+        return SqlDataBinder<double>::InputParameter(stmt, column, value.degrees, cb);
+    }
+
+    static SQLRETURN OutputColumn(
+        SQLHSTMT stmt, SQLUSMALLINT column, Celsius* result, SQLLEN* indicator, SqlDataBinderCallback& cb) noexcept
+    {
+        return SqlDataBinder<double>::OutputColumn(stmt, column, &result->degrees, indicator, cb);
+    }
+
+    static SQLRETURN GetColumn(
+        SQLHSTMT stmt, SQLUSMALLINT column, Celsius* result, SQLLEN* indicator, SqlDataBinderCallback const& cb) noexcept
+    {
+        return SqlDataBinder<double>::GetColumn(stmt, column, &result->degrees, indicator, cb);
+    }
+
+    static std::string Inspect(Celsius const& value) noexcept
+    {
+        return std::format("{}C", value.degrees);
+    }
+};
+
+namespace
+{
+
+using PrefetchTests::Celsius;
+
+constexpr auto CelsiusValues = std::array { Celsius { 20.5 }, Celsius { -3.25 }, Celsius { 100.0 } };
+
+void CreateCelsiusTable(SqlStatement& stmt)
+{
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("PrefetchCelsius")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Integer {})
+            .RequiredColumn("Degrees", SqlColumnTypeDefinitions::Real {});
+    });
+    stmt.Prepare(R"(INSERT INTO "PrefetchCelsius" ("Id", "Degrees") VALUES (?, ?))");
+    for (auto const index: std::views::iota(std::size_t { 0 }, CelsiusValues.size()))
+        (void) stmt.Execute(static_cast<int>(index), CelsiusValues.at(index));
+}
+
+} // namespace
+
+TEST_CASE_METHOD(SqlTestFixture, "Prefetch: ExecuteDirectScalar of a custom-binder type", "[prefetch]")
+{
+    auto stmt = SqlStatement {};
+    stmt.Connection().SetDefaultPrefetchDepth(PrefetchDepthDefault);
+    CreateCelsiusTable(stmt);
+
+    CHECK(stmt.ExecuteDirectScalar<Celsius>(R"(SELECT "Degrees" FROM "PrefetchCelsius" WHERE "Id" = 0)")
+          == std::optional { CelsiusValues[0] });
+    CHECK(stmt.ExecuteDirectScalar<Celsius>(R"(SELECT "Degrees" FROM "PrefetchCelsius" ORDER BY "Id" DESC)")
+          == std::optional { CelsiusValues[2] });
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "Prefetch: GetColumn of a custom-binder type", "[prefetch]")
+{
+    auto stmt = SqlStatement {};
+    stmt.Connection().SetDefaultPrefetchDepth(PrefetchDepthDefault);
+    CreateCelsiusTable(stmt);
+
+    auto const query = R"(SELECT "Degrees" FROM "PrefetchCelsius" ORDER BY "Id")"sv;
+
+    SECTION("Read per row while the result set is block-prefetched")
+    {
+        auto cursor = stmt.ExecuteDirect(query);
+        REQUIRE(cursor.FetchRow());
+        if (stmt.Connection().SupportsNativeRowArrayFetch())
+            // The block buffer cannot rebuild the value; it must say so rather than hand back Celsius {}.
+            CHECK_THROWS_AS(cursor.GetColumn<Celsius>(1), SqlException);
+        else
+            CHECK(cursor.GetColumn<Celsius>(1) == CelsiusValues[0]);
+    }
+
+    SECTION("Bound output column")
+    {
+        auto celsius = Celsius {};
+        auto cursor = stmt.ExecuteDirect(query);
+        cursor.BindOutputColumns(&celsius);
+        auto rows = std::vector<Celsius> {};
+        while (cursor.FetchRow())
+            rows.push_back(celsius);
+        CHECK(rows == std::vector<Celsius>(CelsiusValues.begin(), CelsiusValues.end()));
+    }
+
+    SECTION("Prefetch disabled")
+    {
+        stmt.Connection().SetDefaultPrefetchDepth(1);
+        auto cursor = stmt.ExecuteDirect(query);
+        auto rows = std::vector<Celsius> {};
+        while (cursor.FetchRow())
+            rows.push_back(cursor.GetColumn<Celsius>(1));
+        CHECK(rows == std::vector<Celsius>(CelsiusValues.begin(), CelsiusValues.end()));
+    }
+}
+
+/// A record SqlRowIterator reads with GetColumn, one of whose members has a custom binder. At namespace
+/// scope, not in an anonymous namespace: MSVC cannot reflect a type with internal linkage.
+struct PrefetchCelsiusRecord
+{
+    static constexpr std::string_view TableName = "PrefetchCelsius";
+
+    Field<int> Id;
+    Field<Celsius> Degrees;
+};
+
+TEST_CASE_METHOD(SqlTestFixture, "Prefetch: SqlRowIterator of a record with a custom-binder member", "[prefetch]")
+{
+    auto stmt = SqlStatement {};
+    stmt.Connection().SetDefaultPrefetchDepth(PrefetchDepthDefault);
+    CreateCelsiusTable(stmt);
+
+    // The member types are known before the first fetch, so the result set keeps the per-row path
+    // rather than failing the read of a value the block buffer cannot rebuild.
+    auto degrees = std::vector<Celsius> {};
+    for (auto const& record: SqlRowIterator<PrefetchCelsiusRecord> { stmt.Connection() })
+        degrees.push_back(record.Degrees.Value());
+
+    auto expected = std::vector<Celsius>(CelsiusValues.begin(), CelsiusValues.end());
+    std::ranges::sort(degrees);
+    std::ranges::sort(expected);
+    CHECK(degrees == expected);
 }
