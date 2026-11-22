@@ -144,8 +144,6 @@ Public Member Functions</h2></td></tr>
 <tr class="separator:aa4a1025e0d27d3e8f0c97081e2419875"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a151e499b5da3afcaea3326bfb35d3c36" id="r_a151e499b5da3afcaea3326bfb35d3c36"><td class="memItemLeft" align="right" valign="top">virtual std::string const &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#a151e499b5da3afcaea3326bfb35d3c36">DriverName</a> () const noexcept=0</td></tr>
 <tr class="separator:a151e499b5da3afcaea3326bfb35d3c36"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a45b37b294222fbd105071e20e86ba3a1" id="r_a45b37b294222fbd105071e20e86ba3a1"><td class="memItemLeft" align="right" valign="top">virtual detail::NarrowTextBinding&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#a45b37b294222fbd105071e20e86ba3a1">NarrowTextBindingMode</a> () const noexcept</td></tr>
-<tr class="separator:a45b37b294222fbd105071e20e86ba3a1"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad098c3dad4ee1a7363b6f2de5d875861" id="r_ad098c3dad4ee1a7363b6f2de5d875861"><td class="memItemLeft" align="right" valign="top">virtual std::optional&lt; SQLSMALLINT &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#ad098c3dad4ee1a7363b6f2de5d875861">DescribeInputParameterType</a> (SQLUSMALLINT column) noexcept</td></tr>
 <tr class="separator:ad098c3dad4ee1a7363b6f2de5d875861"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
@@ -372,34 +370,6 @@ Row-wise callers request <code>~rowStride*rowCount</code> bytes to hold only <co
 
 </div>
 </div>
-<a id="a45b37b294222fbd105071e20e86ba3a1" name="a45b37b294222fbd105071e20e86ba3a1"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a45b37b294222fbd105071e20e86ba3a1">&#9670;&#160;</a></span>NarrowTextBindingMode()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">virtual detail::NarrowTextBinding Lightweight::SqlDataBinderCallback::NarrowTextBindingMode </td>
-          <td>(</td>
-          <td class="paramname"></td><td>)</td>
-          <td> const</td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">virtual</span><span class="mlabel">noexcept</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-<dl class="section return"><dt>Returns</dt><dd>How the narrow (<code>char</code>) string binders exchange text with the driver. </dd></dl>
-
-<p class="definition">Definition at line <a class="el" href="../../d7/d0f/DataBinder_2Core_8hpp_source.html#l00104">104</a> of file <a class="el" href="../../d7/d0f/DataBinder_2Core_8hpp_source.html">Core.hpp</a>.</p>
-
-</div>
-</div>
 <a id="ad098c3dad4ee1a7363b6f2de5d875861" name="ad098c3dad4ee1a7363b6f2de5d875861"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ad098c3dad4ee1a7363b6f2de5d875861">&#9670;&#160;</a></span>DescribeInputParameterType()</h2>
 
@@ -433,7 +403,7 @@ Row-wise callers request <code>~rowStride*rowCount</code> bytes to hold only <co
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The declared SQL type, or <code>std::nullopt</code> when it cannot be determined. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/d0f/DataBinder_2Core_8hpp_source.html#l00117">117</a> of file <a class="el" href="../../d7/d0f/DataBinder_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/d0f/DataBinder_2Core_8hpp_source.html#l00111">111</a> of file <a class="el" href="../../d7/d0f/DataBinder_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>

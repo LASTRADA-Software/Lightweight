@@ -1,9 +1,5 @@
 var NAVTREEINDEX8 =
 {
-"de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#ad1d38c21c3e67ddebe2a0067635db84b":[22,0,0,95,9],
-"de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#ad376d833dc0842efcac387964ad361c3":[22,0,0,95,18],
-"de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#ae2373ce3c7dccf02a0a956aa0217a9b1":[22,0,0,95,27],
-"de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#ae8b6c3c76aea2e0c65967424039ff48c":[22,0,0,95,3],
 "de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#aeeaf82e11b843bb28525e9a7eac826b6":[22,0,0,95,15],
 "de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#af0bb9fac51166cdbd7346d78b668be09":[22,0,0,95,32],
 "de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#af4ccd5e64aa4e1be75ee688d107afcee":[22,0,0,95,0],
@@ -249,5 +245,9 @@ var NAVTREEINDEX8 =
 "de/dd9/classLightweight_1_1SqlInsertQueryBuilder.html#a9216791e7f16456f43eb1ad2a74942a8":[20,8,6,2],
 "de/dd9/classLightweight_1_1SqlInsertQueryBuilder.html#ae9dcfc1dd432fa11965fa0315f252bee":[20,8,6,1],
 "de/dfb/structLightweight_1_1SqlMigration_1_1PreMigrateStepOptions.html":[20,7,11],
-"de/dfb/structLightweight_1_1SqlMigration_1_1PreMigrateStepOptions.html#ab7ff0829d0bb5ab7d6875170f0d5bf06":[20,7,11,0]
+"de/dfb/structLightweight_1_1SqlMigration_1_1PreMigrateStepOptions.html#ab7ff0829d0bb5ab7d6875170f0d5bf06":[20,7,11,0],
+"de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html":[20,7,15],
+"de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#a08e7f32b9ae6147732e6cc89cf6ac35e":[20,7,15,4],
+"de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#a0ab6e8c26f230333862500cc5e39a03e":[20,7,15,11],
+"de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#a120faae4809045b0fd412b6550b634f0":[20,7,15,12]
 };
