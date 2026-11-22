@@ -419,14 +419,16 @@ class SqlConnection final
     /// @brief How the narrow (@c char) string binders exchange text with this connection's driver.
     ///
     /// PostgreSQL binds narrow strings wide as UTF-8 (see @c detail::NarrowTextBindingOf). The SQLite ODBC
-    /// driver on Windows converts @c SQL_C_CHAR between UTF-8 and the thread's ANSI code page when the
-    /// connection string enables its @c OEMCP option. That code page differs from the process one whenever
-    /// the user's format locale differs from the system locale, so such a connection binds narrow strings
-    /// wide and converts them with the process ANSI code page, the encoding narrow strings carry on Windows.
-    /// The option is read from the connection string only (key case-insensitive, value true when it starts with
-    /// Y, T or a non-zero digit, as the driver reads it). An @c OEMCP set only in a DSN's configuration, or on a
-    /// borrowed connection handle, is not seen: such a connection keeps the narrow binding, so pass the option
-    /// in the connection string to get the conversion.
+    /// driver on Windows converts @c SQL_C_CHAR between UTF-8 and the thread's ANSI code page when its @c OEMCP
+    /// option is on. That code page differs from the process one whenever the user's format locale differs from the
+    /// system locale, so such a connection binds narrow strings wide and converts them with the process ANSI code
+    /// page, the encoding narrow strings carry on Windows.
+    ///
+    /// The option is decided as the driver decides it: the connection string's @c OEMCP key (case-insensitive),
+    /// else the @c OEMCP of the data source's profile (user DSN, then system DSN), else the driver default, which is
+    /// on for a data-source connect (@ref Connect(SqlConnectionDataSource const&)) and off for a connection string.
+    /// A value is true when it starts with Y, T or a non-zero digit. A borrowed connection handle carries neither,
+    /// so it keeps the narrow binding.
     ///
     /// @return The binding the narrow string binders use on this connection.
     [[nodiscard]] detail::NarrowTextBinding NarrowTextBindingMode() const noexcept;

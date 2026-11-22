@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
+#include "../DataBinder/BasicStringBinder.hpp"
 #include "../DataBinder/SqlDate.hpp"
 #include "../DataBinder/SqlDateTime.hpp"
 #include "../DataBinder/SqlGuid.hpp"
@@ -1078,6 +1079,10 @@ struct StringBatchColumn: BatchColumn
     size_t maxActual = 0; // largest value in this batch -> the ToRaw() stride
     /// Strips the trailing spaces of every pushed value (a CHAR(n) pad that the target does not keep).
     bool trimTrailingSpaces = false;
+    /// How the target binds narrow text; the process-code-page binding sends the values as UTF-16.
+    NarrowTextBinding narrowTextBinding = NarrowTextBinding::Narrow;
+    std::vector<char16_t> wideBuffer;   // ToRaw() staging under a wide binding
+    std::vector<SQLLEN> wideIndicators; // the byte lengths of wideBuffer's rows
 
     StringBatchColumn(SqlRawColumnMetadata meta, size_t declaredLen):
         metadata(meta)
@@ -1201,6 +1206,9 @@ struct StringBatchColumn: BatchColumn
 
     SqlRawColumn ToRaw() override
     {
+        if (narrowTextBinding == NarrowTextBinding::WideFromProcessCodePage)
+            return ToRawUtf16();
+
         size_t const stride = std::max(maxActual, size_t { 1 });
         buffer.assign(stride * values.size(), 0);
         for (size_t i = 0; i < values.size(); ++i)
@@ -1212,6 +1220,52 @@ struct StringBatchColumn: BatchColumn
         return SqlRawColumn { .metadata = meta,
                               .data = std::as_bytes(std::span(buffer)),
                               .indicators = std::span<SQLLEN const> { indicators.data(), indicators.size() } };
+    }
+
+    /// The values as a UTF-16 column, converted as @c narrowTextBinding prescribes, so the driver never reads the
+    /// narrow bytes in an encoding of its own.
+    SqlRawColumn ToRawUtf16()
+    {
+        auto wideValues = std::vector<std::u16string> {};
+        wideValues.reserve(values.size());
+        auto maxChars = size_t { 0 };
+        for (auto const& value: values)
+        {
+            wideValues.push_back(NarrowTextToUtf16(value, narrowTextBinding));
+            maxChars = (std::max) (maxChars, wideValues.back().size());
+        }
+        auto const stride = maxChars + 1;
+        wideBuffer.assign(stride * wideValues.size(), u'\0');
+        wideIndicators.resize(indicators.size());
+        for (auto const rowIndex: std::views::iota(size_t { 0 }, wideValues.size()))
+        {
+            std::ranges::copy(wideValues[rowIndex], wideBuffer.begin() + static_cast<std::ptrdiff_t>(rowIndex * stride));
+            wideIndicators[rowIndex] = indicators[rowIndex] == SQL_NULL_DATA
+                                           ? SQLLEN { SQL_NULL_DATA }
+                                           : static_cast<SQLLEN>(wideValues[rowIndex].size() * sizeof(char16_t));
+        }
+
+        SqlRawColumnMetadata meta = metadata;
+        meta.cType = SQL_C_WCHAR;
+        meta.sqlType = WideSqlType(metadata.sqlType);
+        meta.bufferLength = stride * sizeof(char16_t);
+        return SqlRawColumn { .metadata = meta,
+                              .data = std::as_bytes(std::span(wideBuffer)),
+                              .indicators = std::span<SQLLEN const> { wideIndicators.data(), wideIndicators.size() } };
+    }
+
+    /// The Unicode counterpart of the narrow character SQL type @p sqlType.
+    static SQLSMALLINT WideSqlType(SQLSMALLINT sqlType) noexcept
+    {
+        switch (sqlType)
+        {
+            case SQL_CHAR:
+                return SQL_WCHAR;
+            case SQL_LONGVARCHAR:
+                return SQL_WLONGVARCHAR;
+            default:
+                return SQL_WVARCHAR;
+        }
     }
 };
 
@@ -1740,10 +1794,12 @@ BatchManager::BatchManager(BatchManagerHooks hooks,
                            std::vector<SqlColumnDeclaration> const& colDecls,
                            size_t capacity,
                            SqlServerType serverType,
-                           SqlServerType sourceServerType):
+                           SqlServerType sourceServerType,
+                           NarrowTextBinding narrowTextBinding):
     hooks(std::move(hooks)),
     serverType(serverType),
-    sourceServerType(sourceServerType)
+    sourceServerType(sourceServerType),
+    narrowTextBinding(narrowTextBinding)
 {
     if (!this->hooks.classify)
         this->hooks.classify = [](SqlErrorInfo const&) {
@@ -1944,6 +2000,7 @@ std::unique_ptr<BatchColumn> BatchManager::CreateColumn(SqlColumnDeclaration con
         auto column = std::make_unique<StringBatchColumn>(meta, size);
         column->trimTrailingSpaces =
             std::holds_alternative<SqlColumnTypeDefinitions::Char>(col.type) && trimsFixedCharPadding;
+        column->narrowTextBinding = narrowTextBinding;
         return column;
     }
 
@@ -2000,7 +2057,9 @@ std::unique_ptr<BatchColumn> BatchManager::CreateColumn(SqlColumnDeclaration con
     // fallback to varchar
     // TODO: throw exception instead
     meta.decimalDigits = 0;
-    return std::make_unique<StringBatchColumn>(meta, 255);
+    auto column = std::make_unique<StringBatchColumn>(meta, 255);
+    column->narrowTextBinding = narrowTextBinding;
+    return column;
 }
 
 void BatchManager::Flush()

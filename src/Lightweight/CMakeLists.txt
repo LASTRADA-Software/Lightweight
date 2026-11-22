@@ -278,6 +278,8 @@ if(MSVC)
         target_compile_options(Lightweight PRIVATE /MP)
     endif()
     target_link_libraries(Lightweight PUBLIC odbc32)
+    # odbccp32 reads data-source profiles; its import library still references the legacy stdio symbols.
+    target_link_libraries(Lightweight PRIVATE odbccp32 legacy_stdio_definitions)
     # Link libzip (zip target is created in root CMakeLists.txt)
     target_link_libraries(Lightweight PRIVATE zip)
 else()

@@ -1,10 +1,15 @@
 // SPDX-License-Identifier: Apache-2.0
 
+#include "ForeignThreadLocale.hpp"
 #include "Utils.hpp"
 
 #include <Lightweight/Lightweight.hpp>
 
 #include <catch2/catch_test_macros.hpp>
+
+#if defined(_WIN32) || defined(_WIN64)
+    #include <odbcinst.h>
+#endif
 
 #include <array>
 #include <string>
@@ -18,6 +23,7 @@
 
 using namespace std::string_literals;
 using namespace Lightweight;
+using namespace Lightweight::Tests;
 
 // NOLINTBEGIN(bugprone-unchecked-optional-access)
 
@@ -43,44 +49,6 @@ namespace
 /// The text the tests store: "äöüßñ", all of which the common Western and Cyrillic code pages can hold.
 constexpr auto UnicodeText = std::u16string_view { u"äöüßñ" };
 
-/// Converts @p text to the process ANSI code page, the encoding narrow strings carry.
-std::string ToProcessCodePage(std::u16string_view text)
-{
-    auto const* const wideText = reinterpret_cast<wchar_t const*>(text.data());
-    auto const wideLength = static_cast<int>(text.size());
-    auto result = std::string(
-        static_cast<size_t>(WideCharToMultiByte(CP_ACP, 0, wideText, wideLength, nullptr, 0, nullptr, nullptr)), '\0');
-    WideCharToMultiByte(CP_ACP, 0, wideText, wideLength, result.data(), static_cast<int>(result.size()), nullptr, nullptr);
-    return result;
-}
-
-/// Sets a thread locale whose ANSI code page differs from the process one, and restores the previous on destruction.
-class ScopedForeignThreadLocale
-{
-  public:
-    ScopedForeignThreadLocale():
-        _previousLocale { GetThreadLocale() }
-    {
-        constexpr auto Cyrillic = MAKELCID(MAKELANGID(LANG_RUSSIAN, SUBLANG_RUSSIAN_RUSSIA), SORT_DEFAULT);
-        constexpr auto Western = MAKELCID(MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US), SORT_DEFAULT);
-        constexpr auto CyrillicCodePage = 1251U;
-        SetThreadLocale(GetACP() == CyrillicCodePage ? Western : Cyrillic);
-    }
-
-    ScopedForeignThreadLocale(ScopedForeignThreadLocale const&) = delete;
-    ScopedForeignThreadLocale(ScopedForeignThreadLocale&&) = delete;
-    ScopedForeignThreadLocale& operator=(ScopedForeignThreadLocale const&) = delete;
-    ScopedForeignThreadLocale& operator=(ScopedForeignThreadLocale&&) = delete;
-
-    ~ScopedForeignThreadLocale()
-    {
-        SetThreadLocale(_previousLocale);
-    }
-
-  private:
-    LCID _previousLocale;
-};
-
 /// Appends @p options to the test database's connection string.
 SqlConnectionString WithOptions(std::string_view options)
 {
@@ -92,6 +60,63 @@ SqlConnectionString WithOptions(std::string_view options)
 SqlConnection ConnectWithDriverCodePage()
 {
     return SqlConnection { WithOptions("OEMCP=1") };
+}
+
+/// A user data source for the test database through the SQLite ODBC driver, removed again on destruction.
+class ScopedSqliteDataSource
+{
+  public:
+    /// Adds the data source @p name; @p oemcp, when given, goes into its profile as the @c OEMCP option.
+    ScopedSqliteDataSource(std::string name, std::optional<std::string_view> oemcp):
+        _name { std::move(name) }
+    {
+        auto const options = ParseConnectionString(SqlConnection::DefaultConnectionString());
+        auto driver = options.at("DRIVER");
+        if (driver.starts_with('{') && driver.ends_with('}'))
+            driver = driver.substr(1, driver.size() - 2);
+        auto attributes = std::format("DSN={}", _name) + '\0' + std::format("Database={}", options.at("DATABASE")) + '\0';
+        if (oemcp)
+            attributes += std::format("OEMCP={}", *oemcp) + '\0';
+        attributes += '\0';
+        Remove();
+        REQUIRE(SQLConfigDataSource(nullptr, ODBC_ADD_DSN, driver.c_str(), attributes.c_str()));
+        _driver = std::move(driver);
+    }
+
+    ScopedSqliteDataSource(ScopedSqliteDataSource const&) = delete;
+    ScopedSqliteDataSource(ScopedSqliteDataSource&&) = delete;
+    ScopedSqliteDataSource& operator=(ScopedSqliteDataSource const&) = delete;
+    ScopedSqliteDataSource& operator=(ScopedSqliteDataSource&&) = delete;
+
+    ~ScopedSqliteDataSource()
+    {
+        Remove();
+    }
+
+    [[nodiscard]] std::string const& Name() const noexcept
+    {
+        return _name;
+    }
+
+  private:
+    void Remove() const
+    {
+        auto const attributes = std::format("DSN={}", _name) + '\0' + '\0';
+        // Removing a data source that does not exist fails, which is fine here.
+        std::ignore = SQLConfigDataSource(
+            nullptr, ODBC_REMOVE_DSN, _driver.empty() ? "SQLite3 ODBC Driver" : _driver.c_str(), attributes.c_str());
+    }
+
+    std::string _name;
+    std::string _driver;
+};
+
+/// Connects to the data source @p name the data-source way (@c SQLConnect).
+SqlConnection ConnectToDataSource(std::string const& name)
+{
+    auto connection = SqlConnection { std::nullopt };
+    REQUIRE(connection.Connect(SqlConnectionDataSource { .datasource = name }));
+    return connection;
 }
 
 /// Reads the first row of @p tableName's @p columnName as UTF-16, independent of any narrow conversion.
@@ -341,6 +366,131 @@ TEST_CASE_METHOD(SqlTestFixture,
         REQUIRE(actual.size() == 2);
         for (auto const& record: actual)
             CHECK(record.fixedText.Value().str() == narrowText);
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "The SQLite narrow-text mode follows the DSN profile and the data-source connect default",
+                 "[SqlConnection][Unicode]")
+{
+    if (SqlConnection {}.ServerType() != SqlServerType::SQLITE)
+        return;
+
+    using enum detail::NarrowTextBinding;
+
+    SECTION("OEMCP only in the profile")
+    {
+        auto const dataSource = ScopedSqliteDataSource { "LightweightTestOemcpOn", "1" };
+        CHECK(SqlConnection { SqlConnectionString { "DSN=" + dataSource.Name() } }.NarrowTextBindingMode()
+              == WideFromProcessCodePage);
+        CHECK(ConnectToDataSource(dataSource.Name()).NarrowTextBindingMode() == WideFromProcessCodePage);
+        CHECK(SqlConnection { SqlConnectionString { "DSN=" + dataSource.Name() + ";OEMCP=0" } }.NarrowTextBindingMode()
+              == Narrow);
+    }
+
+    SECTION("OEMCP off in the profile")
+    {
+        auto const dataSource = ScopedSqliteDataSource { "LightweightTestOemcpOff", "0" };
+        CHECK(ConnectToDataSource(dataSource.Name()).NarrowTextBindingMode() == Narrow);
+        CHECK(SqlConnection { SqlConnectionString { "DSN=" + dataSource.Name() + ";OEMCP=1" } }.NarrowTextBindingMode()
+              == WideFromProcessCodePage);
+    }
+
+    SECTION("OEMCP nowhere: on for a data-source connect, off for a connection string")
+    {
+        auto const dataSource = ScopedSqliteDataSource { "LightweightTestOemcpUnset", std::nullopt };
+        CHECK(ConnectToDataSource(dataSource.Name()).NarrowTextBindingMode() == WideFromProcessCodePage);
+        CHECK(SqlConnection { SqlConnectionString { "DSN=" + dataSource.Name() } }.NarrowTextBindingMode() == Narrow);
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "Narrow text keeps its meaning on DSN-profile and data-source connections under a foreign thread locale",
+                 "[SqlDataBinder][Unicode]")
+{
+    if (SqlConnection {}.ServerType() != SqlServerType::SQLITE)
+        return;
+
+    auto const narrowText = ToProcessCodePage(UnicodeText);
+    auto const threadLocale = ScopedForeignThreadLocale {};
+
+    auto const roundTrip = [&](SqlConnection& connection) {
+        auto stmt = SqlStatement { connection };
+        stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+            migration.CreateTable("NarrowDataSource").Column("value", SqlColumnTypeDefinitions::Varchar { .size = 32 });
+        });
+        stmt.Prepare(stmt.Query("NarrowDataSource").Insert().Set("value", SqlWildcard));
+        std::ignore = stmt.Execute(narrowText);
+        CHECK(ReadStoredText(connection, "NarrowDataSource", "value") == UnicodeText);
+        CHECK(stmt.ExecuteDirectScalar<std::string>(R"(SELECT "value" FROM "NarrowDataSource")") == narrowText);
+        std::ignore = stmt.ExecuteDirect(R"(DROP TABLE "NarrowDataSource")");
+    };
+
+    SECTION("DSN with OEMCP only in its profile")
+    {
+        auto const dataSource = ScopedSqliteDataSource { "LightweightTestOemcpOn", "1" };
+        auto connection = SqlConnection { SqlConnectionString { "DSN=" + dataSource.Name() } };
+        roundTrip(connection);
+    }
+
+    SECTION("data-source connect without OEMCP")
+    {
+        auto const dataSource = ScopedSqliteDataSource { "LightweightTestOemcpUnset", std::nullopt };
+        auto connection = ConnectToDataSource(dataSource.Name());
+        roundTrip(connection);
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "A narrow char keeps its meaning under OEMCP and a foreign thread locale",
+                 "[SqlDataBinder][Unicode]")
+{
+    if (SqlConnection {}.ServerType() != SqlServerType::SQLITE)
+        return;
+
+    constexpr auto unicodeCharacter = std::u16string_view { u"\u00DF" };
+    auto const narrowCharacter = ToProcessCodePage(unicodeCharacter);
+    REQUIRE(narrowCharacter.size() == 1);
+    auto const threadLocale = ScopedForeignThreadLocale {};
+
+    auto connection = ConnectWithDriverCodePage();
+    auto stmt = SqlStatement { connection };
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("NarrowChar").Column("value", SqlColumnTypeDefinitions::Char { .size = 1 });
+    });
+
+    SECTION("parameter, GetColumn and BindOutputColumns")
+    {
+        stmt.Prepare(stmt.Query("NarrowChar").Insert().Set("value", SqlWildcard));
+        std::ignore = stmt.Execute(narrowCharacter.front());
+        CHECK(ReadStoredText(connection, "NarrowChar", "value") == unicodeCharacter);
+
+        {
+            auto reader = stmt.ExecuteDirect(R"(SELECT "value" FROM "NarrowChar")");
+            REQUIRE(reader.FetchRow());
+            CHECK(reader.GetColumn<char>(1) == narrowCharacter.front());
+        }
+
+        stmt.Prepare(stmt.Query("NarrowChar").Select().Field("value").All());
+        auto reader = stmt.Execute();
+        auto boundCharacter = char {};
+        reader.BindOutputColumns(&boundCharacter);
+        REQUIRE(reader.FetchRow());
+        CHECK(boundCharacter == narrowCharacter.front());
+    }
+
+    SECTION("column-wise native batch")
+    {
+        stmt.Prepare(stmt.Query("NarrowChar").Insert().Set("value", SqlWildcard));
+        auto const batch = std::array { narrowCharacter.front(), narrowCharacter.front() };
+        std::ignore = stmt.ExecuteBatchNative(batch);
+
+        auto cursor = stmt.ExecuteDirect(R"(SELECT "value" FROM "NarrowChar")");
+        for ([[maybe_unused]] auto const& _: batch)
+        {
+            REQUIRE(cursor.FetchRow());
+            CHECK(cursor.GetColumn<std::u16string>(1) == unicodeCharacter);
+        }
     }
 }
 

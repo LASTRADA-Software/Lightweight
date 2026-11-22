@@ -434,8 +434,12 @@ namespace
         };
         auto hooks =
             state.mode == ChunkInsertMode::SingleTransaction ? SingleTransactionHooks(target) : IsolatingHooks(target);
-        ::Lightweight::detail::BatchManager batchManager(
-            std::move(hooks), tableInfo.columns, batchCapacity, workerConn.ServerType(), ctx.sourceServerType);
+        ::Lightweight::detail::BatchManager batchManager(std::move(hooks),
+                                                         tableInfo.columns,
+                                                         batchCapacity,
+                                                         workerConn.ServerType(),
+                                                         ctx.sourceServerType,
+                                                         workerConn.NarrowTextBindingMode());
 
         // This attempt counts the rows after the settled ones: those an earlier attempt counted are
         // uncounted, and the settled ones it did not count (it failed before counting them) counted.
