@@ -346,6 +346,27 @@ TEST_CASE("SqlLogger::TraceLogger.OnError logs the error and includes source-loc
     CHECK(containsAny("Source:"));
 }
 
+TEST_CASE("SqlLogger::TraceLogger does not carry a failed statement's binds into the next one", "[SqlLogger]")
+{
+    auto& logger = SqlLogger::TraceLogger();
+    auto captured = std::vector<std::string> {};
+    logger.SetLoggingSink([&](std::string message) { captured.push_back(std::move(message)); });
+    auto const restore = detail::Finally([&] { logger.SetLoggingSink({}); });
+
+    logger.OnPrepare("INSERT INTO T VALUES (?)");
+    logger.OnExecute("INSERT INTO T VALUES (?)");
+    logger.OnBind("", "42");
+    logger.OnError(SqlError::FAILURE, std::source_location::current());
+
+    logger.OnPrepare("SELECT ?");
+    logger.OnExecute("SELECT ?");
+    logger.OnBind("", "7");
+    logger.OnFetchEnd();
+
+    REQUIRE_FALSE(captured.empty());
+    CHECK(captured.back().contains("SELECT ? WITH [7]"));
+}
+
 TEST_CASE("SqlLogger::TraceLogger.OnError(SqlErrorInfo) logs SQLSTATE and message", "[SqlLogger]")
 {
     auto& logger = SqlLogger::TraceLogger();

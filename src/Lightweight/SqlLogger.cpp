@@ -259,6 +259,8 @@ namespace
             if (trace->state == State::Executing || trace->state == State::Fetching)
                 EndFetch(*trace);
 
+            // A statement that failed is never written out, so its binds must not pass to this one.
+            trace->binds.clear();
             trace->state = State::Preparing;
             trace->lastPreparedQuery = query;
             trace->startedAt = std::chrono::steady_clock::now();
@@ -278,6 +280,7 @@ namespace
             if (trace->state == State::Executing || trace->state == State::Fetching)
                 EndFetch(*trace);
 
+            trace->binds.clear(); // a direct execution binds nothing; drop what a failed statement left
             trace->state = State::Executing;
             trace->lastPreparedQuery = query;
             trace->startedAt = std::chrono::steady_clock::now();
