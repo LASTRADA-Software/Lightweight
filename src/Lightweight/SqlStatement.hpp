@@ -2379,7 +2379,7 @@ namespace detail
     template <typename T>
     concept PrefetchConvertibleScalar =
         std::same_as<T, SqlVariant> || std::same_as<T, SqlDate> || std::same_as<T, SqlDateTime> || std::same_as<T, SqlGuid>
-        || StringLikeCell<T> || std::is_floating_point_v<T>
+        || std::same_as<T, SqlDateTime::native_type> || StringLikeCell<T> || std::is_floating_point_v<T>
         || (std::is_integral_v<T> && !std::same_as<T, char>) || std::is_enum_v<T>;
 
     template <typename T>
@@ -2592,6 +2592,9 @@ inline T SqlStatement::ConvertCell(RowArrayCursor const& cursor, std::size_t row
     }
     else if constexpr (std::same_as<T, SqlDate> || std::same_as<T, SqlDateTime> || std::same_as<T, SqlGuid>)
         return detail::ReadTemporalGuidCell<T>(cursor, row, column);
+    else if constexpr (std::same_as<T, SqlDateTime::native_type>)
+        // Its binder reads the timestamp struct and converts it; the block buffer holds that struct.
+        return detail::ReadTemporalGuidCell<SqlDateTime>(cursor, row, column).value();
     else if constexpr (detail::SqlNumericCell<T>)
         return detail::ReadNumericCell<T>(cursor, row, column);
     else if constexpr (detail::StringLikeCell<T>)
@@ -2645,7 +2648,7 @@ constexpr SqlStatement::PrefetchTarget SqlStatement::PrefetchTargetOf() noexcept
         return PrefetchTargetOf<typename T::value_type>();
     else if constexpr (std::same_as<T, SqlVariant>)
         return PrefetchTarget::Any;
-    else if constexpr (std::same_as<T, SqlDate> || std::same_as<T, SqlDateTime>)
+    else if constexpr (std::same_as<T, SqlDate> || std::same_as<T, SqlDateTime> || std::same_as<T, SqlDateTime::native_type>)
         return PrefetchTarget::Temporal;
     else if constexpr (std::same_as<T, SqlGuid>)
         return PrefetchTarget::Guid;

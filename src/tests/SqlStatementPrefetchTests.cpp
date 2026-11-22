@@ -9,6 +9,7 @@
 
 #include <algorithm>
 #include <array>
+#include <chrono>
 #include <cstdint>
 #include <format>
 #include <optional>
@@ -1301,4 +1302,43 @@ TEST_CASE_METHOD(SqlTestFixture, "Prefetch: GetColumn into a pointer reads a NUL
     bothPaths(SqlVariant { 5 });
     bothPaths(5);
     bothPaths(std::string { "x" });
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "Prefetch: a DATETIME column read as std::chrono::system_clock::time_point", "[prefetch]")
+{
+    // time_point has a read-only binder (GetColumn only), so it cannot be a DataMapper Field: the record
+    // path does not exist for it. GetColumn and ExecuteDirectScalar do.
+    using TimePoint = std::chrono::system_clock::time_point;
+    using namespace std::chrono_literals;
+
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("PrefetchTimePoint")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Integer {})
+            .RequiredColumn("Moment", SqlColumnTypeDefinitions::DateTime {});
+    });
+    auto const expected = TimePoint { std::chrono::sys_days { std::chrono::year { 2024 } / 5 / 6 } + 7h + 8min + 9s };
+    stmt.Prepare(R"(INSERT INTO "PrefetchTimePoint" ("Id", "Moment") VALUES (?, ?))");
+    (void) stmt.Execute(1, SqlDateTime { expected });
+
+    auto const query = R"(SELECT "Id", "Moment" FROM "PrefetchTimePoint")"sv;
+    for (auto const depth: { PrefetchDepthDefault, std::size_t { 1 } })
+    {
+        INFO("prefetch depth " << depth);
+        stmt.Connection().SetDefaultPrefetchDepth(depth);
+        {
+            auto cursor = stmt.ExecuteDirect(query);
+            REQUIRE(cursor.FetchRow());
+            CHECK(cursor.GetColumn<TimePoint>(2) == expected);
+        }
+        {
+            auto cursor = stmt.ExecuteDirect(query);
+            REQUIRE(cursor.FetchRow());
+            auto value = TimePoint {};
+            CHECK(cursor.GetColumn(2, &value));
+            CHECK(value == expected);
+        }
+        CHECK(stmt.ExecuteDirectScalar<TimePoint>(R"(SELECT "Moment" FROM "PrefetchTimePoint")")
+              == std::optional { expected });
+    }
 }
