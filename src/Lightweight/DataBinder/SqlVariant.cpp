@@ -25,7 +25,7 @@ SQLRETURN SqlDataBinder<SqlVariant>::InputParameter(SQLHSTMT stmt,
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 SQLRETURN SqlDataBinder<SqlVariant>::GetColumn(
-    SQLHSTMT stmt, SQLUSMALLINT column, SqlVariant* result, SQLLEN* indicator, SqlDataBinderCallback const& cb) noexcept
+    SQLHSTMT stmt, SQLUSMALLINT column, SqlVariant* result, SQLLEN* indicator, SqlDataBinderCallback const& cb)
 {
     SQLLEN columnType {};
     // `SQL_DESC_CONCISE_TYPE` returns the concise SQL type code (e.g. SQL_TYPE_DATE,

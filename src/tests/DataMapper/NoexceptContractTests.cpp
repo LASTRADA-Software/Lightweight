@@ -64,6 +64,9 @@ static_assert(!noexcept(std::declval<decltype(NxSupplier::accountHistory) const&
 static_assert(!noexcept(std::declval<SqlVariant&>().Get<int>()));
 static_assert(!noexcept(std::declval<SqlVariantRowIterator&>().operator++()));
 static_assert(!noexcept(std::declval<SqlVariantRowCursor&>().begin()));
+// A GUID column read into a variant may throw (22018 on SQLite text that is not a GUID): noexcept would terminate.
+static_assert(!noexcept(
+    SqlDataBinder<SqlVariant>::GetColumn(nullptr, 1, nullptr, nullptr, std::declval<SqlDataBinderCallback const&>())));
 static_assert(!noexcept(std::declval<SqlRowIterator<User>::iterator&>().operator*()));
 static_assert(!noexcept(std::declval<SqlMigration::MigrationManager const&>().GetPending()));
 

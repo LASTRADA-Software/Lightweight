@@ -215,8 +215,17 @@ struct LIGHTWEIGHT_API SqlDataBinder<SqlGuid>
     static SQLRETURN OutputColumn(
         SQLHSTMT stmt, SQLUSMALLINT column, SqlGuid* result, SQLLEN* indicator, SqlDataBinderCallback& cb) noexcept;
 
+    /// Reads a GUID column. On SQLite, which stores a GUID as text, text other than a GUID (see TryParse())
+    /// fails the read; a bound output column fails the fetch the same way.
+    /// @param stmt The statement handle.
+    /// @param column The 1-based column index.
+    /// @param result Receives the GUID; left unchanged for NULL.
+    /// @param indicator Receives the length/indicator (@c SQL_NULL_DATA for NULL).
+    /// @param cb The binder callback (selects the text representation on SQLite).
+    /// @return The driver's result of the read.
+    /// @throws SqlException With SQLSTATE 22018 when the column holds text that is not a GUID.
     static SQLRETURN GetColumn(
-        SQLHSTMT stmt, SQLUSMALLINT column, SqlGuid* result, SQLLEN* indicator, SqlDataBinderCallback const& cb) noexcept;
+        SQLHSTMT stmt, SQLUSMALLINT column, SqlGuid* result, SQLLEN* indicator, SqlDataBinderCallback const& cb);
 
     static LIGHTWEIGHT_FORCE_INLINE std::string Inspect(SqlGuid const& value) noexcept
     {

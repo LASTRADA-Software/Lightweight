@@ -19,7 +19,10 @@
 #include <numbers>
 #include <optional>
 #include <ranges>
+#include <stdexcept>
+#include <string>
 #include <type_traits>
+#include <variant>
 
 // NOLINTBEGIN(readability-container-size-empty, bugprone-unchecked-optional-access)
 
@@ -4071,3 +4074,119 @@ TEST_CASE("GetRawColumnArrayData: length indicators", "[SqlDataBinder]")
 }
 
 // NOLINTEND(readability-container-size-empty, bugprone-unchecked-optional-access)
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlGuid: text that is not a GUID fails the read", "[SqlDataBinder],[SqlGuid]")
+{
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("guid_text")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Integer {})
+            .Column("Value", SqlColumnTypeDefinitions::Guid {});
+    });
+    auto const lower = SqlGuid::TryParse("0f8e7d6c-5b4a-4321-9876-0123456789ab").value_or(SqlGuid {});
+    auto const upper = SqlGuid::TryParse("A1B2C3D4-E5F6-4789-ABCD-EF0123456789").value_or(SqlGuid {});
+    REQUIRE(lower != SqlGuid {});
+    REQUIRE(upper != SqlGuid {});
+    auto const sqlStateOf = [](auto&& read) -> std::string {
+        try
+        {
+            read();
+            return "no error";
+        }
+        catch (SqlException const& error)
+        {
+            return error.info().sqlState;
+        }
+    };
+
+    if (stmt.Connection().ServerType() != SqlServerType::SQLITE)
+    {
+        // The column holds a native GUID there, which cannot hold anything else: valid ones round-trip.
+        stmt.Prepare(R"(INSERT INTO "guid_text" ("Id", "Value") VALUES (?, ?))");
+        (void) stmt.Execute(1, lower);
+        (void) stmt.Execute(2, upper);
+        (void) stmt.Execute(3, std::optional<SqlGuid> {});
+        auto cursor = stmt.ExecuteDirect(R"(SELECT "Value" FROM "guid_text" ORDER BY "Id")"sv);
+        auto values = std::vector<std::optional<SqlGuid>> {};
+        while (cursor.FetchRow())
+            values.push_back(cursor.GetNullableColumn<SqlGuid>(1));
+        CHECK(values == std::vector<std::optional<SqlGuid>> { lower, upper, std::nullopt });
+        return;
+    }
+
+    // SQLite stores a GUID as text, so the column can hold any text. TryParse's form is accepted: the
+    // 8-4-4-4-12 hex digits in either case, without braces. NULL stays NULL; anything else fails with 22018
+    // rather than reading as the all-zero GUID.
+    (void) stmt.ExecuteDirect(R"(INSERT INTO "guid_text" ("Id", "Value") VALUES
+        (1, '0f8e7d6c-5b4a-4321-9876-0123456789ab'), (2, 'A1B2C3D4-E5F6-4789-ABCD-EF0123456789'), (3, NULL),
+        (4, ''), (5, 'not a guid'), (6, '{0f8e7d6c-5b4a-4321-9876-0123456789ab}'))"sv);
+    struct Expected
+    {
+        int id;
+        std::optional<SqlGuid> value;
+        std::string_view sqlState;
+        std::string_view text; // what the column holds, where it is not a GUID
+    };
+    auto const expected = std::array {
+        Expected { .id = 1, .value = lower, .sqlState = "no error", .text = {} },
+        Expected { .id = 2, .value = upper, .sqlState = "no error", .text = {} },
+        Expected { .id = 3, .value = std::nullopt, .sqlState = "no error", .text = {} },
+        Expected { .id = 4, .value = std::nullopt, .sqlState = "22018", .text = "" },
+        Expected { .id = 5, .value = std::nullopt, .sqlState = "22018", .text = "not a guid" },
+        Expected { .id = 6, .value = std::nullopt, .sqlState = "22018", .text = "{0f8e7d6c-5b4a-4321-9876-0123456789ab}" },
+    };
+    for (auto const& row: expected)
+    {
+        INFO("row " << row.id);
+        auto const query = std::format(R"(SELECT "Value" FROM "guid_text" WHERE "Id" = {})", row.id);
+
+        auto read = std::optional<SqlGuid> {};
+        CHECK(sqlStateOf([&] {
+                  auto cursor = stmt.ExecuteDirect(query);
+                  REQUIRE(cursor.FetchRow());
+                  read = cursor.GetNullableColumn<SqlGuid>(1);
+              })
+              == row.sqlState);
+        if (row.sqlState == "no error")
+            CHECK(read == row.value);
+
+        auto optional = std::optional<SqlGuid> {};
+        CHECK(sqlStateOf([&] {
+                  auto cursor = stmt.ExecuteDirect(query);
+                  REQUIRE(cursor.FetchRow());
+                  optional = cursor.GetColumn<std::optional<SqlGuid>>(1);
+              })
+              == row.sqlState);
+        if (row.sqlState == "no error")
+            CHECK(optional == row.value);
+
+        auto bound = std::optional<SqlGuid> {};
+        CHECK(sqlStateOf([&] {
+                  auto cursor = stmt.ExecuteDirect(query);
+                  cursor.BindOutputColumns(&bound);
+                  // Not REQUIRE: it would catch the failing fetch's exception itself.
+                  if (!cursor.FetchRow())
+                      throw std::runtime_error("no row");
+              })
+              == row.sqlState);
+        if (row.sqlState == "no error")
+            CHECK(bound == row.value);
+
+        // A SqlVariant does not fail: the SQLite driver reports the column as text (SQL_VARCHAR), so a GUID's
+        // text reads as a SqlGuid, and any other text as that text.
+        auto variant = SqlVariant {};
+        CHECK(sqlStateOf([&] {
+                  auto cursor = stmt.ExecuteDirect(query);
+                  REQUIRE(cursor.FetchRow());
+                  variant = cursor.GetColumn<SqlVariant>(1);
+              })
+              == "no error");
+        if (row.sqlState == "no error")
+            CHECK(variant.TryGetGuid() == row.value);
+        else
+        {
+            REQUIRE(std::holds_alternative<std::string>(variant.value));
+            CHECK(std::get<std::string>(variant.value) == row.text);
+        }
+    }
+}

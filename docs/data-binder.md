@@ -139,6 +139,19 @@ The `Inspect()` function is used to provide a human-readable representation of t
 
 This function should be used purely for debugging purposes.
 
+## `SqlGuid` and `SqlTime`: what a read returns
+
+- **`SqlGuid` on SQLite.** SQLite stores a GUID as text. Reading a column whose text is not a GUID (see
+  `SqlGuid::TryParse()`) as a `SqlGuid` fails with a `SqlException`, SQLSTATE `22018` (invalid character
+  value for cast specification), through `GetColumn()` and a bound output column (the fetch fails). It used
+  to read as the all-zero GUID. A `SqlVariant` read does not fail: the SQLite driver reports the column as
+  text, so the variant holds a `SqlGuid` where the text is one, and the text as a `std::string` otherwise.
+  A variant reads through the `SqlGuid` binder, and so fails with `22018`, only where the driver reports
+  the column as `SQL_GUID`.
+- **`SqlTime` carries whole seconds.** It is bound as `SQL_C_TYPE_TIME`, whose structure has no fraction,
+  so after a read the fraction is always 0, on every database and path; a fraction set before writing is
+  not stored.
+
 ## `SqlNumeric<Precision, Scale>` precision limits
 
 `Precision` is a count of **decimal digits**. It may be at most
