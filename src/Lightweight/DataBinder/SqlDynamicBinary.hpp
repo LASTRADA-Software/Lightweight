@@ -286,7 +286,10 @@ struct SqlDataBinder<SqlDynamicBinary<N>>
         // restore it before every further fetch of the result set.
         detail::PlanBoundBufferRestore<detail::ContainerBufferOperations, 1, 0>(column, SQL_C_BINARY, result, indicator, cb);
 
-        return SQLBindCol(stmt, column, SQL_C_BINARY, (SQLPOINTER) result->data(), 255, indicator);
+        // Bound with the buffer's own size: a buffer the caller sized differently than an empty one gets
+        // would otherwise be overrun (smaller) or only partly filled (larger).
+        return SQLBindCol(
+            stmt, column, SQL_C_BINARY, (SQLPOINTER) result->data(), static_cast<SQLLEN>(result->size()), indicator);
     }
 
     static LIGHTWEIGHT_FORCE_INLINE SQLRETURN GetColumn(SQLHSTMT stmt,

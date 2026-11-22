@@ -9,12 +9,16 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <algorithm>
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <ranges>
+#include <span>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 using namespace Lightweight;
 
@@ -400,4 +404,62 @@ TEST_CASE_METHOD(SqlTestFixture, "Where: compare a binary column with a bound bi
         REQUIRE(cursor.FetchRow());
         CHECK(cursor.GetColumn<int>(1) == 1);
     }
+}
+
+// ================================================================================================
+// A bound binary column fills the whole bound buffer, not just its first 255 bytes
+// ================================================================================================
+
+namespace
+{
+
+constexpr std::size_t PresizedBinaryCapacity = 1000;
+constexpr std::size_t PresizedBinaryValueSize = 600;
+
+/// Creates a table holding one PresizedBinaryValueSize-byte value and returns that value.
+std::vector<std::uint8_t> CreatePresizedBinaryTable(SqlStatement& stmt)
+{
+    stmt.MigrateDirect([](auto& migration) {
+        migration.CreateTable("PresizedBin")
+            .RequiredColumn("payload", SqlColumnTypeDefinitions::VarBinary { .size = PresizedBinaryCapacity });
+    });
+    auto value = std::vector<std::uint8_t>(PresizedBinaryValueSize);
+    for (auto const i: std::views::iota(std::size_t { 0 }, value.size()))
+        value[i] = static_cast<std::uint8_t>((i * 7) % 251);
+    stmt.Prepare(R"(INSERT INTO "PresizedBin" ("payload") VALUES (?))");
+    (void) stmt.Execute(SqlBinary { value.begin(), value.end() });
+    return value;
+}
+
+/// Fetches the value into a bound @p Binary that the caller sized to PresizedBinaryCapacity bytes.
+template <typename Binary>
+void CheckPresizedBinaryFetch()
+{
+    auto stmt = SqlStatement {};
+    auto const expected = CreatePresizedBinaryTable(stmt);
+    stmt.Connection().SetDefaultPrefetchDepth(1);
+
+    // Filled with a marker, so bytes the driver did not write show up in the fetched value.
+    auto bound = Binary {};
+    bound.resize(PresizedBinaryCapacity);
+    std::ranges::fill(std::span { bound.data(), bound.size() }, std::uint8_t { 0xEE });
+
+    auto cursor = stmt.ExecuteDirect(R"(SELECT "payload" FROM "PresizedBin")");
+    cursor.BindOutputColumns(&bound);
+    REQUIRE(cursor.FetchRow());
+    CHECK(std::ranges::equal(std::span { bound.data(), bound.size() }, expected));
+}
+
+} // namespace
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlBinary: a bound buffer larger than 255 bytes takes the whole value", "[SqlBinary]")
+{
+    CheckPresizedBinaryFetch<SqlBinary>();
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "SqlDynamicBinary: a bound buffer larger than 255 bytes takes the whole value",
+                 "[SqlBinary]")
+{
+    CheckPresizedBinaryFetch<SqlDynamicBinary<PresizedBinaryCapacity>>();
 }
