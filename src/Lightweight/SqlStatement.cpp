@@ -37,7 +37,37 @@ struct SqlStatement::Data
     std::deque<std::vector<std::byte>>
         batchStagingBuffers; // Holds temporary scratch buffers for batch input parameter binders
     std::vector<std::function<void()>> postExecuteCallbacks;
-    std::vector<std::function<void()>> postProcessOutputColumnCallbacks;
+
+    /// @brief What the binders planned for one bound output column. Re-binding the column clears the
+    /// slot (keeping the vectors' capacity), so binding a column anew for every row neither grows the
+    /// slot nor searches other columns' entries.
+    struct OutputColumnCallbacks
+    {
+        std::vector<SqlOutputColumnPreFetch> preFetch;  // run before every fetch, last planned first
+        std::vector<std::function<void()>> postProcess; // run after every fetch, in planning order
+        bool listed = false;                            // whether the column is in columnsWithCallbacks
+    };
+    // Planned by the output-column binders; they live as long as the column binding (until the column
+    // is bound again, or its binding is dropped with SQL_UNBIND), so a column bound once is served on
+    // every row of every execution. Indexed by column (slot 0: a binder run outside a column binding).
+    std::vector<OutputColumnCallbacks> outputColumnCallbacks;
+    // The columns whose slot may hold callbacks: the fetch loop visits only these.
+    std::vector<SQLUSMALLINT> columnsWithCallbacks;
+    SQLUSMALLINT outputColumnBeingBound = 0; // column the running OutputColumn binder plans callbacks for
+
+    /// @brief The callback slot of @p column, listed for the fetch loop.
+    OutputColumnCallbacks& OutputColumnSlot(SQLUSMALLINT column)
+    {
+        if (outputColumnCallbacks.size() <= column)
+            outputColumnCallbacks.resize(static_cast<std::size_t>(column) + 1);
+        auto& slot = outputColumnCallbacks[column];
+        if (!slot.listed)
+        {
+            slot.listed = true;
+            columnsWithCallbacks.push_back(column);
+        }
+        return slot;
+    }
 
     // Declared SQL type of each parameter of the prepared query, described on first demand (a NULL
     // being bound) and dropped whenever the handle is given a different query.
@@ -279,7 +309,40 @@ void SqlStatement::ProcessPostExecuteCallbacks()
 
 void SqlStatement::PlanPostProcessOutputColumn(std::function<void()>&& cb)
 {
-    m_data->postProcessOutputColumnCallbacks.emplace_back(std::move(cb));
+    m_data->OutputColumnSlot(m_data->outputColumnBeingBound).postProcess.push_back(std::move(cb));
+}
+
+void SqlStatement::PlanPreFetchOutputColumn(SqlOutputColumnPreFetch const& step)
+{
+    m_data->OutputColumnSlot(m_data->outputColumnBeingBound).preFetch.push_back(step);
+}
+
+void SqlStatement::BeginOutputColumnBinding(SQLUSMALLINT column) noexcept
+{
+    DropOutputColumnCallbacks(column);
+    m_data->outputColumnBeingBound = column;
+}
+
+void SqlStatement::DropOutputColumnCallbacks(SQLUSMALLINT column) noexcept
+{
+    if (column < m_data->outputColumnCallbacks.size())
+    {
+        auto& slot = m_data->outputColumnCallbacks[column];
+        slot.preFetch.clear();
+        slot.postProcess.clear();
+    }
+}
+
+void SqlStatement::ResetOutputColumnCallbacks() noexcept
+{
+    for (auto const column: m_data->columnsWithCallbacks)
+    {
+        auto& slot = m_data->outputColumnCallbacks[column];
+        slot.preFetch.clear();
+        slot.postProcess.clear();
+        slot.listed = false;
+    }
+    m_data->columnsWithCallbacks.clear();
 }
 
 SqlServerType SqlStatement::ServerType() const noexcept
@@ -305,7 +368,9 @@ SqlStatement::SqlStatement():
                  .batchIndicators = {},
                  .batchStagingBuffers = {},
                  .postExecuteCallbacks = {},
-                 .postProcessOutputColumnCallbacks = {},
+                 .outputColumnCallbacks = {},
+                 .columnsWithCallbacks = {},
+                 .outputColumnBeingBound = 0,
                  .describedParameterTypes = {},
                  .prefetchMode = Data::PrefetchMode::Unarmed,
                  .prefetch = {},
@@ -619,7 +684,7 @@ void SqlStatement::Prepare(std::string_view query) &
         m_data->describedParameterTypes.reset();
 
     m_data->postExecuteCallbacks.clear();
-    m_data->postProcessOutputColumnCallbacks.clear();
+    ResetOutputColumnCallbacks();
     m_data->inputIndicators.clear();
     m_data->batchIndicators.clear();
     m_data->batchStagingBuffers.clear();
@@ -801,6 +866,7 @@ SqlResultCursor SqlStatement::ExecuteDirect(std::string_view const& query, std::
     m_projectionHasWildcard = false;
 
     RequireSuccess(SQLFreeStmt(m_hStmt, SQL_UNBIND));
+    ResetOutputColumnCallbacks();
 
     m_data->inputIndicators.clear();
     m_data->batchIndicators.clear();
@@ -967,6 +1033,7 @@ RowArrayCursor SqlStatement::ExecuteBatchFetch(std::string_view query, std::size
     m_projectionHasWildcard = false;
 
     RequireSuccess(SQLFreeStmt(m_hStmt, SQL_UNBIND));
+    ResetOutputColumnCallbacks();
 
     m_data->inputIndicators.clear();
     m_data->batchIndicators.clear();
@@ -1323,7 +1390,7 @@ std::expected<bool, SqlErrorInfo> SqlStatement::FetchRowPrefetched() noexcept
             m_data->prefetchRowInBlock = NoPrefetchRow;
             m_data->prefetchMode = Data::PrefetchMode::Disabled;
             SQLCloseCursor(m_hStmt);
-            m_data->postProcessOutputColumnCallbacks.clear();
+            ResetOutputColumnCallbacks();
             SqlLogger::GetLogger().OnFetchEnd();
             return false;
         }
@@ -1386,22 +1453,29 @@ std::expected<bool, SqlErrorInfo> SqlStatement::TryFetchRow(std::source_location
         }
     }
 
+    // Restore what the previous row's post-processing changed in the bound buffers (and re-bind any
+    // that moved). Reverse order: a wrapping binder registered after the binder it wraps prepares first.
+    for (auto const column: m_data->columnsWithCallbacks)
+        for (auto& preFetch: m_data->outputColumnCallbacks[column].preFetch | std::views::reverse)
+            if (auto const rc = preFetch.run(preFetch, m_hStmt); !SQL_SUCCEEDED(rc))
+                return MakeUnexpected(LastError(), m_preparedQuery, location);
+
     auto const sqlResult = SQLFetch(m_hStmt);
     switch (sqlResult)
     {
         case SQL_NO_DATA:
             SQLCloseCursor(m_hStmt);
-            m_data->postProcessOutputColumnCallbacks.clear();
+            ResetOutputColumnCallbacks();
             SqlLogger::GetLogger().OnFetchEnd();
             return false;
         default:
             if (!SQL_SUCCEEDED(sqlResult))
                 return MakeUnexpected(LastError(), m_preparedQuery, location);
 
-            // post-process the output columns, if needed
-            for (auto const& postProcess: m_data->postProcessOutputColumnCallbacks)
-                postProcess();
-            m_data->postProcessOutputColumnCallbacks.clear();
+            // post-process the output columns, if needed (they stay planned for the following rows)
+            for (auto const column: m_data->columnsWithCallbacks)
+                for (auto const& postProcess: m_data->outputColumnCallbacks[column].postProcess)
+                    postProcess();
             SqlLogger::GetLogger().OnFetchRow();
             LIGHTWEIGHT_STATS_ROWS(1, false);
             return true;

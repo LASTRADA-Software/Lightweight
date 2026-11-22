@@ -31,6 +31,29 @@ namespace Lightweight
 /// This is needed because the SQLBindCol() function does not allow to specify a callback function to be called
 /// after the data has been fetched from the database. This is needed to trim strings to the correct size, for
 /// example.
+/// @brief A step a binder plans to run before every fetch into the output column it binds.
+///
+/// Plain data rather than a type-erased callable, so planning one never allocates, not even when a
+/// column is bound anew for every row. @ref run receives the step itself (so it can update
+/// @ref boundData and @ref boundSize) and the statement handle the column is bound on.
+struct SqlOutputColumnPreFetch
+{
+    /// Runs the step. Returns @c SQL_SUCCESS, or the failing ODBC return code (the fetch then fails with it).
+    SQLRETURN (*run)(SqlOutputColumnPreFetch& step, SQLHSTMT stmt) noexcept = nullptr;
+    /// The bound object the step works on.
+    void* target = nullptr;
+    /// The column's length/indicator buffer.
+    SQLLEN* indicator = nullptr;
+    /// The storage the column is currently bound to.
+    void const* boundData = nullptr;
+    /// The element count the column is currently bound with.
+    std::size_t boundSize = 0;
+    /// The 1-based column index.
+    SQLUSMALLINT column = 0;
+    /// The C type the column is bound as.
+    SQLSMALLINT cType = 0;
+};
+
 class LIGHTWEIGHT_API SqlDataBinderCallback
 {
   public:
@@ -52,10 +75,25 @@ class LIGHTWEIGHT_API SqlDataBinderCallback
     /// @see SqlDataBinder::PostExecute()
     virtual void PlanPostExecuteCallback(std::function<void()>&&) = 0;
 
-    /// Plans a callback to be called after a column has been processed.
+    /// Plans a callback to be called after every row fetched into the output column being bound.
+    ///
+    /// The callback stays registered as long as the column binding: it runs after each fetch until the
+    /// column is bound again or its binding is dropped (a new query is prepared or executed directly).
     ///
     /// @see SqlDataBinder::PostProcessOutputColumn()
     virtual void PlanPostProcessOutputColumn(std::function<void()>&&) = 0;
+
+    /// Plans a step to run before every row is fetched into the output column being bound.
+    ///
+    /// A binder that binds straight into a growable container uses this to restore the bound buffer
+    /// that the previous row's post-processing shrank to that row's length, and to re-bind the column
+    /// should the container's storage have moved. Steps of one column run in reverse order of
+    /// planning, so a wrapping binder (e.g. @c std::optional) prepares its storage before the binder
+    /// it wraps. Same lifetime as @ref PlanPostProcessOutputColumn.
+    ///
+    /// @param step The step; its @c run function reports a failure through its return code, which
+    ///             then fails the fetch.
+    virtual void PlanPreFetchOutputColumn(SqlOutputColumnPreFetch const& step) = 0;
 
     /// Provides a pointer to a single indicator for a single input parameter.
     ///
@@ -151,6 +189,102 @@ namespace detail
     /// headers can use it without reaching up to the higher-level Utils.hpp.
     template <typename T, typename... Us>
     concept IsAnyOf = (std::same_as<T, Us> || ...);
+
+    /// @brief Buffer operations of a contiguous container exposing @c data(), @c size() and
+    /// @c resize() (e.g. @c SqlBinary), shaped like the @c SqlBasicStringOperations traits.
+    struct ContainerBufferOperations
+    {
+        /// @return The container's storage.
+        template <typename Container>
+        static auto* Data(Container* container) noexcept
+        {
+            return container->data();
+        }
+
+        /// @return The container's element count.
+        template <typename Container>
+        static std::size_t Size(Container const* container) noexcept
+        {
+            return container->size();
+        }
+
+        /// Resizes the container to @p size elements.
+        template <typename Container>
+        static void Resize(Container* container, SQLLEN size)
+        {
+            container->resize(static_cast<std::size_t>(size));
+        }
+    };
+
+    /// @brief The pre-fetch step of @ref PlanBoundBufferRestore: grows the container back to the bound size
+    /// and re-binds the column if its storage moved.
+    /// @tparam Ops @c SqlBasicStringOperations-shaped buffer operations of @p Container.
+    /// @tparam UnitBytes Bytes per element of the bound buffer.
+    /// @tparam TerminatorUnits Elements the bound buffer has beyond its size for the driver's terminator.
+    /// @param step The planned step.
+    /// @param stmt The statement handle the column is bound on.
+    /// @return @c SQL_SUCCESS, or the result of re-binding the column.
+    template <typename Ops, typename Container, std::size_t UnitBytes, std::size_t TerminatorUnits>
+    SQLRETURN RestoreBoundBuffer(SqlOutputColumnPreFetch& step, SQLHSTMT stmt) noexcept
+    {
+        auto* const result = static_cast<Container*>(step.target);
+        auto const size = static_cast<std::size_t>(Ops::Size(result));
+        if (static_cast<void const*>(Ops::Data(result)) != step.boundData)
+            step.boundSize = (std::max) (step.boundSize, size);
+        if (size != step.boundSize)
+        {
+            // The driver overwrites the regrown part, so where the container can skip initializing it
+            // (std::basic_string), it does: a long value grows the bound size, and every later row would
+            // otherwise zero-fill up to it. A vector (binary) zero-fills up to the bound size.
+            if constexpr (requires { Ops::ResizeForOverwrite(result, step.boundSize); })
+                Ops::ResizeForOverwrite(result, step.boundSize);
+            else
+                Ops::Resize(result, static_cast<SQLLEN>(step.boundSize));
+        }
+        auto* const data = Ops::Data(result);
+        if (static_cast<void const*>(data) == step.boundData)
+            return SQL_SUCCESS;
+        step.boundData = data;
+        return SQLBindCol(stmt,
+                          step.column,
+                          step.cType,
+                          static_cast<SQLPOINTER>(data),
+                          static_cast<SQLLEN>((step.boundSize + TerminatorUnits) * UnitBytes),
+                          step.indicator);
+    }
+
+    /// @brief Keeps an output column that is bound straight into a growable container bound for every
+    /// fetch of the result set.
+    ///
+    /// The binder's post-processing shrinks the container to each row's length, so before the next
+    /// fetch it is grown back to the bound size. When its storage moved — a truncation re-fetch grew it,
+    /// or the caller moved the value out — the column is re-bound to the new storage, at the larger of
+    /// the old bound size and the container's current size. Per row this is a size compare and a pointer
+    /// compare when nothing changed; growing back within the retained capacity allocates nothing, and
+    /// planning the step allocates nothing either (see @ref SqlOutputColumnPreFetch).
+    ///
+    /// @tparam Ops @c SqlBasicStringOperations-shaped buffer operations of @p Container.
+    /// @tparam UnitBytes Bytes per element of the bound buffer.
+    /// @tparam TerminatorUnits Elements the bound buffer has beyond its size for the driver's terminator.
+    /// @param column The 1-based column index.
+    /// @param cType The C data type the column is bound as.
+    /// @param result The bound container.
+    /// @param indicator The column's length/indicator buffer.
+    /// @param cb The binder callback the step is planned on.
+    template <typename Ops, std::size_t UnitBytes, std::size_t TerminatorUnits, typename Container>
+    void PlanBoundBufferRestore(
+        SQLUSMALLINT column, SQLSMALLINT cType, Container* result, SQLLEN* indicator, SqlDataBinderCallback& cb)
+    {
+        cb.PlanPreFetchOutputColumn(SqlOutputColumnPreFetch {
+            .run = &RestoreBoundBuffer<Ops, Container, UnitBytes, TerminatorUnits>,
+            .target = result,
+            .indicator = indicator,
+            .boundData = static_cast<void const*>(Ops::Data(result)),
+            .boundSize = static_cast<std::size_t>(Ops::Size(result)),
+            .column = column,
+            .cType = cType,
+        });
+    }
 
     /// @brief Byte offset of the contained value within a @c std::optional<T>.
     ///

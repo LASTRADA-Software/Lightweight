@@ -103,6 +103,10 @@ struct SqlDataBinder<SqlBinary>
             }
         });
 
+        // Bound straight into the container, which the post-process shrinks to each row's length:
+        // restore it before every further fetch of the result set.
+        detail::PlanBoundBufferRestore<detail::ContainerBufferOperations, 1, 0>(column, SQL_C_BINARY, result, indicator, cb);
+
         return SQLBindCol(stmt, column, SQL_C_BINARY, (SQLPOINTER) result->data(), 255, indicator);
     }
 

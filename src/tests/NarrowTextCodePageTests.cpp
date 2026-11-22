@@ -12,8 +12,13 @@
 #endif
 
 #include <array>
+#include <cstddef>
+#include <format>
+#include <optional>
+#include <ranges>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 // Narrow strings hold text in the process ANSI code page (GetACP()). The SQLite ODBC driver's OEMCP option converts
@@ -491,6 +496,98 @@ TEST_CASE_METHOD(SqlTestFixture,
             REQUIRE(cursor.FetchRow());
             CHECK(cursor.GetColumn<std::u16string>(1) == unicodeCharacter);
         }
+    }
+}
+
+namespace
+{
+
+constexpr int BoundOnceCodePageRowCount = 40;
+
+/// Row @p i's text in the process code page: lengths vary up and down (0..30 characters), row 3 is empty,
+/// every fifth row starts with non-ASCII text.
+std::string BoundOnceCodePageText(int i)
+{
+    if (i == 3)
+        return {};
+    auto text = std::string(static_cast<std::size_t>((i * 7) % 31), static_cast<char>('a' + (i % 26)));
+    if (i % 5 == 0)
+        text.insert(0, ToProcessCodePage(UnicodeText));
+    return text;
+}
+
+/// Row @p i's nullable text: NULL on every fourth row, otherwise the next row's text.
+std::optional<std::string> BoundOnceCodePageMaybeText(int i)
+{
+    if (i % 4 == 1)
+        return std::nullopt;
+    return BoundOnceCodePageText(i + 1);
+}
+
+/// Row @p i's fixed-capacity text (1..16 bytes, some non-ASCII).
+SqlAnsiString<20> BoundOnceCodePageFixed(int i)
+{
+    auto const prefix = i % 6 == 0 ? ToProcessCodePage(u"ü") : std::string {};
+    return SqlAnsiString<20> { std::format("{}f{}", prefix, std::string(static_cast<std::size_t>((i * 3) % 15), 'z')) };
+}
+
+} // namespace
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "Narrow columns bound once keep each row's text under OEMCP and a foreign thread locale",
+                 "[SqlDataBinder][Unicode][BindOnce]")
+{
+    if (SqlConnection {}.ServerType() != SqlServerType::SQLITE)
+        return;
+
+    auto connection = ConnectWithDriverCodePage();
+    REQUIRE(connection.NarrowTextBindingMode() == detail::NarrowTextBinding::WideFromProcessCodePage);
+    auto const threadLocale = ScopedForeignThreadLocale {};
+
+    auto stmt = SqlStatement { connection };
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("NarrowBoundOnce")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Integer {})
+            .RequiredColumn("Text", SqlColumnTypeDefinitions::Varchar { .size = 64 })
+            .Column("MaybeText", SqlColumnTypeDefinitions::Varchar { .size = 64 })
+            .RequiredColumn("Fixed", SqlColumnTypeDefinitions::Varchar { .size = 20 });
+    });
+    stmt.Prepare(R"(INSERT INTO "NarrowBoundOnce" ("Id", "Text", "MaybeText", "Fixed") VALUES (?, ?, ?, ?))");
+    for (auto const i: std::views::iota(0, BoundOnceCodePageRowCount))
+        std::ignore = stmt.Execute(i, BoundOnceCodePageText(i), BoundOnceCodePageMaybeText(i), BoundOnceCodePageFixed(i));
+
+    // Per-row SQLFetch with the binds issued right away, and with the binds deferred to the first fetch.
+    for (auto const depth: std::array { std::size_t { 1 }, PrefetchDepthDefault })
+    {
+        INFO("prefetch depth " << depth);
+        connection.SetDefaultPrefetchDepth(depth);
+
+        auto id = 0;
+        auto text = std::string {};
+        auto maybeText = std::optional<std::string> {};
+        auto fixed = SqlAnsiString<20> {};
+        auto texts = std::vector<std::string> {};
+
+        auto cursor =
+            stmt.ExecuteDirect(R"(SELECT "Id", "Text", "MaybeText", "Fixed" FROM "NarrowBoundOnce" ORDER BY "Id")");
+        cursor.BindOutputColumns(&id, &text, &maybeText, &fixed);
+        auto rows = 0;
+        while (cursor.FetchRow())
+        {
+            INFO("row " << rows);
+            CHECK(id == rows);
+            CHECK(text == BoundOnceCodePageText(rows));
+            CHECK(maybeText == BoundOnceCodePageMaybeText(rows));
+            CHECK(fixed == BoundOnceCodePageFixed(rows));
+            // Taking the value out leaves the bound variable empty: the next row must still be copied into it
+            // from the binder's staging buffer, and the value taken out must stay intact.
+            texts.emplace_back(std::exchange(text, std::string {}));
+            ++rows;
+        }
+        CHECK(rows == BoundOnceCodePageRowCount);
+        REQUIRE(texts.size() == static_cast<std::size_t>(BoundOnceCodePageRowCount));
+        for (auto const i: std::views::iota(0, BoundOnceCodePageRowCount))
+            CHECK(texts[static_cast<std::size_t>(i)] == BoundOnceCodePageText(i));
     }
 }
 

@@ -9,9 +9,12 @@
 
 #include <algorithm>
 #include <array>
+#include <concepts>
+#include <cstddef>
 #include <cstdint>
 #include <format>
 #include <optional>
+#include <ranges>
 #include <span>
 #include <stdexcept>
 #include <string>
@@ -852,4 +855,198 @@ TEST_CASE_METHOD(SqlTestFixture, "raw ExecuteBatch reports per-row status", "[Sq
     CHECK_NOTHROW((void) stmt.ExecuteBatch(columns, ids.size()));
     CHECK(SqlStatement {}.ExecuteDirectScalar<int64_t>(R"(SELECT COUNT(*) FROM "raw_batch_status" WHERE "ID" >= 10)")
           == std::optional<int64_t> { 2 });
+}
+
+// ================================================================================================
+// Output columns bound once (BindOutputColumns before the fetch loop) stay bound for every row
+// ================================================================================================
+
+namespace
+{
+
+constexpr int BoundOnceRowCount = 60;
+
+/// Row @p i's text: lengths vary up and down (0..40 code units), row 3 is empty, every fifth row starts
+/// with non-ASCII text.
+template <typename Char>
+std::basic_string<Char> BoundOnceText(int i)
+{
+    if (i == 3)
+        return {};
+    auto text = std::basic_string<Char>(static_cast<std::size_t>((i * 7) % 41), static_cast<Char>('a' + (i % 26)));
+    if (i % 5 == 0)
+    {
+        if constexpr (std::same_as<Char, char16_t>)
+            text.insert(0, u"Gr\u00FC\u00DFe-");
+        else
+        {
+            auto const prefix = std::u8string_view { u8"Gr\u00FC\u00DFe-" };
+            text.insert(0, reinterpret_cast<Char const*>(prefix.data()), prefix.size());
+        }
+    }
+    return text;
+}
+
+/// Row @p i's nullable text: NULL on every fourth row, otherwise the next row's text.
+template <typename Char>
+std::optional<std::basic_string<Char>> BoundOnceMaybeText(int i)
+{
+    if (i % 4 == 1)
+        return std::nullopt;
+    return BoundOnceText<Char>(i + 1);
+}
+
+/// Row @p i's fixed-capacity text (1..17 bytes, some non-ASCII).
+SqlAnsiString<20> BoundOnceFixed(int i)
+{
+    auto const prefix = i % 6 == 0 ? std::string { "\xC3\xBC" } : std::string {};
+    return SqlAnsiString<20> { std::format("{}f{}", prefix, std::string(static_cast<std::size_t>((i * 3) % 15), 'z')) };
+}
+
+/// Row @p i's nullable blob: NULL on every fourth row, otherwise 0..29 bytes.
+std::optional<SqlBinary> BoundOnceBlob(int i)
+{
+    if (i % 4 == 2)
+        return std::nullopt;
+    auto blob = SqlBinary {};
+    for (auto const k: std::views::iota(0, (i * 5) % 30))
+        blob.push_back(static_cast<std::uint8_t>((i + k) % 251));
+    return blob;
+}
+
+void CreateBoundOnceTable(SqlStatement& stmt)
+{
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("BoundOnce")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Integer {})
+            .RequiredColumn("Text", SqlColumnTypeDefinitions::NVarchar { .size = 64 })
+            .Column("MaybeText", SqlColumnTypeDefinitions::NVarchar { .size = 64 })
+            .RequiredColumn("WideText", SqlColumnTypeDefinitions::NVarchar { .size = 64 })
+            .Column("MaybeWideText", SqlColumnTypeDefinitions::NVarchar { .size = 64 })
+            .RequiredColumn("Fixed", SqlColumnTypeDefinitions::Varchar { .size = 20 })
+            .Column("Blob", SqlColumnTypeDefinitions::VarBinary { .size = 64 });
+    });
+    // Narrow text is written (and read back) narrow, wide text wide: how narrow input lands in a Unicode
+    // column is the driver's business (MS SQL Server takes it as the client codepage), not this test's.
+    stmt.Prepare(
+        R"(INSERT INTO "BoundOnce" ("Id", "Text", "MaybeText", "WideText", "MaybeWideText", "Fixed", "Blob") VALUES (?, ?, ?, ?, ?, ?, ?))");
+    for (auto const i: std::views::iota(0, BoundOnceRowCount))
+        (void) stmt.Execute(i,
+                            BoundOnceText<char>(i),
+                            BoundOnceMaybeText<char>(i),
+                            BoundOnceText<char16_t>(i),
+                            BoundOnceMaybeText<char16_t>(i),
+                            BoundOnceFixed(i),
+                            BoundOnceBlob(i));
+}
+
+/// The two ways a bound-column loop is served: per-row SQLFetch with the binds issued right away
+/// (prefetch off), and with the binds deferred to the first fetch (prefetch on, declined for text).
+constexpr auto BoundOncePrefetchDepths = std::array { std::size_t { 1 }, PrefetchDepthDefault };
+
+} // namespace
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "BindOutputColumns once: narrow and fixed and optional and binary columns",
+                 "[SqlStatement][BindOnce]")
+{
+    auto stmt = SqlStatement {};
+    CreateBoundOnceTable(stmt);
+
+    for (auto const depth: BoundOncePrefetchDepths)
+    {
+        INFO("prefetch depth " << depth);
+        stmt.Connection().SetDefaultPrefetchDepth(depth);
+
+        auto id = 0;
+        auto text = std::string {};
+        auto maybeText = std::optional<std::string> {};
+        auto fixed = SqlAnsiString<20> {};
+        auto blob = std::optional<SqlBinary> {};
+
+        auto cursor =
+            stmt.ExecuteDirect(R"(SELECT "Id", "Text", "MaybeText", "Fixed", "Blob" FROM "BoundOnce" ORDER BY "Id")"sv);
+        cursor.BindOutputColumns(&id, &text, &maybeText, &fixed, &blob);
+        auto rows = 0;
+        while (cursor.FetchRow())
+        {
+            INFO("row " << rows);
+            CHECK(id == rows);
+            CHECK(text == BoundOnceText<char>(rows));
+            CHECK(maybeText == BoundOnceMaybeText<char>(rows));
+            CHECK(fixed == BoundOnceFixed(rows));
+            CHECK((blob == BoundOnceBlob(rows))); // no printer for SqlBinary
+            ++rows;
+        }
+        CHECK(rows == BoundOnceRowCount);
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "BindOutputColumns once: UTF-16 and UTF-8 columns", "[SqlStatement][BindOnce]")
+{
+    auto stmt = SqlStatement {};
+    CreateBoundOnceTable(stmt);
+
+    for (auto const depth: BoundOncePrefetchDepths)
+    {
+        INFO("prefetch depth " << depth);
+        stmt.Connection().SetDefaultPrefetchDepth(depth);
+
+        auto wide = std::u16string {};
+        auto maybeWide = std::optional<std::u16string> {};
+        auto utf8 = std::u8string {};
+        auto maybeUtf8 = std::optional<std::u8string> {};
+
+        auto cursor = stmt.ExecuteDirect(
+            R"(SELECT "WideText", "MaybeWideText", "WideText", "MaybeWideText" FROM "BoundOnce" ORDER BY "Id")"sv);
+        cursor.BindOutputColumns(&wide, &maybeWide, &utf8, &maybeUtf8);
+        auto rows = 0;
+        while (cursor.FetchRow())
+        {
+            INFO("row " << rows);
+            CHECK(wide == BoundOnceText<char16_t>(rows));
+            CHECK(maybeWide == BoundOnceMaybeText<char16_t>(rows));
+            CHECK(utf8 == BoundOnceText<char8_t>(rows));
+            CHECK((maybeUtf8 == BoundOnceMaybeText<char8_t>(rows))); // no printer for optional<u8string>
+            ++rows;
+        }
+        CHECK(rows == BoundOnceRowCount);
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "BindOutputColumns once: values taken out of the bound variables",
+                 "[SqlStatement][BindOnce]")
+{
+    auto stmt = SqlStatement {};
+    CreateBoundOnceTable(stmt);
+
+    for (auto const depth: BoundOncePrefetchDepths)
+    {
+        INFO("prefetch depth " << depth);
+        stmt.Connection().SetDefaultPrefetchDepth(depth);
+
+        // Taking each value out leaves the bound variables with fresh storage the column must follow.
+        auto text = std::string {};
+        auto wide = std::u16string {};
+        auto texts = std::vector<std::string> {};
+        auto wides = std::vector<std::u16string> {};
+
+        auto cursor = stmt.ExecuteDirect(R"(SELECT "Text", "WideText" FROM "BoundOnce" ORDER BY "Id")"sv);
+        cursor.BindOutputColumns(&text, &wide);
+        while (cursor.FetchRow())
+        {
+            texts.emplace_back(std::exchange(text, std::string {}));
+            wides.emplace_back(std::exchange(wide, std::u16string {}));
+        }
+
+        REQUIRE(texts.size() == static_cast<std::size_t>(BoundOnceRowCount));
+        REQUIRE(wides.size() == static_cast<std::size_t>(BoundOnceRowCount));
+        for (auto const i: std::views::iota(0, BoundOnceRowCount))
+        {
+            INFO("row " << i);
+            CHECK(texts[static_cast<std::size_t>(i)] == BoundOnceText<char>(i));
+            CHECK(wides[static_cast<std::size_t>(i)] == BoundOnceText<char16_t>(i));
+        }
+    }
 }

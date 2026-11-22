@@ -54,6 +54,13 @@ struct SqlBasicStringOperations<std::basic_string<CharT>>
         if (indicator >= 0)
             str->resize(static_cast<size_t>(indicator));
     }
+
+    /// Resizes @p str to @p size characters without initializing the ones it gains: for a buffer the
+    /// driver is about to overwrite.
+    static LIGHTWEIGHT_FORCE_INLINE void ResizeForOverwrite(StringType* str, std::size_t size)
+    {
+        str->resize_and_overwrite(size, [](CharType* /*data*/, std::size_t length) noexcept { return length; });
+    }
 };
 
 } // namespace Lightweight

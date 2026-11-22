@@ -3800,6 +3800,8 @@ TEST_CASE_METHOD(SqlTestFixture, "std::optional<T>::OutputColumn: nullptr result
         {
             [[maybe_unused]] auto consumed = std::move(cb);
         }
+
+        void PlanPreFetchOutputColumn(SqlOutputColumnPreFetch const& /*step*/) override {}
         SQLLEN* ProvideInputIndicator() override
         {
             return nullptr;

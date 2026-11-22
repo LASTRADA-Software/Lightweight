@@ -503,6 +503,21 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
                                         std::source_location sourceLocation = std::source_location::current()) const;
     LIGHTWEIGHT_API void PlanPostExecuteCallback(std::function<void()>&& cb) override;
     LIGHTWEIGHT_API void PlanPostProcessOutputColumn(std::function<void()>&& cb) override;
+    LIGHTWEIGHT_API void PlanPreFetchOutputColumn(SqlOutputColumnPreFetch const& step) override;
+    /// @brief Starts binding output column @p column: drops the column's previously planned pre-fetch
+    /// and post-process callbacks and attributes the ones planned next to it, so re-binding a column
+    /// replaces its callbacks instead of accumulating them.
+    LIGHTWEIGHT_API void BeginOutputColumnBinding(SQLUSMALLINT column) noexcept;
+    /// @brief Binds @p arg as output column @p column with @c SqlDataBinder<T>::OutputColumn right away.
+    /// @tparam T The bound variable's type.
+    /// @param column The 1-based column index.
+    /// @param arg The variable the column is fetched into.
+    template <SqlOutputColumnBinder T>
+    void BindOutputColumnNow(SQLUSMALLINT column, T* arg);
+    /// @brief Drops the pre-fetch and post-process callbacks of every bound output column.
+    LIGHTWEIGHT_API void ResetOutputColumnCallbacks() noexcept;
+    /// @brief Drops the pre-fetch and post-process callbacks planned for output column @p column.
+    LIGHTWEIGHT_API void DropOutputColumnCallbacks(SQLUSMALLINT column) noexcept;
     [[nodiscard]] LIGHTWEIGHT_API SqlServerType ServerType() const noexcept override;
     [[nodiscard]] LIGHTWEIGHT_API std::string const& DriverName() const noexcept override;
     [[nodiscard]] LIGHTWEIGHT_API detail::NarrowTextBinding NarrowTextBindingMode() const noexcept override;
@@ -1445,7 +1460,19 @@ inline LIGHTWEIGHT_FORCE_INLINE void SqlStatement::BindOutputColumns(Args*... ar
     RequireIndicators();
 
     SQLUSMALLINT i = 0;
-    ((++i, RequireSuccess(SqlDataBinder<Args>::OutputColumn(m_hStmt, i, args, GetIndicatorForColumn(i), *this))), ...);
+    ((++i, BindOutputColumnNow<Args>(i, args)), ...);
+}
+
+/// @brief Out-of-line definition of `SqlStatement::BindOutputColumnNow`: binds @p arg as output column
+/// @p column with @c SqlDataBinder<T>::OutputColumn right away, replacing the column's planned callbacks.
+/// @tparam T The bound variable's type.
+/// @param column The 1-based column index.
+/// @param arg The variable the column is fetched into.
+template <SqlOutputColumnBinder T>
+inline LIGHTWEIGHT_FORCE_INLINE void SqlStatement::BindOutputColumnNow(SQLUSMALLINT column, T* arg)
+{
+    BeginOutputColumnBinding(column);
+    RequireSuccess(SqlDataBinder<T>::OutputColumn(m_hStmt, column, arg, GetIndicatorForColumn(column), *this));
 }
 
 template <typename... Records>
@@ -1478,8 +1505,7 @@ void SqlStatement::BindOutputColumnsToRecord(Records*... records)
                                  if constexpr (RecordColumnMember<FieldType>)
                                  {
                                      ++i;
-                                     RequireSuccess(SqlDataBinder<FieldType>::OutputColumn(
-                                         m_hStmt, i, &value, GetIndicatorForColumn(i), *this));
+                                     this->BindOutputColumnNow<FieldType>(i, &value);
                                  }
                              })),
      ...);
@@ -1499,7 +1525,7 @@ inline LIGHTWEIGHT_FORCE_INLINE void SqlStatement::BindOutputColumn(SQLUSMALLINT
 
     RequireIndicators();
 
-    RequireSuccess(SqlDataBinder<T>::OutputColumn(m_hStmt, columnIndex, arg, GetIndicatorForColumn(columnIndex), *this));
+    BindOutputColumnNow<T>(columnIndex, arg);
 }
 
 /// @copydoc SqlStatement::BindInputParameter(SQLSMALLINT, Arg const&)
@@ -1912,6 +1938,7 @@ void SqlStatement::BindRowWiseValue(SQLUSMALLINT column, void* base0, SQLLEN* in
     {
         // Fixed-width value (primitive, date/time/datetime, numeric): a plain, callback-free SQLBindCol
         // straight into the record field; the driver strides by rowStride.
+        BeginOutputColumnBinding(column);
         RequireSuccess(SqlDataBinder<Value>::OutputColumn(m_hStmt, column, static_cast<Value*>(base0), indicators, *this));
     }
 }
@@ -2023,6 +2050,7 @@ void SqlStatement::FetchAllRowWise(std::vector<Record>& out, std::size_t arrayDe
         SQLSetStmtAttr(m_hStmt, SQL_ATTR_ROW_STATUS_PTR, nullptr, 0);
         SQLSetStmtAttr(m_hStmt, SQL_ATTR_ROWS_FETCHED_PTR, nullptr, 0);
         // clang-format on
+        ResetOutputColumnCallbacks();
         ClearBatchIndicators();
     });
 
@@ -2347,7 +2375,7 @@ inline void SqlStatement::RecordPrefetchOutputColumn(SQLUSMALLINT column, T* arg
 {
     auto deferredBind = [this, column, arg] {
         RequireIndicators();
-        RequireSuccess(SqlDataBinder<T>::OutputColumn(m_hStmt, column, arg, GetIndicatorForColumn(column), *this));
+        BindOutputColumnNow<T>(column, arg);
     };
     if constexpr (detail::PrefetchConvertible<T>)
     {
@@ -2512,6 +2540,7 @@ inline LIGHTWEIGHT_FORCE_INLINE void SqlStatement::CloseCursor() noexcept
     // restores SQL_ATTR_ROW_ARRAY_SIZE so the SQLFreeStmt(SQL_CLOSE) below — and the next query on this
     // statement — start from a clean single-row state. Resets the prefetch lifecycle to Unarmed.
     ResetPrefetchState();
+    ResetOutputColumnCallbacks();
 
     // SQL Server batches and DML/DDL row-count tokens produce multiple result
     // sets per SQLExecDirect. SQLFreeStmt(SQL_CLOSE) only discards the current

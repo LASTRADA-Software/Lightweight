@@ -36,10 +36,12 @@ However, when not using the `DataMapper` API, you need to retrieve the result ma
 It is always highly recommended to pre-bind to avoid unnecessary memory allocations and copying.
 
 With this, it is sufficient to call `SqlStatement::BindOutputColumns()` once, and then you can reuse the result
-throughout many `SqlStatement::FetchRow()` calls.
+throughout many `SqlStatement::FetchRow()` calls of that result set. Every fetched row sets each bound variable to
+that row's value: strings and binaries get the row's own length, and a `std::optional<T>` is reset to `std::nullopt`
+on a NULL row and engaged again on the next non-NULL one. The bound variables must outlive the fetch loop; moving a
+value out of one between two fetches is fine, the column follows the variable's new storage.
 
-The pitfall here is that if you are using `std::optional<T>` column types, you **MUST** rebind the result columns before
-each fetch operation. If there are no nullable values, you do not have to.
+The binding lasts until the result set ends or the cursor is closed. Bind again for the next query.
 
 ```cpp
 struct MixedNullRow
@@ -58,17 +60,11 @@ void ForEachData(SqlStatement& stmt, auto&& onRow)
 
     auto currentRow = MixedNullRow {};
 
-    // Bind output columns for the first time
+    // Bind the output columns once for the whole result set
     stmt.BindOutputColumns(&currentRow.id, &currentRow.name, &currentRow.age);
 
     while (stmt.FetchRow())
-    {
         onRow(currentRow);
-
-        // Bind output columns for the next fetch.
-        // (ONLY necessary when using std::optional<T> in the columns)
-        stmt.BindOutputColumns(&currentRow.id, &currentRow.name, &currentRow.age);
-    }
 }
 ```
 

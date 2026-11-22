@@ -212,42 +212,67 @@ namespace detail
         return GetRawColumnArrayData<SQL_C_WCHAR>(stmt, column, result, indicator);
     }
 
+    /// @brief Reads the current row's text out of a UTF-16 staging buffer bound with @c SQLBindCol.
+    ///
+    /// The staging buffer is bound for the whole result set, so it is never shrunk: the row's text is
+    /// returned as a view into it. Only a value longer than the buffer (known total) grows it: the whole
+    /// value is read with @c SQLGetData and the column is re-bound to the grown buffer, so later rows of
+    /// that length fit without another re-read.
+    ///
+    /// @param stmt The statement handle the column is bound on.
+    /// @param column The 1-based column index.
+    /// @param staging The bound staging buffer; its size is the bound capacity in UTF-16 code units,
+    ///                including the slot for the null terminator the driver writes.
+    /// @param indicator The column's length/indicator buffer.
+    /// @return The row's text (empty on NULL); valid until the next fetch.
+    inline std::u16string_view ReadBoundUtf16Staging(SQLHSTMT stmt,
+                                                     SQLUSMALLINT column,
+                                                     std::u16string& staging,
+                                                     SQLLEN* indicator) noexcept
+    {
+        if (*indicator == SQL_NULL_DATA)
+            return {};
+        if (*indicator == SQL_NO_TOTAL)
+        {
+            // Length unknown: the driver filled the buffer and null-terminated it.
+            auto const text = std::u16string_view { staging.data(), staging.size() };
+            return text.substr(0, text.find(u'\0'));
+        }
+
+        auto const totalChars = static_cast<size_t>(*indicator) / sizeof(char16_t);
+        if (totalChars < staging.size())
+            return { staging.data(), totalChars };
+
+        // Truncated with a known total: grow, re-read the whole value, and bind the grown buffer.
+        staging.resize(totalChars + 1);
+        auto const bufferLength = static_cast<SQLLEN>(staging.size() * sizeof(char16_t));
+        auto const rv = SQLGetData(stmt, column, SQL_C_WCHAR, staging.data(), bufferLength, indicator);
+        (void) rv;
+        assert(SQL_SUCCEEDED(rv));
+        auto const rebound = SQLBindCol(stmt, column, SQL_C_WCHAR, staging.data(), bufferLength, indicator);
+        (void) rebound;
+        assert(SQL_SUCCEEDED(rebound));
+        return { staging.data(), totalChars };
+    }
+
     template <typename StringType>
     SQLRETURN BindOutputColumnNonUtf16Unicode(
         SQLHSTMT stmt, SQLUSMALLINT column, StringType* result, SQLLEN* indicator, SqlDataBinderCallback& cb) noexcept
     {
         using CharType = StringType::value_type;
 
+        // Owned by the post-process callback, which lives exactly as long as the column binding.
         auto u16String = std::make_shared<std::u16string>();
-        if (!result->empty())
-            u16String->resize(result->size());
-        else
-            u16String->resize(255);
+        u16String->resize(!result->empty() ? result->size() : 255);
 
-        cb.PlanPostProcessOutputColumn([stmt, column, result, indicator, u16String = u16String]() {
-            if (*indicator == SQL_NULL_DATA)
-                u16String->clear();
-            else if (*indicator == SQL_NO_TOTAL)
-                ; // We don't know the size of the data
-            else if (std::cmp_less_equal(*indicator, u16String->size() * sizeof(char16_t)))
-                u16String->resize(static_cast<size_t>(*indicator) / sizeof(char16_t));
-            else
-            {
-                auto const totalCharsRequired = static_cast<size_t>(*indicator) / sizeof(char16_t);
-                *indicator += sizeof(char16_t); // Add space to hold the null terminator
-                u16String->resize(totalCharsRequired);
-                auto const sqlResult = SQLGetData(stmt, column, SQL_C_WCHAR, u16String->data(), *indicator, indicator);
-                (void) sqlResult;
-                assert(SQL_SUCCEEDED(sqlResult));
-                assert(std::cmp_equal(*indicator, totalCharsRequired * sizeof(char16_t)));
-            }
+        cb.PlanPostProcessOutputColumn([stmt, column, result, indicator, u16String]() {
+            auto const text = ReadBoundUtf16Staging(stmt, column, *u16String, indicator);
 
             if constexpr (sizeof(typename StringType::value_type) == 1)
-                *result = ToUtf8(*u16String);
+                *result = ToUtf8(text);
             else if constexpr (sizeof(typename StringType::value_type) == 4)
             {
-                // *result = ToUtf32(*u16String);
-                auto const u32String = ToUtf32(*u16String);
+                auto const u32String = ToUtf32(text);
                 *result = StringType {
                     (CharType const*) u32String.data(),
                     (CharType const*) u32String.data() + u32String.size(),
@@ -557,33 +582,14 @@ struct SqlDataBinder<AnsiStringType>
         // which assumes a std::basic_string result and so does not cover SqlText / fixed-capacity narrow strings.)
         if (auto const binding = cb.NarrowTextBindingMode(); binding != detail::NarrowTextBinding::Narrow)
         {
+            // The staging buffer is owned by the post-process callback, which lives exactly as long as
+            // the column binding, so the driver writes into live memory on every fetch of the result set.
             auto u16String = std::make_shared<std::u16string>();
             u16String->resize(StringTraits::Size(result) != 0 ? StringTraits::Size(result) : 255);
 
             cb.PlanPostProcessOutputColumn([stmt, column, result, indicator, u16String, binding]() {
-                if (*indicator == SQL_NULL_DATA)
-                    u16String->clear();
-                else if (*indicator == SQL_NO_TOTAL)
-                    ; // Length unknown; keep what the driver already wrote into the bound buffer.
-                else if (std::cmp_less_equal(*indicator, u16String->size() * sizeof(char16_t)))
-                    u16String->resize(static_cast<size_t>(*indicator) / sizeof(char16_t));
-                else
-                {
-                    // Truncation with a known total: grow and re-fetch the whole value.
-                    auto const totalChars = static_cast<size_t>(*indicator) / sizeof(char16_t);
-                    u16String->resize(totalChars + 1);
-                    auto const rv = SQLGetData(stmt,
-                                               column,
-                                               SQL_C_WCHAR,
-                                               u16String->data(),
-                                               static_cast<SQLLEN>((totalChars + 1) * sizeof(char16_t)),
-                                               indicator);
-                    (void) rv;
-                    assert(SQL_SUCCEEDED(rv));
-                    u16String->resize(totalChars);
-                }
-
-                auto const narrowText = detail::Utf16ToNarrowText(*u16String, binding);
+                auto const narrowText =
+                    detail::Utf16ToNarrowText(detail::ReadBoundUtf16Staging(stmt, column, *u16String, indicator), binding);
                 // Resize may clamp to a fixed-capacity string's Capacity; copy only the post-clamp
                 // length so a multi-byte expansion never overruns the inline buffer.
                 StringTraits::Resize(result, static_cast<SQLLEN>(narrowText.size()));
@@ -610,13 +616,6 @@ struct SqlDataBinder<AnsiStringType>
         else if (StringTraits::Size(result) == 0)
             StringTraits::Resize(result, 255);
 
-        if constexpr (requires { StringTraits::PostProcessOutputColumn(result, *indicator); })
-            cb.PlanPostProcessOutputColumn(
-                [indicator, result]() { StringTraits::PostProcessOutputColumn(result, *indicator); });
-        else
-            cb.PlanPostProcessOutputColumn(
-                [stmt, column, indicator, result]() { PostProcessOutputColumn(stmt, column, result, indicator); });
-
         // Per ODBC spec, BufferLength for SQL_C_CHAR must include space for the
         // null terminator. SqlFixedString<N> backs its data with _data[N+1] for
         // exactly this reason; pass Capacity+1 to let the driver write a full
@@ -627,6 +626,18 @@ struct SqlDataBinder<AnsiStringType>
             else
                 return static_cast<SQLLEN>(StringTraits::Size(result));
         }();
+
+        if constexpr (requires { StringTraits::PostProcessOutputColumn(result, *indicator); })
+            // Fixed-capacity storage: the bound buffer never moves and the length comes from the
+            // indicator alone, so nothing needs restoring between fetches.
+            cb.PlanPostProcessOutputColumn(
+                [indicator, result]() { StringTraits::PostProcessOutputColumn(result, *indicator); });
+        else
+        {
+            cb.PlanPostProcessOutputColumn(
+                [stmt, column, indicator, result]() { PostProcessOutputColumn(stmt, column, result, indicator); });
+            detail::PlanBoundBufferRestore<StringTraits, 1, 0>(column, SQL_C_CHAR, result, indicator, cb);
+        }
 
         return SQLBindCol(stmt, column, SQL_C_CHAR, (SQLPOINTER) StringTraits::Data(result), bufferLength, indicator);
     }
@@ -827,11 +838,13 @@ struct SqlDataBinder<Utf16StringType>
 
         if constexpr (requires { StringTraits::PostProcessOutputColumn(result, *indicator); })
         {
+            // Fixed-capacity storage: nothing to restore between fetches (see the narrow binder).
             cb.PlanPostProcessOutputColumn(
                 [indicator, result]() { StringTraits::PostProcessOutputColumn(result, *indicator); });
         }
         else
         {
+            detail::PlanBoundBufferRestore<StringTraits, sizeof(CharType), 1>(column, CType, result, indicator, cb);
             cb.PlanPostProcessOutputColumn([stmt, column, indicator, result]() {
                 // Now resize the string to the actual length of the data
                 // NB: If the indicator is greater than the buffer size, we have a truncation.

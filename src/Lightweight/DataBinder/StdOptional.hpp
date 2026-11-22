@@ -114,12 +114,30 @@ struct SqlDataBinder<std::optional<T>>
         if (!result)
             return SQL_ERROR;
 
-        auto const sqlReturn = SqlDataBinder<T>::OutputColumn(stmt, column, &result->emplace(), indicator, cb);
+        // An engaged value is bound as it is: re-engaging it would drop the storage it kept from the
+        // previous row, and a column bound anew for every row would then allocate on every row.
+        auto* const value = result->has_value() ? &result->value() : &result->emplace();
+        auto const sqlReturn = SqlDataBinder<T>::OutputColumn(stmt, column, value, indicator, cb);
         cb.PlanPostProcessOutputColumn([result, indicator]() {
             if (indicator && *indicator == SQL_NULL_DATA)
                 *result = std::nullopt;
         });
+        // A NULL row disengaged the optional; re-engage it before the next fetch so the driver writes into
+        // a live contained value (same address: std::optional stores it in place). Registered after the
+        // inner binder's callbacks, so it runs before the inner binder restores its own buffer.
+        cb.PlanPreFetchOutputColumn(SqlOutputColumnPreFetch { .run = &Reengage, .target = result, .column = column });
         return sqlReturn;
+    }
+
+    /// The pre-fetch step of @ref OutputColumn: engages the optional again after a NULL row.
+    /// @param step The planned step; its target is the bound optional.
+    /// @return @c SQL_SUCCESS.
+    static SQLRETURN Reengage(SqlOutputColumnPreFetch& step, SQLHSTMT /*stmt*/) noexcept
+    {
+        auto* const result = static_cast<OptionalValue*>(step.target);
+        if (!result->has_value())
+            result->emplace();
+        return SQL_SUCCESS;
     }
 
     /// @throws Whatever `SqlDataBinder<T>::GetColumn` throws — this forwards to an arbitrary binder
