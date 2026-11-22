@@ -6,6 +6,7 @@ var group__Unicode =
     [ "Lightweight::ToUtf16", "d1/d7d/group__Unicode.html#gaaf5dbfcee3e69467bc1359226a9f6b2a", null ],
     [ "Lightweight::ToUtf16", "d1/d7d/group__Unicode.html#ga83e70aafb0ad6d60f8c3b57d19cffbfa", null ],
     [ "Lightweight::ToUtf16", "d1/d7d/group__Unicode.html#ga3b6f1e516cb7b6384ac8e9405b41f2b0", null ],
+    [ "Lightweight::ToLocaleString", "d1/d7d/group__Unicode.html#ga46ee7524257ce3d30332668193a289f2", null ],
     [ "Lightweight::ToUtf32", "d1/d7d/group__Unicode.html#ga61d085d38ec6689b3a3c7a153a85af09", null ],
     [ "Lightweight::ToUtf32", "d1/d7d/group__Unicode.html#ga7185a14aa1e28912448d3c7dc27afd5b", null ],
     [ "Lightweight::ToStdWideString", "d1/d7d/group__Unicode.html#gae624ec6c44dd0598fba20b67ff1fd6c5", null ],

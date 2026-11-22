@@ -431,16 +431,16 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "annotated.html",
-"d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html#adc492c8b63e8e44fd4f72b251f908c89",
-"d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a70539241ba2c17c1ce40ce89ec177f55",
-"d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#a1f03a5faa280b0ae0ee688e3b9f40208",
-"d7/d8f/structLightweight_1_1SqlBackup_1_1RestoreReport.html",
-"d8/df7/classLightweight_1_1SqlQueryFormatter.html#a1dcb7e54bfcc84b7995643cd35a43c53",
-"da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#a3c38e58abdc7f00d611b073b68572837",
-"db/dad/classLightweight_1_1SqlStatement.html#ae3ff62232ea5a9561c0189a0fc204525",
-"de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#aeeaf82e11b843bb28525e9a7eac826b6",
-"de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#a1af4ea7db6effd658b141e8d599978dc",
-"functions_vars_u.html"
+"d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html#ad960d5dc5e9cb104a5cfa7dbc07971be",
+"d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a68b4434898a6ebceb06025065af79ec0",
+"d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#a04fd31415705ccc61b63eec99a7bf1f3",
+"d7/d79/UnicodeUpgradeProgress_8hpp_source.html",
+"d8/df7/classLightweight_1_1SqlQueryFormatter.html#a1aade87023f69d63e86f4aca06a97595",
+"da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#a25a32f6bdaa186db2f20b2683bcede27",
+"db/dad/classLightweight_1_1SqlStatement.html#ac394d28a45e9b10a2edb1cdf0037281e",
+"de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#ad1d38c21c3e67ddebe2a0067635db84b",
+"de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html",
+"functions_vars_p.html"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

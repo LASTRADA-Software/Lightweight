@@ -117,6 +117,8 @@ requires std::same_as&lt;T, char32_t&gt; || (std::same_as&lt;T, wchar_t&gt; &amp
 <tr class="separator:ga83e70aafb0ad6d60f8c3b57d19cffbfa"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga3b6f1e516cb7b6384ac8e9405b41f2b0" id="r_ga3b6f1e516cb7b6384ac8e9405b41f2b0"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API std::u16string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d1/d7d/group__Unicode.html#ga3b6f1e516cb7b6384ac8e9405b41f2b0">Lightweight::ToUtf16</a> (std::string const &amp;localeInputString)</td></tr>
 <tr class="separator:ga3b6f1e516cb7b6384ac8e9405b41f2b0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga46ee7524257ce3d30332668193a289f2" id="r_ga46ee7524257ce3d30332668193a289f2"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d1/d7d/group__Unicode.html#ga46ee7524257ce3d30332668193a289f2">Lightweight::ToLocaleString</a> (std::u16string_view u16InputString)</td></tr>
+<tr class="separator:ga46ee7524257ce3d30332668193a289f2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga61d085d38ec6689b3a3c7a153a85af09" id="r_ga61d085d38ec6689b3a3c7a153a85af09"><td class="memTemplParams" colspan="2">template&lt;typename T  = std::u32string&gt; </td></tr>
 <tr class="memitem:ga61d085d38ec6689b3a3c7a153a85af09"><td class="memTemplItemLeft" align="right" valign="top">T&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d1/d7d/group__Unicode.html#ga61d085d38ec6689b3a3c7a153a85af09">Lightweight::ToUtf32</a> (std::u8string_view u8InputString)</td></tr>
 <tr class="separator:ga61d085d38ec6689b3a3c7a153a85af09"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -269,6 +271,26 @@ requires std::same_as&lt;T, char32_t&gt; || (std::same_as&lt;T, wchar_t&gt; &amp
 
 </div>
 </div>
+<a id="ga46ee7524257ce3d30332668193a289f2" name="ga46ee7524257ce3d30332668193a289f2"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga46ee7524257ce3d30332668193a289f2">&#9670;&#160;</a></span>ToLocaleString()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">LIGHTWEIGHT_API std::string Lightweight::ToLocaleString </td>
+          <td>(</td>
+          <td class="paramtype">std::u16string_view&#160;</td>
+          <td class="paramname"><em>u16InputString</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Converts from UTF-16 to a local 8-bit string, the inverse of <code><a class="el" href="../../d1/d7d/group__Unicode.html#ga3b6f1e516cb7b6384ac8e9405b41f2b0">ToUtf16(std::string const&amp;)</a></code>.</p>
+<p>On Windows the result is in the process ANSI code page; characters it cannot represent become its default character (usually <code></code>?), never a best-fit look-alike. Elsewhere the result is UTF-8. </p>
+
+</div>
+</div>
 <a id="ga61d085d38ec6689b3a3c7a153a85af09" name="ga61d085d38ec6689b3a3c7a153a85af09"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ga61d085d38ec6689b3a3c7a153a85af09">&#9670;&#160;</a></span>ToUtf32() <span class="overload">[1/2]</span></h2>
 
@@ -288,7 +310,7 @@ template&lt;typename T  = std::u32string&gt; </div>
 </div><div class="memdoc">
 <p>Converts from UTF-8 to UTF-32. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/dcd/UnicodeConverter_8hpp_source.html#l00280">280</a> of file <a class="el" href="../../df/dcd/UnicodeConverter_8hpp_source.html">UnicodeConverter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/dcd/UnicodeConverter_8hpp_source.html#l00288">288</a> of file <a class="el" href="../../df/dcd/UnicodeConverter_8hpp_source.html">UnicodeConverter.hpp</a>.</p>
 
 </div>
 </div>
@@ -311,7 +333,7 @@ template&lt;typename T  = std::u32string&gt; </div>
 </div><div class="memdoc">
 <p>Converts from UTF-16 to UTF-32. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/dcd/UnicodeConverter_8hpp_source.html#l00292">292</a> of file <a class="el" href="../../df/dcd/UnicodeConverter_8hpp_source.html">UnicodeConverter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/dcd/UnicodeConverter_8hpp_source.html#l00300">300</a> of file <a class="el" href="../../df/dcd/UnicodeConverter_8hpp_source.html">UnicodeConverter.hpp</a>.</p>
 
 </div>
 </div>
