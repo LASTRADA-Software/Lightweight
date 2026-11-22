@@ -7,6 +7,7 @@
 #include "SqlLogger.hpp"
 
 #include <array>
+#include <atomic>
 #include <chrono>
 #include <cstddef>
 #include <cstdlib>
@@ -365,17 +366,19 @@ SqlLogger& SqlLogger::TraceLogger()
 }
 
 // Constant-initialized, so it is valid even while other translation units' statics are still being
-// initialized; nullptr selects the null logger.
-static constinit SqlLogger* theDefaultLogger = nullptr;
+// initialized; nullptr selects the null logger. Atomic, because every statement on every thread reads
+// it while SetLogger() may replace it.
+static constinit std::atomic<SqlLogger*> theDefaultLogger = nullptr;
 
 SqlLogger& SqlLogger::GetLogger()
 {
-    return theDefaultLogger ? *theDefaultLogger : NullLogger();
+    auto* const logger = theDefaultLogger.load(std::memory_order_acquire);
+    return logger ? *logger : NullLogger();
 }
 
 void SqlLogger::SetLogger(SqlLogger& logger)
 {
-    theDefaultLogger = &logger;
+    theDefaultLogger.store(&logger, std::memory_order_release);
 }
 
 } // namespace Lightweight
