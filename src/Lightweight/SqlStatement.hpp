@@ -1604,25 +1604,31 @@ SqlResultCursor SqlStatement::Execute(Args const&... args)
     return SqlResultCursor { *this };
 }
 
+// A column-wise parameter array strides a fixed-length C type by the C type's size, not by the element's,
+// so only types whose bound C type is exactly sizeof(T) qualify. SqlTime does not: it stores the 12-byte
+// TIME2 layout but binds SQL_C_TYPE_TIME (6 bytes), so its column-major batches take the soft path. (The
+// row-wise path strides by the row size and still binds SqlTime natively.) A type also needs a column-wise
+// SqlDataBinder<T>::BatchInputParameter; one without (wchar_t, the UTF-16 fixed strings) takes the soft path.
 // clang-format off
 template <typename T>
 concept SqlNativeContiguousValueConcept =
-       std::same_as<T, bool>
-    || std::same_as<T, char>
-    || std::same_as<T, unsigned char>
-    || std::same_as<T, wchar_t>
-    || std::same_as<T, std::int16_t>
-    || std::same_as<T, std::uint16_t>
-    || std::same_as<T, std::int32_t>
-    || std::same_as<T, std::uint32_t>
-    || std::same_as<T, std::int64_t>
-    || std::same_as<T, std::uint64_t>
-    || std::same_as<T, float>
-    || std::same_as<T, double>
-    || std::same_as<T, SqlDate>
-    || std::same_as<T, SqlTime>
-    || std::same_as<T, SqlDateTime>
-    || std::same_as<T, SqlFixedString<T::Capacity, typename T::value_type, T::PostRetrieveOperation>>;
+    (      std::same_as<T, bool>
+        || std::same_as<T, char>
+        || std::same_as<T, unsigned char>
+        || std::same_as<T, std::int16_t>
+        || std::same_as<T, std::uint16_t>
+        || std::same_as<T, std::int32_t>
+        || std::same_as<T, std::uint32_t>
+        || std::same_as<T, std::int64_t>
+        || std::same_as<T, std::uint64_t>
+        || std::same_as<T, float>
+        || std::same_as<T, double>
+        || std::same_as<T, SqlDate>
+        || std::same_as<T, SqlDateTime>
+        || std::same_as<T, SqlFixedString<T::Capacity, typename T::value_type, T::PostRetrieveOperation>>)
+    && requires(SQLHSTMT stmt, SQLUSMALLINT column, T const* values, std::size_t rowCount, SqlDataBinderCallback& cb) {
+        { SqlDataBinder<T>::BatchInputParameter(stmt, column, values, rowCount, cb) } -> std::same_as<SQLRETURN>;
+    };
 
 template <typename FirstColumnBatch, typename... MoreColumnBatches>
 concept SqlNativeBatchable =

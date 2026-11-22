@@ -882,6 +882,53 @@ TEST_CASE_METHOD(SqlTestFixture,
           == std::optional<int64_t> { 1000 });
 }
 
+TEST_CASE_METHOD(SqlTestFixture, "ExecuteBatch column-wise of SqlTime round-trips every row", "[SqlStatement]")
+{
+    using namespace std::chrono_literals;
+
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("batch_time")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Integer {})
+            .RequiredColumn("Value", SqlColumnTypeDefinitions::Time {});
+    });
+    stmt.Prepare(R"(INSERT INTO "batch_time" ("Id", "Value") VALUES (?, ?))");
+
+    auto const ids = std::array { 1, 2, 3, 4, 5, 6, 7, 8 };
+    auto const times = std::array { SqlTime { 0h, 0min, 1s },    SqlTime { 1h, 2min, 3s },    SqlTime { 4h, 5min, 6s },
+                                    SqlTime { 7h, 8min, 9s },    SqlTime { 10h, 11min, 12s }, SqlTime { 13h, 14min, 15s },
+                                    SqlTime { 16h, 17min, 18s }, SqlTime { 23h, 59min, 59s } };
+    (void) stmt.ExecuteBatch(ids, times);
+
+    auto cursor = stmt.ExecuteDirect(R"(SELECT "Value" FROM "batch_time" ORDER BY "Id")"sv);
+    auto actual = std::vector<SqlTime> {};
+    while (cursor.FetchRow())
+        actual.push_back(cursor.GetColumn<SqlTime>(1));
+    CHECK(actual == std::vector<SqlTime>(times.begin(), times.end()));
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "ExecuteBatch column-wise of a UTF-16 fixed string round-trips", "[SqlStatement]")
+{
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("batch_wide_fixed")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Integer {})
+            .RequiredColumn("Value", SqlColumnTypeDefinitions::NVarchar { .size = 16 });
+    });
+    stmt.Prepare(R"(INSERT INTO "batch_wide_fixed" ("Id", "Value") VALUES (?, ?))");
+
+    using WideFixed = SqlFixedString<16, char16_t>;
+    auto const ids = std::array { 1, 2, 3 };
+    auto const values = std::array { WideFixed { u"one" }, WideFixed { u"Grüße" }, WideFixed { u"three" } };
+    (void) stmt.ExecuteBatch(ids, values);
+
+    auto cursor = stmt.ExecuteDirect(R"(SELECT "Value" FROM "batch_wide_fixed" ORDER BY "Id")"sv);
+    auto actual = std::vector<std::u16string> {};
+    while (cursor.FetchRow())
+        actual.push_back(cursor.GetColumn<std::u16string>(1));
+    CHECK(actual == std::vector<std::u16string> { u"one", u"Grüße", u"three" });
+}
+
 // ================================================================================================
 // Output columns bound once (BindOutputColumns before the fetch loop) stay bound for every row
 // ================================================================================================
