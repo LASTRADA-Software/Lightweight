@@ -3,6 +3,7 @@
 #pragma once
 
 #include "../SqlColumnTypeDefinitions.hpp"
+#include "BasicStringBinder.hpp"
 #include "Core.hpp"
 
 #include <algorithm>
@@ -100,6 +101,9 @@ struct Int64DataBinderHelper
 ///   without one the driver reads the value as a NUL-terminated string, past the end of the @c char.
 /// - On output, the driver NUL-terminates what it writes, so the buffer needs room for one more byte
 ///   than the value; a one-byte buffer receives nothing.
+///
+/// Where the connection converts narrow text with the process code page
+/// (@c detail::NarrowTextBinding::WideFromProcessCodePage), the character goes through @c SQL_C_WCHAR instead.
 template <>
 struct SqlDataBinder<char>
 {
@@ -118,6 +122,9 @@ struct SqlDataBinder<char>
                                                              char const& value,
                                                              SqlDataBinderCallback& cb) noexcept
     {
+        if (auto const binding = cb.NarrowTextBindingMode(); binding == detail::NarrowTextBinding::WideFromProcessCodePage)
+            return detail::BindNarrowTextAsUtf16(stmt, column, std::string_view { &value, 1 }, binding, cb);
+
         auto* const indicator = cb.ProvideInputIndicator();
         *indicator = CharLength;
         return SQLBindParameter(
@@ -132,7 +139,8 @@ struct SqlDataBinder<char>
     /// @param rowCount The number of rows in the batch.
     /// @param cb Provides the per-row length indicators when @p indicators is not given.
     /// @param indicators Optional per-row indicator array (the length, or @c SQL_NULL_DATA). When null,
-    ///                   every row is bound as one character.
+    ///                   every row is bound as one character, converted where the connection converts narrow
+    ///                   text; given indicators keep the narrow bind.
     /// @return The ODBC return code of @c SQLBindParameter.
     static LIGHTWEIGHT_FORCE_INLINE SQLRETURN BatchInputParameter(SQLHSTMT stmt,
                                                                   SQLUSMALLINT column,
@@ -141,6 +149,10 @@ struct SqlDataBinder<char>
                                                                   SqlDataBinderCallback& cb,
                                                                   SQLLEN* indicators = nullptr) noexcept
     {
+        if (auto const binding = cb.NarrowTextBindingMode();
+            !indicators && binding == detail::NarrowTextBinding::WideFromProcessCodePage)
+            return BatchInputParameterAsUtf16(stmt, column, values, rowCount, binding, cb);
+
         if (!indicators)
         {
             indicators = cb.ProvideInputIndicators(rowCount);
@@ -158,6 +170,37 @@ struct SqlDataBinder<char>
                                 indicators);
     }
 
+    /// Binds a column-wise array of characters as @c SQL_C_WCHAR, converted to UTF-16 as @p binding prescribes.
+    static SQLRETURN BatchInputParameterAsUtf16(SQLHSTMT stmt,
+                                                SQLUSMALLINT column,
+                                                char const* values,
+                                                size_t rowCount,
+                                                detail::NarrowTextBinding binding,
+                                                SqlDataBinderCallback& cb) noexcept
+    {
+        // One UTF-16 code unit per character (a single byte of an ANSI code page), plus a terminator per row.
+        constexpr auto rowStride = size_t { 2 };
+        auto buffer = std::make_shared<std::u16string>(rowCount * rowStride, u'\0');
+        cb.PlanPostExecuteCallback([buffer = buffer]() {}); // keep buffer alive
+        auto* const indicators = cb.ProvideInputIndicators(rowCount);
+        for (auto const rowIndex: std::views::iota(size_t { 0 }, rowCount))
+        {
+            auto const wide = detail::NarrowTextToUtf16(std::string_view { values + rowIndex, 1 }, binding);
+            (*buffer)[rowIndex * rowStride] = wide.empty() ? u'?' : wide.front();
+            indicators[rowIndex] = static_cast<SQLLEN>(sizeof(char16_t));
+        }
+        return SQLBindParameter(stmt,
+                                column,
+                                SQL_PARAM_INPUT,
+                                SQL_C_WCHAR,
+                                SQL_WCHAR,
+                                ColumnSize,
+                                0,
+                                (SQLPOINTER) buffer->data(),
+                                static_cast<SQLLEN>(rowStride * sizeof(char16_t)),
+                                indicators);
+    }
+
     /// Binds @p result as the output column @p column, filled in on every fetch.
     ///
     /// The driver writes into a NUL-terminated staging buffer, which a post-process callback copies into
@@ -172,6 +215,17 @@ struct SqlDataBinder<char>
     static SQLRETURN OutputColumn(
         SQLHSTMT stmt, SQLUSMALLINT column, char* result, SQLLEN* indicator, SqlDataBinderCallback& cb) noexcept
     {
+        if (auto const binding = cb.NarrowTextBindingMode(); binding == detail::NarrowTextBinding::WideFromProcessCodePage)
+        {
+            auto wideBuffer = std::make_shared<WideBuffer>();
+            auto const sqlReturn = SQLBindCol(stmt, column, SQL_C_WCHAR, wideBuffer->data(), WideBufferSize, indicator);
+            cb.PlanPostProcessOutputColumn([wideBuffer, result, indicator, binding]() {
+                if (*indicator != SQL_NULL_DATA)
+                    *result = ToNarrowCharacter(*wideBuffer, *indicator, binding);
+            });
+            return sqlReturn;
+        }
+
         auto buffer = std::make_shared<Buffer>();
         auto const sqlReturn = SQLBindCol(stmt, column, SQL_C_CHAR, buffer->data(), BufferSize, indicator);
         cb.PlanPostProcessOutputColumn([buffer, result, indicator]() {
@@ -187,10 +241,20 @@ struct SqlDataBinder<char>
     /// @param column The 1-based column index.
     /// @param result Receives the character; left untouched on NULL.
     /// @param indicator Receives the length, or @c SQL_NULL_DATA.
+    /// @param cb Tells how the connection binds narrow text.
     /// @return The ODBC return code of @c SQLGetData.
     static SQLRETURN GetColumn(
-        SQLHSTMT stmt, SQLUSMALLINT column, char* result, SQLLEN* indicator, SqlDataBinderCallback const& /*cb*/) noexcept
+        SQLHSTMT stmt, SQLUSMALLINT column, char* result, SQLLEN* indicator, SqlDataBinderCallback const& cb) noexcept
     {
+        if (auto const binding = cb.NarrowTextBindingMode(); binding == detail::NarrowTextBinding::WideFromProcessCodePage)
+        {
+            auto wideBuffer = WideBuffer {};
+            auto const sqlReturn = SQLGetData(stmt, column, SQL_C_WCHAR, wideBuffer.data(), WideBufferSize, indicator);
+            if (SQL_SUCCEEDED(sqlReturn) && *indicator != SQL_NULL_DATA)
+                *result = ToNarrowCharacter(wideBuffer, *indicator, binding);
+            return sqlReturn;
+        }
+
         auto buffer = Buffer {};
         auto const sqlReturn = SQLGetData(stmt, column, SQL_C_CHAR, buffer.data(), BufferSize, indicator);
         if (SQL_SUCCEEDED(sqlReturn) && *indicator != SQL_NULL_DATA)
@@ -208,6 +272,19 @@ struct SqlDataBinder<char>
   private:
     // One character plus the NUL terminator the driver appends to SQL_C_CHAR output.
     using Buffer = std::array<char, 2>;
+    // The same for SQL_C_WCHAR output; a character outside the BMP is a surrogate pair.
+    using WideBuffer = std::array<char16_t, 3>;
+    static constexpr SQLLEN WideBufferSize = sizeof(WideBuffer);
+
+    /// The first narrow character of the UTF-16 text in @p buffer, whose length in bytes @p indicator gives.
+    static char ToNarrowCharacter(WideBuffer const& buffer, SQLLEN indicator, detail::NarrowTextBinding binding)
+    {
+        auto const length = indicator == SQL_NO_TOTAL
+                                ? buffer.size() - 1
+                                : (std::min) (buffer.size() - 1, static_cast<size_t>(indicator) / sizeof(char16_t));
+        auto const narrow = detail::Utf16ToNarrowText(std::u16string_view { buffer.data(), length }, binding);
+        return narrow.empty() ? '\0' : narrow.front();
+    }
     static constexpr SQLLEN CharLength = 1;
     static constexpr SQLULEN ColumnSize = 1;
     static constexpr SQLLEN BufferSize = sizeof(Buffer);

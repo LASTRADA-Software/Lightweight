@@ -21,6 +21,10 @@ else()
 endif()
 
 target_link_libraries(LightweightTest PRIVATE ${TEST_LIBRARIES})
+if(WIN32)
+    # NarrowTextCodePageTests.cpp adds and removes user data sources.
+    target_link_libraries(LightweightTest PRIVATE odbccp32 legacy_stdio_definitions)
+endif()
 # ProfilesLibraryTests.cpp exercises the private detail::Guarded helper directly.
 target_include_directories(LightweightTest PRIVATE ${PROJECT_SOURCE_DIR}/src/tools)
 

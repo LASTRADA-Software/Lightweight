@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
+#include "../ForeignThreadLocale.hpp"
 #include "TestHelpers.hpp"
 
 #include <Lightweight/SqlBackup/BatchManager.hpp>
@@ -58,3 +59,43 @@ TEST_CASE("BatchManager: Integration with SQLite", "[SqlBackup][Integration]")
 
     REQUIRE(stmt.ExecuteDirectScalar<std::string>("SELECT txt FROM test_batch WHERE id=5") == "Line1\nLine2");
 }
+
+#if defined(_WIN32) || defined(_WIN64)
+TEST_CASE("BatchManager: narrow text keeps its meaning under OEMCP and a foreign thread locale",
+          "[SqlBackup][Integration][Unicode]")
+{
+    auto conn = SqlConnection { SqlConnectionString { SqlConnection::DefaultConnectionString().value + ";OEMCP=1" } };
+    if (!conn.IsAlive() || conn.ServerType() != SqlServerType::SQLITE)
+        return;
+
+    constexpr auto unicodeText = std::u16string_view { u"\u00E4\u00F6\u00FC\u00DF\u00F1" };
+    auto const narrowText = Lightweight::Tests::ToProcessCodePage(unicodeText);
+    auto const threadLocale = Lightweight::Tests::ScopedForeignThreadLocale {};
+
+    SqlStatement stmt { conn };
+    (void) stmt.ExecuteDirect("DROP TABLE IF EXISTS test_batch_narrow");
+    (void) stmt.ExecuteDirect("CREATE TABLE test_batch_narrow (id INTEGER PRIMARY KEY, txt VARCHAR(32), fixed CHAR(8))");
+
+    std::vector<SqlColumnDeclaration> cols = {
+        { .name = "id", .type = SqlColumnTypeDefinitions::Integer {} },
+        { .name = "txt", .type = SqlColumnTypeDefinitions::Varchar { .size = 32 } },
+        { .name = "fixed", .type = SqlColumnTypeDefinitions::Char { .size = 8 } },
+    };
+    BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t rowCount) {
+        stmt.Prepare("INSERT INTO test_batch_narrow (id, txt, fixed) VALUES (?, ?, ?)");
+        (void) stmt.ExecuteBatch(rawCols, rowCount);
+    };
+    BatchManager bm(MakeHooks(executor), cols, 10, conn.ServerType(), SqlServerType::UNKNOWN, conn.NarrowTextBindingMode());
+    bm.PushRow({ 1, narrowText, narrowText });
+    bm.PushRow({ 2, std::monostate {}, narrowText });
+    bm.Flush();
+
+    auto cursor = stmt.ExecuteDirect("SELECT txt, fixed FROM test_batch_narrow ORDER BY id");
+    REQUIRE(cursor.FetchRow());
+    CHECK(cursor.GetColumn<std::u16string>(1) == unicodeText);
+    CHECK(cursor.GetColumn<std::u16string>(2) == unicodeText);
+    REQUIRE(cursor.FetchRow());
+    CHECK_FALSE(cursor.GetNullableColumn<std::u16string>(1).has_value());
+    CHECK(cursor.GetColumn<std::u16string>(2) == unicodeText);
+}
+#endif

@@ -70,11 +70,14 @@ struct LIGHTWEIGHT_API BatchManager
     /// @param serverType The server type for database-specific bindings.
     /// @param sourceServerType The DBMS the data was backed up from. When it pads CHAR(n) values and
     ///        @p serverType does not, the trailing pad of CHAR/NCHAR values is stripped.
+    /// @param narrowTextBinding How the target connection binds narrow text (see
+    ///        @c SqlConnection::NarrowTextBindingMode); narrow text columns follow it.
     explicit BatchManager(BatchManagerHooks hooks,
                           std::vector<SqlColumnDeclaration> const& colDecls,
                           size_t capacity,
                           SqlServerType serverType = SqlServerType::UNKNOWN,
-                          SqlServerType sourceServerType = SqlServerType::UNKNOWN);
+                          SqlServerType sourceServerType = SqlServerType::UNKNOWN,
+                          NarrowTextBinding narrowTextBinding = NarrowTextBinding::Narrow);
 
     ~BatchManager();
 
@@ -192,6 +195,8 @@ struct LIGHTWEIGHT_API BatchManager
     bool trimsFixedCharPadding = false;
     /// Whether the target stores GUID columns in a native GUID type rather than as text.
     bool hasNativeGuidType = false;
+    /// How the target connection binds narrow text.
+    NarrowTextBinding narrowTextBinding = NarrowTextBinding::Narrow;
     /// The column names, parallel to `columns`, for failure reports.
     std::vector<std::string> columnNames;
 };

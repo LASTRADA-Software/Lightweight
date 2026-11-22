@@ -26,6 +26,12 @@
 
 #include <sql.h>
 
+#if defined(_WIN32) || defined(_WIN64)
+    // <odbcinst.h> needs the Windows types that SqlOdbcPrelude.hpp leaves out.
+    #include <Windows.h>
+    #include <odbcinst.h>
+#endif
+
 namespace Lightweight
 {
 
@@ -88,20 +94,69 @@ namespace
 #endif
     }
 
-    /// Tells how narrow strings are bound on a connection to @p serverType made with @p connectionString.
+#if defined(_WIN32) || defined(_WIN64)
+    /// Reads an option the way the SQLite ODBC driver does: true when it starts with Y, T or a non-zero digit.
+    bool IsSqliteDriverOptionTrue(std::string_view value) noexcept
+    {
+        return !value.empty() && "YyTt123456789"sv.contains(value.front());
+    }
+
+    /// The value of @p key in the profile of the data source @p dataSourceName (user DSN, then system DSN),
+    /// or none when the profile does not set it.
+    std::optional<std::string> ReadDataSourceProfileValue(std::string_view dataSourceName, std::wstring_view key)
+    {
+        // A default no profile value can hold tells a missing key from an empty one.
+        constexpr auto missing = L"\x01"sv;
+        auto const wideDataSourceName = ToStdWideString(
+            std::u8string_view { reinterpret_cast<char8_t const*>(dataSourceName.data()), dataSourceName.size() });
+        auto const wideKey = std::wstring { key };
+        auto buffer = std::array<wchar_t, 64> {};
+        auto const length = SQLGetPrivateProfileStringW(wideDataSourceName.c_str(),
+                                                        wideKey.c_str(),
+                                                        missing.data(),
+                                                        buffer.data(),
+                                                        static_cast<int>(buffer.size()),
+                                                        L"ODBC.INI");
+        auto const value = std::wstring_view { buffer.data(), static_cast<size_t>((std::max) (length, 0)) };
+        if (value == missing)
+            return std::nullopt;
+        auto const utf8 = ToUtf8(value);
+        return std::string { reinterpret_cast<char const*>(utf8.data()), utf8.size() };
+    }
+#endif
+
+    /// Tells how narrow strings are bound on a connection to @p serverType.
     ///
-    /// The SQLite ODBC driver's @c OEMCP option (Windows only) makes it convert @c SQL_C_CHAR with the
-    /// thread's ANSI code page; the driver reads the option as true when it starts with Y, T or a non-zero digit.
+    /// The SQLite ODBC driver's @c OEMCP option (Windows only) makes it convert @c SQL_C_CHAR with the thread's ANSI
+    /// code page. The driver takes the option from the connection string, then from the data source's profile; when
+    /// neither sets it, it is on for a data-source connect (@c SQLConnect) and off for a connection string.
+    ///
+    /// @param serverType The connected backend.
+    /// @param connectionString The connection string of a connect by string.
+    /// @param dataSourceName The data source of a data-source connect; none for a connect by string.
     detail::NarrowTextBinding DetectNarrowTextBinding(SqlServerType serverType,
-                                                      [[maybe_unused]] SqlConnectionString const& connectionString)
+                                                      [[maybe_unused]] SqlConnectionString const& connectionString,
+                                                      [[maybe_unused]] std::optional<std::string> const& dataSourceName)
     {
 #if defined(_WIN32) || defined(_WIN64)
         if (serverType == SqlServerType::SQLITE)
         {
-            auto const options = ParseConnectionString(connectionString);
-            if (auto const option = options.find("OEMCP");
-                option != options.end() && !option->second.empty()
-                && std::string_view { "YyTt123456789" }.contains(option->second.front()))
+            constexpr auto optionName = L"OEMCP"sv;
+            auto const driverConverts = [&] {
+                if (dataSourceName)
+                    return ReadDataSourceProfileValue(*dataSourceName, optionName)
+                        .transform(IsSqliteDriverOptionTrue)
+                        .value_or(true);
+                auto const options = ParseConnectionString(connectionString);
+                if (auto const option = options.find("OEMCP"); option != options.end())
+                    return IsSqliteDriverOptionTrue(option->second);
+                if (auto const dataSource = options.find("DSN"); dataSource != options.end())
+                    return ReadDataSourceProfileValue(dataSource->second, optionName)
+                        .transform(IsSqliteDriverOptionTrue)
+                        .value_or(false);
+                return false;
+            }();
+            if (driverConverts)
                 return detail::NarrowTextBinding::WideFromProcessCodePage;
         }
 #endif
@@ -289,6 +344,8 @@ struct SqlConnection::Data
     std::chrono::steady_clock::time_point lastUsed; // Last time the connection was used (mostly interesting for
                                                     // idle connections in the connection pool).
     SqlConnectionString connectionString;
+    std::optional<std::string>
+        dataSourceName; // The data source of the last data-source connect; none after a connect by string.
     std::unique_ptr<Async::IAsyncBackend> asyncBackend;      // Async execution backend (null until EnableAsync()).
     std::size_t defaultPrefetchDepth = PrefetchDepthDefault; // Rows requested per SQLFetchScroll on the
                                                              // transparent per-row prefetch path (<= 1 disables).
@@ -748,6 +805,7 @@ std::expected<void, SqlErrorInfo> SqlConnection::ConnectOnce(SqlConnectionDataSo
         narrowUsername = detail::OdbcNarrowArg { info.username };
         narrowPassword = detail::OdbcNarrowArg { info.password };
         driverKey = "DSN=" + info.datasource;
+        m_data->dataSourceName = info.datasource;
     }
     catch (...)
     {
@@ -867,6 +925,7 @@ std::expected<void, SqlErrorInfo> SqlConnection::ConnectOnce() noexcept
 {
     // One zone per attempt, so retries show up individually in a capture.
     ZoneScopedN("SqlConnection::ConnectOnce(ConnectionString)");
+    m_data->dataSourceName.reset();
     // Handles prepared against the previous session die with the disconnect below.
     m_data->preparedStatementCache.Clear();
 
@@ -994,7 +1053,7 @@ void SqlConnection::DetectServer()
 
     // Decided before the first statement is issued, so every statement takes the right entry point.
     m_acceptsWideQueryText = DriverAcceptsWideQueryText(m_hDbc);
-    m_narrowTextBinding = DetectNarrowTextBinding(m_serverType, m_data->connectionString);
+    m_narrowTextBinding = DetectNarrowTextBinding(m_serverType, m_data->connectionString, m_data->dataSourceName);
 
     // The server type is only known now, so this is the earliest point at which the backend capability
     // gate on the prepared-statement cache can be evaluated.
