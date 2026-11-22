@@ -28,6 +28,7 @@
 #include <algorithm>
 #include <array>
 #include <chrono>
+#include <concepts>
 #include <cstdint>
 #include <cstring>
 #include <expected>
@@ -441,6 +442,11 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     template <SqlOutputColumnBinder T>
     void BindOutputColumn(SQLUSMALLINT columnIndex, T* arg);
 
+    /// @brief Reads column @p column of the current row into @p result.
+    /// @param column 1-based result column index.
+    /// @param result Receives the value; on NULL its empty value (@c std::nullopt, a NULL @c SqlVariant,
+    ///               @c T {}), on the per-row and the block-prefetched path alike.
+    /// @return @c false if the value is NULL.
     template <SqlGetColumnNativeType T>
     [[nodiscard]] bool GetColumn(SQLUSMALLINT column, T* result) const;
 
@@ -945,7 +951,11 @@ class [[nodiscard]] SqlResultCursor
 
     /// Retrieves the value of the column at the given index for the currently selected row.
     ///
-    /// Returns true if the value is not NULL, false otherwise.
+    /// @param column 1-based result column index.
+    /// @param result Receives the value. On NULL it receives its empty value instead (@c std::nullopt, a
+    ///               NULL @c SqlVariant, @c T {}), whatever it held before, on the per-row and the
+    ///               block-prefetched path alike.
+    /// @return @c true if the value is not NULL, @c false otherwise.
     template <SqlGetColumnNativeType T>
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE bool GetColumn(SQLUSMALLINT column, T* result) const
     {
@@ -2248,13 +2258,25 @@ inline bool SqlStatement::GetColumn(SQLUSMALLINT column, T* result) const
         auto const row = PrefetchRowInBlock();
         RequirePrefetchColumnInRange(cursor, column);
         if (cursor.IsCellNull(row, column))
+        {
+            // As on the per-row path below: a NULL leaves the target holding its empty value (nullopt,
+            // a NULL SqlVariant), whatever it held before.
+            if constexpr (std::default_initializable<T>)
+                *result = T {};
             return false;
+        }
         *result = ConvertCell<T>(cursor, row, column);
         return true;
     }
-    SQLLEN indicator {}; // TODO: Handle NULL values if we find out that we need them for our use-cases.
+    SQLLEN indicator {};
     RequireSuccess(SqlDataBinder<T>::GetColumn(m_hStmt, column, result, &indicator, *this));
-    return indicator != SQL_NULL_DATA;
+    if (indicator != SQL_NULL_DATA)
+        return true;
+    // The binders reset a nullable target on NULL; what a driver leaves in another one differs (SQLite
+    // zeroes an int, a string keeps the binder's initial buffer), so it is made the empty value here.
+    if constexpr (std::default_initializable<T>)
+        *result = T {};
+    return false;
 }
 
 namespace detail

@@ -1270,3 +1270,35 @@ TEST_CASE_METHOD(SqlTestFixture,
     CHECK(boundRead.operator()<std::string>(TestPrefetchDepth, "Ratio") == boundRead.operator()<std::string>(1, "Ratio"));
     CHECK(boundRead.operator()<char>(TestPrefetchDepth, "Digit") == boundRead.operator()<char>(1, "Digit"));
 }
+
+TEST_CASE_METHOD(SqlTestFixture, "Prefetch: GetColumn into a pointer reads a NULL cell as the per-row path", "[prefetch]")
+{
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("PrefetchNullPointer")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Integer {})
+            .Column("Number", SqlColumnTypeDefinitions::Integer {});
+    });
+    (void) stmt.ExecuteDirect(R"(INSERT INTO "PrefetchNullPointer" ("Id", "Number") VALUES (1, NULL))");
+
+    // Reads the NULL cell into a target that holds a value already; reports whether the overload said
+    // "not NULL" and what the target holds afterwards.
+    auto const readNull = [&]<typename T>(std::size_t depth, T preset) -> std::string {
+        stmt.Connection().SetDefaultPrefetchDepth(depth);
+        auto cursor = stmt.ExecuteDirect(R"(SELECT "Id", "Number" FROM "PrefetchNullPointer")");
+        REQUIRE(cursor.FetchRow());
+        auto target = std::move(preset);
+        auto const notNull = cursor.GetColumn(2, &target);
+        return std::format("{} {}", notNull, SqlDataBinder<T>::Inspect(target));
+    };
+    auto const bothPaths = [&]<typename T>(T const& preset) {
+        INFO(SqlDataBinder<T>::Inspect(preset));
+        CHECK(readNull(PrefetchDepthDefault, preset) == readNull(std::size_t { 1 }, preset));
+        CHECK(readNull(std::size_t { 1 }, preset) == std::format("false {}", SqlDataBinder<T>::Inspect(T {})));
+    };
+    bothPaths(std::optional<int> { 5 });
+    bothPaths(std::optional<std::string> { "x" });
+    bothPaths(SqlVariant { 5 });
+    bothPaths(5);
+    bothPaths(std::string { "x" });
+}

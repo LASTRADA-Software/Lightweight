@@ -206,6 +206,10 @@ while (stmt.FetchRow())
 }
 ```
 
+A NULL value: `GetColumn<T>(i)` of a non-nullable `T` throws, `GetNullableColumn<T>(i)` and
+`GetColumn<std::optional<T>>(i)` return `std::nullopt`, and `GetColumn(i, &value)` returns `false` and leaves
+`value` holding its empty value (`std::nullopt`, a NULL `SqlVariant`, or `T {}`), whatever it held before.
+
 ## Transparent block-prefetch (fewer network round-trips)
 
 Classic per-row fetch loops like the one above issue **one `SQLFetch` per row**, i.e. one network
