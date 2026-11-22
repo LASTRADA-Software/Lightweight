@@ -857,6 +857,31 @@ TEST_CASE_METHOD(SqlTestFixture, "raw ExecuteBatch reports per-row status", "[Sq
           == std::optional<int64_t> { 2 });
 }
 
+TEST_CASE_METHOD(SqlTestFixture,
+                 "ExecuteBatchNative column-wise leaves the statement ready for a single Execute",
+                 "[SqlStatement]")
+{
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("native_batch_then_single")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Integer {})
+            .RequiredColumn("Value", SqlColumnTypeDefinitions::Integer {});
+    });
+    stmt.Prepare(R"(INSERT INTO "native_batch_then_single" ("Id", "Value") VALUES (?, ?))");
+
+    auto const ids = std::array { 1, 2, 3, 4, 5, 6, 7, 8 };
+    auto const values = std::array { 10, 20, 30, 40, 50, 60, 70, 80 };
+    (void) stmt.ExecuteBatchNative(ids, values);
+
+    // Same prepared statement, no re-Prepare: one parameter set, read from the values bound now.
+    (void) stmt.Execute(100, 1000);
+
+    CHECK(SqlStatement {}.ExecuteDirectScalar<int64_t>(R"(SELECT COUNT(*) FROM "native_batch_then_single")")
+          == std::optional<int64_t> { 9 });
+    CHECK(SqlStatement {}.ExecuteDirectScalar<int64_t>(R"(SELECT "Value" FROM "native_batch_then_single" WHERE "Id" = 100)")
+          == std::optional<int64_t> { 1000 });
+}
+
 // ================================================================================================
 // Output columns bound once (BindOutputColumns before the fetch loop) stay bound for every row
 // ================================================================================================

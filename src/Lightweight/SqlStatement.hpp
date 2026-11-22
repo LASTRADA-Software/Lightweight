@@ -1719,6 +1719,14 @@ SqlResultCursor SqlStatement::ExecuteBatchNative(FirstColumnBatch const& firstCo
 
     size_t rowStart = 0;
 
+    // Restore single-row parameter binding on every exit, as ExecuteBatchNativeRowWise does: the
+    // parameter-set size and the bind-offset pointer (to the local above) must not outlive this call,
+    // or a later Execute() without re-Prepare() re-runs N parameter sets through a dangling offset.
+    auto const restoreParameterBinding = detail::Finally([this] {
+        ResetParameterArrayBinding();
+        ClearBatchIndicators();
+    });
+
     // clang-format off
     // NOLINTNEXTLINE(performance-no-int-to-ptr)
     RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAMSET_SIZE, (SQLPOINTER) rowCount, 0));
