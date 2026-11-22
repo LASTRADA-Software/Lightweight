@@ -929,6 +929,25 @@ TEST_CASE_METHOD(SqlTestFixture, "ExecuteBatch column-wise of a UTF-16 fixed str
     CHECK(actual == std::vector<std::u16string> { u"one", u"Grüße", u"three" });
 }
 
+TEST_CASE_METHOD(SqlTestFixture, "ExecuteDirectScalar of an empty result set", "[SqlStatement]")
+{
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("scalar_empty")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Integer {})
+            .RequiredColumn("Value", SqlColumnTypeDefinitions::Integer {});
+    });
+    auto const query = R"(SELECT "Value" FROM "scalar_empty")"sv;
+
+    // No row means no scalar: the optional overload says so ...
+    CHECK(stmt.ExecuteDirectScalar<int>(query) == std::nullopt);
+    // ... and the SqlVariant overload, which reports a NULL value as SqlNullValue, reports it as an error.
+    CHECK_THROWS_AS(stmt.ExecuteDirectScalar<SqlVariant>(query), SqlException);
+
+    // The statement stays usable, and non-empty results are unaffected.
+    CHECK(stmt.ExecuteDirectScalar<int64_t>(R"(SELECT COUNT(*) FROM "scalar_empty")") == std::optional<int64_t> { 0 });
+}
+
 // ================================================================================================
 // Output columns bound once (BindOutputColumns before the fetch loop) stay bound for every row
 // ================================================================================================

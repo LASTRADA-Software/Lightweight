@@ -352,12 +352,18 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
 
     /// Executes the given query, assuming that only one result row and column is affected, that one will be
     /// returned.
+    ///
+    /// @return The first column of the first row, or @c std::nullopt when that value is NULL or the query
+    ///         returned no row.
     template <typename T>
         requires(!std::same_as<T, SqlVariant>)
     [[nodiscard]] std::optional<T> ExecuteDirectScalar(std::string_view const& query,
                                                        std::source_location location = std::source_location::current());
 
     /// Executes the given query and returns the single result as an SqlVariant.
+    ///
+    /// @return The first column of the first row; a NULL value as @c SqlNullValue.
+    /// @throws SqlException (SQLSTATE 02000) when the query returned no row.
     template <typename T>
         requires(std::same_as<T, SqlVariant>)
     [[nodiscard]] T ExecuteDirectScalar(std::string_view const& query,
@@ -365,12 +371,18 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
 
     /// Executes the given query, assuming that only one result row and column is affected, that one will be
     /// returned.
+    ///
+    /// @return The first column of the first row, or @c std::nullopt when that value is NULL or the query
+    ///         returned no row.
     template <typename T>
         requires(!std::same_as<T, SqlVariant>)
     [[nodiscard]] std::optional<T> ExecuteDirectScalar(SqlQueryObject auto const& query,
                                                        std::source_location location = std::source_location::current());
 
     /// Executes the given query object and returns the single result as an SqlVariant.
+    ///
+    /// @return The first column of the first row; a NULL value as @c SqlNullValue.
+    /// @throws SqlException (SQLSTATE 02000) when the query returned no row.
     template <typename T>
         requires(std::same_as<T, SqlVariant>)
     [[nodiscard]] T ExecuteDirectScalar(SqlQueryObject auto const& query,
@@ -2568,7 +2580,9 @@ inline std::optional<T> SqlStatement::ExecuteDirectScalar(std::string_view const
     // The type is known before the first fetch: keep a type the block buffer cannot rebuild on the per-row path.
     if constexpr (!detail::PrefetchConvertible<T>)
         MarkPrefetchBindingUnsupported();
-    RequireSuccess(FetchRow());
+    // FetchRow() throws on a failure; false means an empty result set, which has no scalar.
+    if (!FetchRow())
+        return std::nullopt;
     return GetNullableColumn<T>(1);
 }
 
@@ -2577,7 +2591,12 @@ template <typename T>
 inline T SqlStatement::ExecuteDirectScalar(std::string_view const& query, std::source_location location)
 {
     auto cursor = ExecuteDirect(query, location);
-    RequireSuccess(FetchRow());
+    // FetchRow() throws on a failure; false means an empty result set, which has no value to report.
+    if (!FetchRow())
+        throw SqlException(SqlErrorInfo { .nativeErrorCode = 0,
+                                          .sqlState = "02000",
+                                          .message = std::format("The scalar query returned no row: {}", query) },
+                           location);
     if (auto result = GetNullableColumn<T>(1); result.has_value())
         return *result;
     return SqlVariant { SqlNullValue };
