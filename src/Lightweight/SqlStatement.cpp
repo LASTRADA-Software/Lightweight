@@ -88,11 +88,44 @@ struct SqlStatement::Data
     std::size_t prefetchRowInBlock = 0;                       // 0-based offset of the current logical row within that block
     std::vector<std::function<void()>> prefetchScatters;      // copy current block cell -> bound output
     std::vector<std::function<void()>> prefetchDeferredBinds; // real SQLBindCol thunks for the fallback
+    std::vector<PrefetchTarget> prefetchTargets;              // class of each bound column's destination
     bool prefetchBindingUnsupported = false;                  // a bound output column's target type cannot be served
                                                               // from the block buffer, so the set keeps the per-row path
     std::chrono::seconds queryTimeout {};                     // what SetQueryTimeout() asked for, to carry across handles
 
     static Data const NoData;
+
+    /// @brief Whether the block buffer serves a column of @p sqlType bound to a destination of class
+    /// @p target with the value the per-row @c SQLGetData path reads into it. Internal: a member of the
+    /// private Data only so it can name the private PrefetchTarget.
+    /// @param target The class of the bound destination.
+    /// @param sqlType The column's @c SQL_* type code.
+    /// @return @c true when prefetch and the per-row path read the same value.
+    static bool PrefetchTargetAccepts(PrefetchTarget target, SQLSMALLINT sqlType) noexcept
+    {
+        auto const isTemporal =
+            sqlType == SQL_TYPE_DATE || sqlType == SQL_DATE || sqlType == SQL_TYPE_TIMESTAMP || sqlType == SQL_TIMESTAMP;
+        auto const isGuid = sqlType == SQL_GUID;
+        // Text renders an integer exactly as the driver does; a floating-point value it would render through
+        // std::format (REAL 0.1 as "0.10000000149011612" where the driver gives "0.1"), so those keep the
+        // per-row path.
+        auto const isIntegerOrBit = sqlType == SQL_BIT || sqlType == SQL_TINYINT || sqlType == SQL_SMALLINT
+                                    || sqlType == SQL_INTEGER || sqlType == SQL_BIGINT;
+        switch (target)
+        {
+            case SqlStatement::PrefetchTarget::Any:
+                return true;
+            case SqlStatement::PrefetchTarget::Numeric:
+                return !isTemporal && !isGuid;
+            case SqlStatement::PrefetchTarget::Text:
+                return isIntegerOrBit;
+            case SqlStatement::PrefetchTarget::Temporal:
+                return isTemporal;
+            case SqlStatement::PrefetchTarget::Guid:
+                return isGuid;
+        }
+        return false;
+    }
 };
 
 SqlStatement::Data const SqlStatement::Data::NoData {};
@@ -378,6 +411,7 @@ SqlStatement::SqlStatement():
                  .prefetchRowInBlock = 0,
                  .prefetchScatters = {},
                  .prefetchDeferredBinds = {},
+                 .prefetchTargets = {},
                  .queryTimeout = {},
              },
 
@@ -1166,6 +1200,7 @@ namespace
                 return false;
         }
     }
+
 } // namespace
 
 std::size_t SqlStatement::EffectivePrefetchDepth() const noexcept
@@ -1203,6 +1238,7 @@ void SqlStatement::ResetPrefetchBindings() noexcept
 {
     m_data->prefetchScatters.clear();
     m_data->prefetchDeferredBinds.clear();
+    m_data->prefetchTargets.clear();
     m_data->prefetchBindingUnsupported = false;
 }
 
@@ -1212,6 +1248,7 @@ void SqlStatement::MarkPrefetchBindingUnsupported() noexcept
 }
 
 void SqlStatement::RecordPrefetchColumn(SQLUSMALLINT column,
+                                        PrefetchTarget target,
                                         std::function<void()> scatter,
                                         std::function<void()> deferredBind)
 {
@@ -1224,14 +1261,24 @@ void SqlStatement::RecordPrefetchColumn(SQLUSMALLINT column,
         m_data->prefetchScatters.resize(index + 1);
     if (m_data->prefetchDeferredBinds.size() <= index)
         m_data->prefetchDeferredBinds.resize(index + 1);
+    RecordPrefetchColumnTarget(column, target);
     m_data->prefetchScatters[index] = std::move(scatter);
     m_data->prefetchDeferredBinds[index] = std::move(deferredBind);
+}
+
+void SqlStatement::RecordPrefetchColumnTarget(SQLUSMALLINT column, PrefetchTarget target)
+{
+    auto const index = static_cast<std::size_t>(column - 1);
+    if (m_data->prefetchTargets.size() <= index)
+        m_data->prefetchTargets.resize(index + 1, PrefetchTarget::Any);
+    m_data->prefetchTargets[index] = target;
 }
 
 void SqlStatement::ResetPrefetchState() noexcept
 {
     m_data->prefetch.reset(); // dtor restores SQL_ATTR_ROW_ARRAY_SIZE/bind state on the handle
     m_data->prefetchScatters.clear();
+    m_data->prefetchTargets.clear();
     m_data->prefetchDeferredBinds.clear();
     m_data->prefetchBlockRows = 0;
     m_data->prefetchRowInBlock = NoPrefetchRow;
@@ -1294,6 +1341,15 @@ void SqlStatement::ArmPrefetchOnFirstFetch() noexcept
                 return;
             }
             if (!PrefetchableSqlType(sqlType))
+            {
+                disablePrefetch();
+                return;
+            }
+            // A column bound to a destination that reads this SQL type differently on the per-row path
+            // (a driver-specific conversion, or an error) keeps the per-row path, so both agree.
+            auto const index = static_cast<std::size_t>(column - 1);
+            if (index < m_data->prefetchTargets.size()
+                && !Data::PrefetchTargetAccepts(m_data->prefetchTargets[index], sqlType))
             {
                 disablePrefetch();
                 return;

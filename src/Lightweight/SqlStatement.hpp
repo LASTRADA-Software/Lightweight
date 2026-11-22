@@ -39,6 +39,7 @@
 #include <span>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <type_traits>
 #include <vector>
 
@@ -622,17 +623,41 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     /// @brief Flags that a bound output column's target type cannot be served from the block buffer, so
     /// arming must decline prefetch for this result set and keep the per-row path.
     LIGHTWEIGHT_API void MarkPrefetchBindingUnsupported() noexcept;
+    /// @brief The class of C++ type a bound output column reads into. The block buffer serves a column
+    /// only when its SQL type is one this class reads the same way on the per-row path; for any other
+    /// pairing (e.g. an INTEGER column bound to a SqlDateTime) the per-row conversion is driver-specific,
+    /// so arming keeps the per-row path for the result set.
+    enum class PrefetchTarget : std::uint8_t
+    {
+        Any,      //!< SqlVariant: takes whatever the column holds
+        Numeric,  //!< arithmetic, enum and SqlNumeric targets: numeric columns
+        Temporal, //!< SqlDate and SqlDateTime: DATE and TIMESTAMP columns
+        Guid,     //!< SqlGuid: GUID columns
+        Text,     //!< string targets: numeric columns (temporal and GUID text is the driver's to format)
+    };
+    /// @return The PrefetchTarget class of the bound destination type @p T (an optional's value type).
+    template <typename T>
+    [[nodiscard]] static constexpr PrefetchTarget PrefetchTargetOf() noexcept;
     /// @brief Records, for one output column, the per-row scatter closure (copies the current block cell
     /// into the bound destination) and the real @c SQLBindCol thunk used if the result set turns out
     /// prefetch-ineligible. Indexed by @p column so re-binding the same column overwrites rather than
     /// appends — keeping the bound-column loop, the optional rebind idiom, and the DataMapper's per-row
     /// re-binding all bounded.
     /// @param column 1-based output column index.
+    /// @param target The class of the bound destination; arming declines prefetch when the column's SQL
+    ///               type is one the per-row path would read differently into it (see PrefetchTarget).
     /// @param scatter Copies the current block cell into the bound destination.
     /// @param deferredBind Issues the real @c SQLBindCol when the fast path is declined.
     LIGHTWEIGHT_API void RecordPrefetchColumn(SQLUSMALLINT column,
+                                              PrefetchTarget target,
                                               std::function<void()> scatter,
                                               std::function<void()> deferredBind);
+    /// @brief Records only the class of the destination an output column is read into, for a reader that
+    /// reads the columns with @c GetColumn instead of binding them (@ref SqlRowIterator): arming then keeps
+    /// the per-row path when the column's SQL type is one the per-row path reads differently into it.
+    /// @param column 1-based output column index.
+    /// @param target The class of the destination the column is read into.
+    LIGHTWEIGHT_API void RecordPrefetchColumnTarget(SQLUSMALLINT column, PrefetchTarget target);
     /// @brief Tears down all block-prefetch state, restoring the handle to single-row fetching.
     LIGHTWEIGHT_API void ResetPrefetchState() noexcept;
     /// @brief Builds an @c SqlVariant cell from the block buffer, mirroring @c SqlDataBinder<SqlVariant>.
@@ -1389,8 +1414,12 @@ class SqlRowIterator
         it.SetCursor(stmt.Execute());
         // The rows are read with GetColumn, so the column types are known before the first fetch: a member
         // type the block buffer cannot rebuild keeps the result set on the per-row path, as in
-        // ExecuteDirectScalar, instead of failing the read.
-        if (!ColumnsArePrefetchConvertible())
+        // ExecuteDirectScalar, instead of failing the read; so does a member whose column has an SQL type
+        // the per-row path reads differently into it (e.g. a SqlDateTime member over an INTEGER column),
+        // which arming checks against the recorded member classes.
+        if constexpr (ColumnsArePrefetchConvertible())
+            RecordColumnPrefetchTargets(stmt);
+        else
             stmt.MarkPrefetchBindingUnsupported();
         ++it;
         return it;
@@ -1405,6 +1434,11 @@ class SqlRowIterator
   private:
     /// @return Whether the block buffer can serve every column member of @c T to @c GetColumn.
     static constexpr bool ColumnsArePrefetchConvertible() noexcept;
+
+    /// Records the class of each column member of @c T on @p stmt, so arming the block prefetch can check
+    /// each column's SQL type against the member it is read into.
+    /// @param stmt The statement the rows are read from, executed and not yet fetched.
+    static void RecordColumnPrefetchTargets(SqlStatement& stmt);
 
     SqlConnection* _connection;
     QueryCustomizer _queryCustomizer = [](SqlSelectQueryBuilder& /*query*/) {
@@ -2272,11 +2306,13 @@ namespace detail
 
     /// A scalar target type the block-prefetch reader can reconstruct faithfully (mirrors the non-throwing
     /// branches of @c SqlStatement::ConvertCell). Excludes types whose faithful reconstruction needs the
-    /// dedicated single-row binder (e.g. @c SqlNumeric, @c SqlTime, binary, user types).
+    /// dedicated single-row binder (e.g. @c SqlNumeric, @c SqlTime, binary, user types), and @c char, whose
+    /// binder reads the column as text although the type is integral.
     template <typename T>
     concept PrefetchConvertibleScalar =
         std::same_as<T, SqlVariant> || std::same_as<T, SqlDate> || std::same_as<T, SqlDateTime> || std::same_as<T, SqlGuid>
-        || StringLikeCell<T> || std::is_floating_point_v<T> || std::is_integral_v<T> || std::is_enum_v<T>;
+        || StringLikeCell<T> || std::is_floating_point_v<T>
+        || (std::is_integral_v<T> && !std::same_as<T, char>) || std::is_enum_v<T>;
 
     template <typename T>
     struct PrefetchConvertibleOptional: std::false_type
@@ -2291,31 +2327,79 @@ namespace detail
     template <typename T>
     concept PrefetchConvertible = PrefetchConvertibleScalar<T> || PrefetchConvertibleOptional<T>::value;
 
-    /// @brief Reconstructs a temporal or GUID cell from the block buffer. Each target reads its matching
-    /// bound representation; a mismatched bound type (only reachable via a cross-type @c GetColumn) yields
-    /// a default, mirroring the lenient single-row path. A GUID stored as text (SQLite) is parsed back.
+    /// @brief Names a block-buffer representation for a diagnostic.
+    [[nodiscard]] constexpr std::string_view BoundTypeName(RowArrayCursor::BoundType boundType) noexcept
+    {
+        constexpr auto Names = std::array<std::string_view, 7> {
+            "BIGINT", "DOUBLE", "CHAR", "WCHAR", "DATE", "TIMESTAMP", "GUID",
+        };
+        return Names.at(static_cast<std::size_t>(boundType));
+    }
+
+    /// @brief Reports a cross-type read the ODBC conversion rules do not define (e.g. a DATE column read
+    /// as @c double), with SQLSTATE 07006 ("Restricted data type attribute violation"), the error the
+    /// per-row @c SQLGetData path raises for it on a driver that follows those rules.
+    template <typename T>
+    [[noreturn]] inline void ThrowRestrictedPrefetchConversion(RowArrayCursor const& cursor, SQLUSMALLINT column)
+    {
+        throw SqlException(SqlErrorInfo {
+            .nativeErrorCode = 0,
+            .sqlState = "07006",
+            .message = std::format("Restricted data type attribute violation: column {} ({}) cannot be read as {}",
+                                   column,
+                                   BoundTypeName(cursor.ColumnBoundType(column)),
+                                   Reflection::TypeNameOf<T>),
+        });
+    }
+
+    /// @brief Reconstructs a temporal or GUID cell from the block buffer, applying the conversions the
+    /// ODBC rules define between the bound representation and @p T: a TIMESTAMP read as a date keeps its
+    /// date part, a DATE read as a timestamp is midnight of that day, and a GUID stored as text (SQLite)
+    /// is parsed back. Any other cross-type read throws (see @ref ThrowRestrictedPrefetchConversion).
     template <typename T>
     [[nodiscard]] inline T ReadTemporalGuidCell(RowArrayCursor const& cursor, std::size_t row, SQLUSMALLINT column)
     {
         using BoundType = RowArrayCursor::BoundType;
         auto const boundType = cursor.ColumnBoundType(column);
         if constexpr (std::same_as<T, SqlDate>)
-            return boundType == BoundType::Date ? cursor.GetDate(row, column).value_or(SqlDate {}) : SqlDate {};
+        {
+            if (boundType == BoundType::Date)
+                return cursor.GetDate(row, column).value_or(SqlDate {});
+            if (boundType == BoundType::Timestamp)
+            {
+                auto const timestamp = cursor.GetTimestamp(row, column).value_or(SqlDateTime {}).sqlValue;
+                auto date = SqlDate {};
+                date.sqlValue = SQL_DATE_STRUCT { .year = timestamp.year, .month = timestamp.month, .day = timestamp.day };
+                return date;
+            }
+        }
         else if constexpr (std::same_as<T, SqlDateTime>)
-            return boundType == BoundType::Timestamp ? cursor.GetTimestamp(row, column).value_or(SqlDateTime {})
-                                                     : SqlDateTime {};
+        {
+            if (boundType == BoundType::Timestamp)
+                return cursor.GetTimestamp(row, column).value_or(SqlDateTime {});
+            if (boundType == BoundType::Date)
+            {
+                auto const date = cursor.GetDate(row, column).value_or(SqlDate {}).sqlValue;
+                auto timestamp = SqlDateTime {};
+                timestamp.sqlValue.year = date.year;
+                timestamp.sqlValue.month = date.month;
+                timestamp.sqlValue.day = date.day;
+                return timestamp;
+            }
+        }
         else // SqlGuid
         {
             if (boundType == BoundType::Guid)
                 return cursor.GetGuid(row, column).value_or(SqlGuid {});
             if (boundType == BoundType::Char || boundType == BoundType::WChar)
                 return SqlGuid::TryParse(cursor.GetString(row, column).value_or(std::string {})).value_or(SqlGuid {});
-            return SqlGuid {};
         }
+        ThrowRestrictedPrefetchConversion<T>(cursor, column);
     }
 
     /// @brief Reconstructs a @c SqlNumeric cell from the block buffer (driver-reported as a fixed-width
-    /// numeric, bound @c Int64 or @c Double). A non-numeric bound type yields a default.
+    /// numeric, bound @c Int64 or @c Double). Any other bound type throws (see
+    /// @ref ThrowRestrictedPrefetchConversion).
     template <typename T>
     [[nodiscard]] inline T ReadNumericCell(RowArrayCursor const& cursor, std::size_t row, SQLUSMALLINT column)
     {
@@ -2327,7 +2411,7 @@ namespace detail
             case BoundType::Int64:
                 return T { static_cast<double>(cursor.GetI64(row, column).value_or(0)) };
             default:
-                return T {};
+                ThrowRestrictedPrefetchConversion<T>(cursor, column);
         }
     }
 
@@ -2373,8 +2457,8 @@ namespace detail
     }
 
     /// @brief Reconstructs an arithmetic or enum cell from the block buffer, coercing whichever fixed-width
-    /// representation the column was bound as (@c Int64 or @c Double) to @p T. A non-arithmetic bound type
-    /// yields a default.
+    /// representation the column was bound as (@c Int64 or @c Double) to @p T. Any other bound type throws
+    /// (see @ref ThrowRestrictedPrefetchConversion).
     template <typename T>
     [[nodiscard]] inline T ReadArithmeticCell(RowArrayCursor const& cursor, std::size_t row, SQLUSMALLINT column)
     {
@@ -2386,7 +2470,7 @@ namespace detail
             case BoundType::Double:
                 return static_cast<T>(cursor.GetF64(row, column).value_or(0.0));
             default:
-                return T {};
+                ThrowRestrictedPrefetchConversion<T>(cursor, column);
         }
     }
 
@@ -2409,11 +2493,27 @@ constexpr bool SqlRowIterator<T>::ColumnsArePrefetchConvertible() noexcept
 }
 
 template <typename T>
+void SqlRowIterator<T>::RecordColumnPrefetchTargets(SqlStatement& stmt)
+{
+    SQLUSMALLINT column = 0;
+    EnumerateRecordMembers<T>([&stmt, &column]<size_t I, typename FieldType>() {
+        if constexpr (RecordColumnMember<FieldType>)
+        {
+            ++column;
+            if constexpr (FieldWithStorage<FieldType>)
+                stmt.RecordPrefetchColumnTarget(column, SqlStatement::PrefetchTargetOf<typename FieldType::ValueType>());
+            else
+                stmt.RecordPrefetchColumnTarget(column, SqlStatement::PrefetchTargetOf<FieldType>());
+        }
+    });
+}
+
+template <typename T>
 inline T SqlStatement::ConvertCell(RowArrayCursor const& cursor, std::size_t row, SQLUSMALLINT column) const
 {
     // Dispatch the target type to the matching reconstruction helper. The arming allowlist keeps the
-    // column's bound representation in step with the natural target type; each helper additionally guards
-    // on the bound type so a cross-type raw GetColumn read degrades to a default rather than throwing.
+    // column's bound representation in step with the natural target type; for a cross-type raw GetColumn
+    // read each helper applies the conversion the ODBC rules define, or throws where they define none.
     if constexpr (std::same_as<T, SqlVariant>)
         return MakePrefetchVariantCell(cursor, row, column);
     else if constexpr (IsSpecializationOf<std::optional, T>)
@@ -2428,7 +2528,7 @@ inline T SqlStatement::ConvertCell(RowArrayCursor const& cursor, std::size_t row
         return detail::ReadNumericCell<T>(cursor, row, column);
     else if constexpr (detail::StringLikeCell<T>)
         return detail::ReadStringLikeCell<T>(cursor, row, column);
-    else if constexpr (std::is_floating_point_v<T> || std::is_integral_v<T> || std::is_enum_v<T>)
+    else if constexpr (std::is_floating_point_v<T> || (std::is_integral_v<T> && !std::same_as<T, char>) || std::is_enum_v<T>)
         return detail::ReadArithmeticCell<T>(cursor, row, column);
     else
         // A target type the block buffer cannot reconstruct (e.g. a user type with a custom binder). The
@@ -2457,6 +2557,7 @@ inline void SqlStatement::RecordPrefetchOutputColumn(SQLUSMALLINT column, T* arg
     {
         RecordPrefetchColumn(
             column,
+            PrefetchTargetOf<T>(),
             [this, column, arg] { *arg = ConvertCell<T>(PrefetchCursorRef(), PrefetchRowInBlock(), column); },
             std::move(deferredBind));
     }
@@ -2464,9 +2565,26 @@ inline void SqlStatement::RecordPrefetchOutputColumn(SQLUSMALLINT column, T* arg
     {
         // The target type cannot be reconstructed from the block buffer; record only the real bind and
         // flag the set so arming declines prefetch and the deferred binds drive the per-row path.
-        RecordPrefetchColumn(column, {}, std::move(deferredBind));
+        RecordPrefetchColumn(column, PrefetchTarget::Any, {}, std::move(deferredBind));
         MarkPrefetchBindingUnsupported();
     }
+}
+
+template <typename T>
+constexpr SqlStatement::PrefetchTarget SqlStatement::PrefetchTargetOf() noexcept
+{
+    if constexpr (IsSpecializationOf<std::optional, T>)
+        return PrefetchTargetOf<typename T::value_type>();
+    else if constexpr (std::same_as<T, SqlVariant>)
+        return PrefetchTarget::Any;
+    else if constexpr (std::same_as<T, SqlDate> || std::same_as<T, SqlDateTime>)
+        return PrefetchTarget::Temporal;
+    else if constexpr (std::same_as<T, SqlGuid>)
+        return PrefetchTarget::Guid;
+    else if constexpr (detail::StringLikeCell<T>)
+        return PrefetchTarget::Text;
+    else
+        return PrefetchTarget::Numeric;
 }
 
 template <SqlGetColumnNativeType T>

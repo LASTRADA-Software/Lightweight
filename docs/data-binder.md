@@ -127,6 +127,12 @@ and throws a `SqlException` (SQLSTATE `HY000`) instead of returning a wrong valu
 - bind the column with `BindOutputColumns()` (or `BindOutputColumn()`) before the first `FetchRow()`, or
 - disable block prefetch for the connection with `SqlConnection::SetDefaultPrefetchDepth(1)`.
 
+`char` is handled the same way: its binder reads the column as text, which the block buffer does not do for
+a numeric column, so `GetColumn<char>()` on a block-prefetched result set throws `HY000` too, while a bound
+`char` keeps the per-row path. Reading a built-in type from a column of another kind (for example a `REAL`
+column as `std::string`) follows the rules in "Reading a column as another type under prefetch" in
+[usage.md](usage.md#reading-a-column-as-another-type-under-prefetch).
+
 ## Inspect()
 
 The `Inspect()` function is used to provide a human-readable representation of the custom type.

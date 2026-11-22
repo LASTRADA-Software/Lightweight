@@ -243,6 +243,32 @@ single-row binders handle them. Memory is bounded to a few MB per active cursor 
 to that budget), and prefetch reads ahead up to one block, so a loop that stops early over-reads at most
 one block.
 
+### Reading a column as another type under prefetch
+
+On the per-row path, reading a column into a C++ type of another kind (an `INTEGER` column into a
+`std::string`, a `TIMESTAMP` column into a `SqlDate`) is the driver's conversion, and where the ODBC rules
+define none, its error. The block buffer cannot call the driver, so Lightweight decides per reader:
+
+- **Bound output columns and `SqlRowIterator<T>` members.** The C++ type is known before the first fetch.
+  When a column's SQL type is one the per-row path would read differently into it — a `std::string` over a
+  floating-point, temporal or `GUID` column, a `SqlDate`/`SqlDateTime` over a non-temporal column, a
+  `SqlGuid` over a non-`GUID` column, a number over a temporal or `GUID` column — the result set keeps the
+  per-row path, so the value (or error) is exactly the driver's. `char` is read through its own binder (the
+  column as text) and keeps the per-row path too.
+- **Raw `GetColumn<T>()` on a block-prefetched result set.** The type is known only after the block was
+  fetched. Lightweight applies the conversions the ODBC rules define: a `TIMESTAMP` read as `SqlDate` keeps
+  its date, a `DATE` read as `SqlDateTime` is midnight of that day, a numeric column read as any arithmetic
+  type is converted, and any column read as a string is rendered as text — integers exactly as the driver
+  renders them, floating-point, temporal and `GUID` values through their `std::formatter` (so a `REAL` 0.1
+  reads as `"0.10000000149011612"` where the driver gives `"0.1"`). Any other pairing (e.g. a `DATE` column
+  read as `double`, a `BIGINT` read as `SqlDateTime`) throws a `SqlException` with SQLSTATE `07006`
+  ("Restricted data type attribute violation"), the error a driver that follows the ODBC rules raises on
+  the per-row path; some drivers convert such a pair or report NULL instead. `GetColumn<char>()` and a type
+  with a custom binder throw `HY000` (see [data-binder.md](data-binder.md#custom-types-and-block-prefetch)).
+
+To get the driver's own conversion for such a read, read the column as its natural type, bind it before
+the first `FetchRow()`, or disable prefetch with `SetDefaultPrefetchDepth(1)`.
+
 ## Prepared Statements
 
 You can also use prepared statements to execute queries, for example
