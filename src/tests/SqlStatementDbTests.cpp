@@ -948,6 +948,79 @@ TEST_CASE_METHOD(SqlTestFixture, "ExecuteDirectScalar of an empty result set", "
     CHECK(stmt.ExecuteDirectScalar<int64_t>(R"(SELECT COUNT(*) FROM "scalar_empty")") == std::optional<int64_t> { 0 });
 }
 
+TEST_CASE_METHOD(SqlTestFixture, "Narrow string output at the bound buffer's size", "[SqlStatement]")
+{
+    // A std::string of 255 characters is bound with a 255-byte buffer, which holds 254 characters plus the
+    // NUL the driver appends: 255 characters must be recognised as truncated and read in full. (An empty
+    // one would be bound with the column's declared length, which every value here fits.)
+    constexpr auto BoundSize = std::size_t { 255 };
+    auto const lengths = std::array { BoundSize, BoundSize - 1, BoundSize + 1, BoundSize };
+    auto const textOfLength = [](std::size_t length) {
+        auto text = std::string {};
+        for (auto const i: std::views::iota(std::size_t { 0 }, length))
+            text.push_back(static_cast<char>('a' + (i % 26)));
+        return text;
+    };
+
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("boundary_text")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Integer {})
+            .RequiredColumn("Value", SqlColumnTypeDefinitions::Varchar { .size = 300 });
+    });
+    stmt.Prepare(R"(INSERT INTO "boundary_text" ("Id", "Value") VALUES (?, ?))");
+    for (auto const index: std::views::iota(std::size_t { 0 }, lengths.size()))
+        (void) stmt.Execute(static_cast<int>(index), textOfLength(lengths.at(index)));
+
+    auto const expected = [&] {
+        auto texts = std::vector<std::string> {};
+        for (auto const length: lengths)
+            texts.push_back(textOfLength(length));
+        return texts;
+    }();
+    auto const query = R"(SELECT "Value" FROM "boundary_text" ORDER BY "Id")"sv;
+
+    // Reading the rest of a truncated bound column needs SQLGetData on a bound column, which the MS SQL
+    // Server driver does not support (SQL_GD_BOUND); the DataMapper therefore never binds growable columns
+    // there (see detail::CanSafelyBindOutputColumn). Values of the bound size and longer cannot be served.
+    SECTION("Bound output column")
+    {
+        UNSUPPORTED_DATABASE(stmt, SqlServerType::MICROSOFT_SQL);
+        auto value = std::string(BoundSize, ' ');
+        auto actual = std::vector<std::string> {};
+        auto cursor = stmt.ExecuteDirect(query);
+        cursor.BindOutputColumns(&value);
+        while (cursor.FetchRow())
+            actual.push_back(value);
+        CHECK(actual == expected);
+    }
+
+    SECTION("Bound output column, a fresh variable per row")
+    {
+        UNSUPPORTED_DATABASE(stmt, SqlServerType::MICROSOFT_SQL);
+        auto actual = std::vector<std::string> {};
+        auto cursor = stmt.ExecuteDirect(query);
+        while (true)
+        {
+            auto value = std::string(BoundSize, ' ');
+            cursor.BindOutputColumns(&value);
+            if (!cursor.FetchRow())
+                break;
+            actual.push_back(value);
+        }
+        CHECK(actual == expected);
+    }
+
+    SECTION("GetColumn")
+    {
+        auto actual = std::vector<std::string> {};
+        auto cursor = stmt.ExecuteDirect(query);
+        while (cursor.FetchRow())
+            actual.push_back(cursor.GetColumn<std::string>(1));
+        CHECK(actual == expected);
+    }
+}
+
 // ================================================================================================
 // Output columns bound once (BindOutputColumns before the fetch loop) stay bound for every row
 // ================================================================================================

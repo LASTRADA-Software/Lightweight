@@ -656,8 +656,10 @@ struct SqlDataBinder<AnsiStringType>
             // We have a NULL value
             StringTraits::Resize(result, 0);
         }
-        else if (*indicator <= static_cast<SQLLEN>(StringTraits::Size(result)))
+        else if (*indicator < static_cast<SQLLEN>(StringTraits::Size(result)))
         {
+            // The bound buffer holds Size bytes including the NUL terminator the driver appends, so a
+            // value fits only when it is shorter than that; one of exactly Size bytes lost its last byte.
             StringTraits::Resize(result, *indicator);
         }
         else
