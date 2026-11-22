@@ -133,12 +133,11 @@ class DataMapper
 
     /// Move constructor.
     DataMapper(DataMapper&& other) noexcept:
-        _connection(std::move(other._connection)),
+        _connection(TakeConnection(other)),
         _stmt(_connection),
         _relationLoadSource(std::move(other._relationLoadSource)),
         _timestampClock(std::move(other._timestampClock))
     {
-        other._stmt = SqlStatement(std::nullopt);
     }
 
     /// Move assignment operator.
@@ -147,9 +146,10 @@ class DataMapper
         if (this == &other)
             return *this;
 
-        _connection = std::move(other._connection);
+        // Release our statement while the connection it belongs to is still ours to release it on.
+        _stmt = SqlStatement(std::nullopt);
+        _connection = TakeConnection(other);
         _stmt = SqlStatement(_connection);
-        other._stmt = SqlStatement(std::nullopt);
         _relationLoadSource = std::move(other._relationLoadSource);
         _timestampClock = std::move(other._timestampClock);
 
@@ -961,6 +961,14 @@ class DataMapper
         Record const& record,
         std::optional<std::conditional_t<std::is_void_v<RecordPrimaryKeyType<Record>>, int, RecordPrimaryKeyType<Record>>>
             pkOverride = std::nullopt);
+
+    /// Moves @p other's connection out, after releasing @p other's statement: its handle lives on that
+    /// connection, and once the connection has moved, the moved-from statement can no longer free it.
+    static SqlConnection TakeConnection(DataMapper& other) noexcept
+    {
+        other._stmt = SqlStatement(std::nullopt);
+        return std::move(other._connection);
+    }
 
     SqlConnection _connection;
     SqlStatement _stmt;

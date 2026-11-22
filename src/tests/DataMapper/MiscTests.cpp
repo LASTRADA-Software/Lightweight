@@ -735,4 +735,32 @@ TEST_CASE_METHOD(SqlTestFixture, "Move assignment", "[DataMapper]")
     REQUIRE(dm2ConnectionPtrAfter == dm2StatementConnectionPtrAfter);
 }
 
+TEST_CASE_METHOD(SqlTestFixture, "Moving a DataMapper releases the moved-from statement's handle", "[DataMapper]")
+{
+    // The handle the moved-from mapper's statement holds lives on the connection that moves away with it.
+    // With the prepared-statement cache on, releasing that handle is observable: it is pooled, and so
+    // turns up in the cache of the connection it moved into, rather than leaking.
+    auto const preparedSource = [] {
+        auto source = DataMapper {};
+        source.Connection().SetPreparedStatementCacheCapacity(8);
+        source.Statement().Prepare("SELECT 42");
+        return source;
+    };
+
+    SECTION("Move construction")
+    {
+        auto source = preparedSource();
+        auto target = DataMapper { std::move(source) };
+        CHECK(target.Connection().PreparedStatementCache().Size() == 1);
+    }
+
+    SECTION("Move assignment")
+    {
+        auto source = preparedSource();
+        auto target = DataMapper {};
+        target = std::move(source);
+        CHECK(target.Connection().PreparedStatementCache().Size() == 1);
+    }
+}
+
 // NOLINTEND(bugprone-unchecked-optional-access)
