@@ -107,14 +107,14 @@ namespace
     std::optional<std::string> ReadDataSourceProfileValue(std::string_view dataSourceName, std::wstring_view key)
     {
         // A default no profile value can hold tells a missing key from an empty one.
-        constexpr auto missing = L"\x01"sv;
+        auto const missing = std::wstring { L"\x01" };
         auto const wideDataSourceName = ToStdWideString(
             std::u8string_view { reinterpret_cast<char8_t const*>(dataSourceName.data()), dataSourceName.size() });
         auto const wideKey = std::wstring { key };
         auto buffer = std::array<wchar_t, 64> {};
         auto const length = SQLGetPrivateProfileStringW(wideDataSourceName.c_str(),
                                                         wideKey.c_str(),
-                                                        missing.data(),
+                                                        missing.c_str(),
                                                         buffer.data(),
                                                         static_cast<int>(buffer.size()),
                                                         L"ODBC.INI");
