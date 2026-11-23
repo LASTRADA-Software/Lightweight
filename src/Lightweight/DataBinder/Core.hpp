@@ -68,6 +68,23 @@ namespace detail
     /// column again (see @ref SqlDataBinderCallback::MinimumOutputColumnSize).
     inline constexpr std::size_t DefaultBoundColumnSize = 255;
 
+    /// @brief Throws SQLSTATE 22003 for a value of column @p column that the variable it is read into cannot
+    /// hold, as a driver that checks the range reports it.
+    /// @param column The 1-based column index.
+    /// @param value The value as read.
+    /// @param lowest The smallest value the variable accepts.
+    /// @param highest The largest value the variable accepts.
+    template <typename Value, typename Bound>
+    [[noreturn]] void ThrowNumericValueOutOfRange(SQLUSMALLINT column, Value value, Bound lowest, Bound highest)
+    {
+        throw SqlException(SqlErrorInfo {
+            .nativeErrorCode = 0,
+            .sqlState = "22003",
+            .message = std::format(
+                "Numeric value out of range: column {} holds {}, outside [{}, {}].", column, value, lowest, highest),
+        });
+    }
+
     /// @brief Whether @p serverType's driver reports a cell its column type cannot convert as NULL; forwards to
     /// @c SqlQueryFormatter::ReportsUnconvertibleCellsAsNull.
     /// @param serverType The backend.

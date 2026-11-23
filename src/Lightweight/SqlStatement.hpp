@@ -30,12 +30,14 @@
 #include <array>
 #include <charconv>
 #include <chrono>
+#include <cmath>
 #include <concepts>
 #include <cstdint>
 #include <cstring>
 #include <expected>
 #include <format>
 #include <functional>
+#include <limits>
 #include <optional>
 #include <ranges>
 #include <source_location>
@@ -44,6 +46,7 @@
 #include <string>
 #include <string_view>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 #include <sql.h>
@@ -2681,6 +2684,48 @@ namespace detail
         return T { DecodeUtf8To<typename T::value_type>(utf8) };
     }
 
+    /// @brief An integer block cell as @p T. A value outside an integer @p T's range fails with SQLSTATE 22003, as
+    /// the SQL Server driver fails the per-row read (the SQLite and PostgreSQL drivers wrap or clamp it per row
+    /// instead). One compare, and only where @p T is narrower than the 64-bit cell: a 64-bit @p T takes the cell's
+    /// bits, which is how a driver stores an unsigned 64-bit value (2^63 and above as negative). @c bool and
+    /// enumerations take the value as before.
+    /// @param value The cell's value.
+    /// @param column The 1-based column index, for the error.
+    /// @return The value as @p T.
+    template <typename T>
+    [[nodiscard]] inline T IntegerCellAs(std::int64_t value, SQLUSMALLINT column)
+    {
+        if constexpr (std::is_integral_v<T> && !std::same_as<T, bool> && sizeof(T) < sizeof(std::int64_t))
+        {
+            if (!std::in_range<T>(value))
+                ThrowNumericValueOutOfRange(column, value, std::numeric_limits<T>::min(), std::numeric_limits<T>::max());
+        }
+        return static_cast<T>(value);
+    }
+
+    /// @brief A floating-point block cell as @p T. Read into an integer @p T, a value whose integral part is outside
+    /// @p T's range (or NaN), which has no defined conversion, fails with SQLSTATE 22003, as the drivers fail it.
+    /// @param value The cell's value.
+    /// @param column The 1-based column index, for the error.
+    /// @return The value as @p T, the fraction truncated for an integer @p T.
+    template <typename T>
+    [[nodiscard]] inline T FloatingPointCellAs(double value, SQLUSMALLINT column)
+    {
+        if constexpr (std::is_integral_v<T> && !std::same_as<T, bool>)
+        {
+            // The conversion truncates toward zero. The lowest value (0 or -2^digits) and highest + 1 (2^digits,
+            // at most 2^64) are powers of two, so both bounds are exact doubles; the highest + 1 is built from
+            // 2^(digits - 1), which a 64-bit unsigned integer holds for every target.
+            constexpr auto lowest = static_cast<double>(std::numeric_limits<T>::min());
+            constexpr auto beyond =
+                static_cast<double>(std::uint64_t { 1 } << (std::numeric_limits<T>::digits - 1)) * 2.0;
+            auto const truncated = std::trunc(value);
+            if (!(truncated >= lowest && truncated < beyond))
+                ThrowNumericValueOutOfRange(column, value, std::numeric_limits<T>::min(), std::numeric_limits<T>::max());
+        }
+        return static_cast<T>(value);
+    }
+
     /// @brief Reconstructs an arithmetic or enum cell from the block buffer, coercing whichever fixed-width
     /// representation the column was bound as (@c Int64 or @c Double) to @p T. Any other bound type throws
     /// (see @ref ThrowRestrictedPrefetchConversion).
@@ -2691,9 +2736,9 @@ namespace detail
         switch (cursor.ColumnBoundType(column))
         {
             case BoundType::Int64:
-                return static_cast<T>(cursor.GetI64(row, column).value_or(0));
+                return IntegerCellAs<T>(cursor.GetI64(row, column).value_or(0), column);
             case BoundType::Double:
-                return static_cast<T>(cursor.GetF64(row, column).value_or(0.0));
+                return FloatingPointCellAs<T>(cursor.GetF64(row, column).value_or(0.0), column);
             default:
                 ThrowRestrictedPrefetchConversion<T>(cursor, column);
         }

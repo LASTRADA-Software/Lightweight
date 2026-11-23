@@ -292,6 +292,15 @@ define none, its error. The block buffer cannot call the driver, so Lightweight 
   the per-row path; some drivers convert such a pair or report NULL instead. `GetColumn<char>()` and a type
   with a custom binder throw `HY000` (see [data-binder.md](data-binder.md#custom-types-and-block-prefetch)).
 
+In both cases a number read from the block into an integer type that cannot hold it (a `BIGINT` 5000000000
+read as `int`, -1 as a 32-bit or narrower unsigned type, a `DOUBLE` 1e10 as `int`) fails with SQLSTATE `22003`,
+as SQL Server's driver fails the per-row read. The SQLite and PostgreSQL drivers wrap or clamp such a value on
+the per-row path instead, so there the result depends on the prefetch depth, for values that do not fit. The
+check is one compare per cell, made only where the target is narrower than the 64-bit cell: a `uint64_t` takes
+the cell's bits, which is how SQLite stores an unsigned 64-bit value from 2^63 up. That makes SQL Server depend on
+the depth as well for a negative `BIGINT` read as `uint64_t`: its driver fails the per-row read with `22003`,
+while the block hands over the bits.
+
 To get the driver's own conversion for such a read, read the column as its natural type, bind it before
 the first `FetchRow()`, or disable prefetch with `SetDefaultPrefetchDepth(1)`.
 
