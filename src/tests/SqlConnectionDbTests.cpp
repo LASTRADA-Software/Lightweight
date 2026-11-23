@@ -1479,11 +1479,27 @@ class ConnectionEventCountingLogger: public SqlLogger::Null
     void OnConnectionOpened(SqlConnection const& /*connection*/) override
     {
         ++m_opened;
+        m_sequence += 'o';
     }
 
-    void OnConnectionClosed(SqlConnection const& /*connection*/) override
+    void OnConnectionClosed(SqlConnection const& connection) override
     {
         ++m_closed;
+        m_sequence += 'c';
+        // Empty once the session has ended: the driver manager answers 08003 for a disconnected handle.
+        m_closedServerNames.push_back(connection.ServerName());
+    }
+
+    /// @return What SqlConnection::ServerName() answered at each closed report, in order.
+    [[nodiscard]] std::vector<std::string> const& ClosedServerNames() const noexcept
+    {
+        return m_closedServerNames;
+    }
+
+    /// @return The opened ('o') and closed ('c') reports, in the order they came.
+    [[nodiscard]] std::string const& Sequence() const noexcept
+    {
+        return m_sequence;
     }
 
     void OnError(SqlErrorInfo const& /*errorInfo*/, std::source_location /*sourceLocation*/) override
@@ -1514,6 +1530,8 @@ class ConnectionEventCountingLogger: public SqlLogger::Null
     int m_opened = 0;
     int m_closed = 0;
     int m_errors = 0;
+    std::string m_sequence;
+    std::vector<std::string> m_closedServerNames;
 };
 
 } // namespace
@@ -1600,4 +1618,64 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlConnection: a failed first connect reports 
     }
     CHECK(events.Opened() == 1);
     CHECK(events.Closed() == 1);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlConnection: a reconnect reports the replaced session closed", "[SqlConnection]")
+{
+    auto const events = ConnectionEventCountingLogger {};
+
+    SECTION("Connect, then connect again")
+    {
+        {
+            auto connection = SqlConnection {};
+            REQUIRE(connection.IsAlive());
+            REQUIRE(connection.Connect(SqlConnection::DefaultConnectionString()));
+            CHECK(events.Sequence() == "oco"); // the first session closes before the second opens
+        }
+        CHECK(events.Sequence() == "ococ"); // and the second closes once, with the connection
+
+        // Both are reported closed at the same point, once the session has ended (after the disconnect):
+        // a logger sees one contract, whether Close() or a reconnect ended the session.
+        REQUIRE(events.ClosedServerNames().size() == 2);
+        CHECK(events.ClosedServerNames()[0] == events.ClosedServerNames()[1]);
+        CHECK(events.ClosedServerNames()[1].empty());
+    }
+
+    SECTION("Connect, then a connect that fails")
+    {
+        {
+            auto connection = SqlConnection {};
+            REQUIRE(connection.IsAlive());
+            // Connect() ends the current session before it attempts the new one, so when the new one
+            // fails the connection is left without a session: the first one did end, and is reported so.
+            CHECK_FALSE(connection.Connect(SqlConnectionString { "DRIVER={Lightweight No Such Driver}" }));
+            CHECK(connection.SessionId() == 0);
+            CHECK(events.Sequence() == "oc");
+            auto const errorsBefore = events.Errors();
+            connection.Close();
+            CHECK(events.Errors() == errorsBefore);
+        }
+        CHECK(events.Sequence() == "oc"); // nothing more from Close() or the destructor
+    }
+
+    SECTION("A reconnect the driver refuses ends no session")
+    {
+        {
+            auto connection = SqlConnection {};
+            REQUIRE(connection.IsAlive());
+            auto stmt = SqlStatement { connection };
+            stmt.Prepare("SELECT 42");
+            auto const sessionBefore = connection.SessionId();
+            if (connection.Connect(SqlConnection::DefaultConnectionString()))
+                CHECK(events.Sequence() == "oco");
+            else
+            {
+                // The SQLite ODBC driver refuses to disconnect while a statement is allocated: the
+                // session goes on, so nothing is reported closed.
+                CHECK(connection.SessionId() == sessionBefore);
+                CHECK(events.Sequence() == "o");
+            }
+        }
+        CHECK(events.Opened() == events.Closed());
+    }
 }

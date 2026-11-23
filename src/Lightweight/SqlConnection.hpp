@@ -398,6 +398,8 @@ class SqlConnection final
     /// Called on a connected connection, it ends the current session first (statements of that session
     /// get a fresh handle on their next use). A driver may refuse that while statements are allocated
     /// (the SQLite ODBC driver does); then it fails with that refusal and the current session goes on.
+    /// The ended session is reported closed to the SqlLogger before the new one is reported opened; it
+    /// stays ended when the new connect fails, leaving the connection without a session.
     /// A transient failure is retried as @ref SetConnectRetrySettings configures.
     /// It always fails on a borrowed connection (see @ref Borrow).
     ///
@@ -412,6 +414,8 @@ class SqlConnection final
     /// Called on a connected connection, it ends the current session first (statements of that session
     /// get a fresh handle on their next use). A driver may refuse that while statements are allocated
     /// (the SQLite ODBC driver does); then it fails with that refusal and the current session goes on.
+    /// The ended session is reported closed to the SqlLogger before the new one is reported opened; it
+    /// stays ended when the new connect fails, leaving the connection without a session.
     /// A transient failure is retried as @ref SetConnectRetrySettings configures.
     /// It always fails on a borrowed connection (see @ref Borrow).
     ///
@@ -753,8 +757,9 @@ class SqlConnection final
     /// @return The error, if a requested session setting could not be applied (it is also logged).
     [[nodiscard]] std::expected<void, SqlErrorInfo> PostConnect();
 
-    /// @brief Ends the current session (if any) before a connect: clears the prepared-statement cache and
-    /// disconnects. Fails, leaving the session as it was, when the driver refuses to disconnect.
+    /// @brief Ends the current session (if any) before a connect: clears the prepared-statement cache,
+    /// disconnects, and reports the session closed if it was reported opened. Fails, leaving the session as
+    /// it was and reporting nothing, when the driver refuses to disconnect.
     [[nodiscard]] std::expected<void, SqlErrorInfo> EndCurrentSession() noexcept;
 
     /// One attempt of Connect(SqlConnectionDataSource const&).

@@ -24,6 +24,7 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <utility>
 
 #include <sql.h>
 
@@ -1216,6 +1217,14 @@ std::expected<void, SqlErrorInfo> SqlConnection::EndCurrentSession() noexcept
     detail::UnregisterAnsiOnlyHandle(m_hDbc);
     m_data->sessionId = 0;
     m_data->statementHandles.clear(); // the driver freed them with the disconnect
+
+    // The session a reconnect replaces is reported closed, as Close() would report it: once, and only
+    // if it was reported opened. Reported after the disconnect, since a refused one ends no session.
+    if (std::exchange(m_data->openedReported, false))
+    {
+        SqlLogger::GetLogger().OnConnectionClosed(*this);
+        LIGHTWEIGHT_STATS_CONNECTION_CLOSED();
+    }
     return {};
 }
 
@@ -1324,12 +1333,6 @@ void SqlConnection::Close() noexcept
         return;
     }
 
-    if (wasOpened)
-    {
-        SqlLogger::GetLogger().OnConnectionClosed(*this);
-        LIGHTWEIGHT_STATS_CONNECTION_CLOSED();
-    }
-
     // Statement handles are children of the DBC handle: free them before it goes away. The pooled ones,
     // and the ones live SqlStatement objects still hold: ODBC lets SQLDisconnect free those, but the
     // SQLite ODBC driver refuses to disconnect while any is allocated (25000 "unfinished statements",
@@ -1341,6 +1344,14 @@ void SqlConnection::Close() noexcept
     // A handle that never connected answers 08003 ("connection not open"): nothing to report.
     if (!SQL_SUCCEEDED(SQLDisconnect(m_hDbc)) && wasOpened)
         SqlLogger::GetLogger().OnError(SqlErrorInfo::FromConnectionHandle(m_hDbc));
+
+    // Reported once the session has ended, as a reconnect reports the session it replaces (it cannot report
+    // earlier: a refused disconnect ends no session). The connection object is still whole for the logger.
+    if (wasOpened)
+    {
+        SqlLogger::GetLogger().OnConnectionClosed(*this);
+        LIGHTWEIGHT_STATS_CONNECTION_CLOSED();
+    }
     SQLFreeHandle(SQL_HANDLE_DBC, m_hDbc);
     SQLFreeHandle(SQL_HANDLE_ENV, m_hEnv);
 
