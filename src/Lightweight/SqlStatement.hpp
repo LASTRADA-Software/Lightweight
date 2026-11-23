@@ -1396,7 +1396,7 @@ class SqlRowIterator
         /// @throws SqlException Reading a column of the current row failed.
         LIGHTWEIGHT_FORCE_INLINE value_type operator*()
         {
-            auto res = T {};
+            auto res = detail::MakeUninitialized<T>();
 
             // begin() projects the record via Select().Fields<T>(), which emits one column per
             // RecordColumnMember. Enumerate by column position rather than by member position, so that
@@ -2207,7 +2207,7 @@ void SqlStatement::FetchAllRowWise(std::vector<Record>& out, std::size_t arrayDe
     for (;;)
     {
         std::size_t const base = out.size();
-        out.resize(base + arrayDepth);
+        detail::ResizeUninitialized(out, base + arrayDepth);
         Record* const row0 = out.data() + base;
 
         // Rebind each column into this block's records (the value pointer follows out's storage across a
@@ -2224,7 +2224,7 @@ void SqlStatement::FetchAllRowWise(std::vector<Record>& out, std::size_t arrayDe
         auto const fetchResult = SQLFetchScroll(m_hStmt, SQL_FETCH_NEXT, 0);
         if (fetchResult == SQL_NO_DATA)
         {
-            out.resize(base);
+            detail::ResizeUninitialized(out, base);
             break;
         }
         // SQL_SUCCESS_WITH_INFO is acceptable: rowsFetched stays valid. The fixed-width eligibility gate
@@ -2241,7 +2241,7 @@ void SqlStatement::FetchAllRowWise(std::vector<Record>& out, std::size_t arrayDe
              std::addressof(accessors(*row0)), sizeof(Record), fetched, indicators[finalizeIndex++]),
          ...);
 
-        out.resize(base + fetched);
+        detail::ResizeUninitialized(out, base + fetched);
         if (fetched < arrayDepth)
             break;
     }
@@ -2671,7 +2671,7 @@ inline T SqlStatement::GetColumn(SQLUSMALLINT column) const
                 throw std::runtime_error { "Column value is NULL" };
         return ConvertCell<T>(cursor, row, column);
     }
-    T result {};
+    auto result = detail::MakeUninitialized<T>();
     SQLLEN indicator {};
     {
         // SQLGetData is where the ODBC driver materializes the column value (driver/network I/O).
@@ -2698,7 +2698,7 @@ inline std::optional<T> SqlStatement::GetNullableColumn(SQLUSMALLINT column) con
             return std::nullopt;
         return ConvertCell<T>(cursor, row, column);
     }
-    T result {};
+    auto result = detail::MakeUninitialized<T>();
     SQLLEN indicator {}; // TODO: Handle NULL values if we find out that we need them for our use-cases.
     {
         ZoneScopedN("SqlStatement::ColumnGetData");

@@ -1620,7 +1620,7 @@ auto SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::AllImpl() -> 
     auto const outputColumnsBound = detail::CanSafelyBindOutputColumns<Record>(stmt.Connection().ReadsBoundColumnsAgain());
     while (true)
     {
-        auto& record = records.emplace_back();
+        auto& record = detail::EmplaceBackUninitialized(records);
         if (outputColumnsBound)
 #if defined(LIGHTWEIGHT_CXX26_REFLECTION)
             reader.BindOutputColumns(&(record.[:ReferencedFields:])...);
@@ -1711,7 +1711,7 @@ auto SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::FirstImpl() -
                                         this->_query.groupBy,
                                         1));
 
-    auto& record = optionalRecord.emplace();
+    auto& record = detail::EmplaceUninitialized(optionalRecord);
     auto reader = stmt.ExecuteWithVariants(_boundInputs);
     auto const outputColumnsBound = detail::CanSafelyBindOutputColumns<Record>(stmt.Connection().ReadsBoundColumnsAgain());
     if (outputColumnsBound)
@@ -1827,7 +1827,7 @@ std::vector<Record> SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>
     auto const outputColumnsBound = detail::CanSafelyBindOutputColumns<Record>(stmt.Connection().ReadsBoundColumnsAgain());
     while (true)
     {
-        auto& record = records.emplace_back();
+        auto& record = detail::EmplaceBackUninitialized(records);
         if (outputColumnsBound)
 #if defined(LIGHTWEIGHT_CXX26_REFLECTION)
             reader.BindOutputColumns(&(record.[:ReferencedFields:])...);
@@ -1876,7 +1876,7 @@ template <auto... ReferencedFields>
     auto const outputColumnsBound = detail::CanSafelyBindOutputColumns<Record>(stmt.Connection().ReadsBoundColumnsAgain());
     while (true)
     {
-        auto& record = records.emplace_back();
+        auto& record = detail::EmplaceBackUninitialized(records);
         if (outputColumnsBound)
 #if defined(LIGHTWEIGHT_CXX26_REFLECTION)
             reader.BindOutputColumns(&(record.[:ReferencedFields:])...);
@@ -1924,7 +1924,7 @@ void SqlAllFieldsQueryBuilder<Record, QueryOptions, Execution>::ReadResults(SqlC
 
     while (true)
     {
-        Record& record = records->emplace_back();
+        Record& record = detail::EmplaceBackUninitialized(*records);
         if (!detail::ReadSingleResult(connection, reader, record))
         {
             records->pop_back();
@@ -1938,7 +1938,7 @@ void SqlAllFieldsQueryBuilder<Record, QueryOptions, Execution>::ReadResult(SqlCo
                                                                            SqlResultCursor reader,
                                                                            std::optional<Record>* optionalRecord)
 {
-    Record& record = optionalRecord->emplace();
+    Record& record = detail::EmplaceUninitialized(*optionalRecord);
     if (!detail::ReadSingleResult(connection, reader, record))
         optionalRecord->reset();
 }
@@ -1961,7 +1961,7 @@ void SqlAllFieldsQueryBuilder<std::tuple<FirstRecord, SecondRecord>, QueryOption
 
     while (true)
     {
-        auto& record = records->emplace_back();
+        auto& record = detail::EmplaceBackUninitialized(*records);
         auto& [firstRecord, secondRecord] = record;
 
         using FirstRecordType = std::remove_cvref_t<decltype(firstRecord)>;
@@ -2736,7 +2736,7 @@ std::optional<Record> DataMapper::QuerySingle(PrimaryKeyTypes&&... primaryKeys)
     // configured below (ConfigureRelationAutoLoading) captures a pointer to *resultRecord. An earlier
     // `return std::nullopt;` here defeats NRVO in both GCC and Clang (verified: it forces a move-construct
     // into the caller's storage at a new address), which would leave that captured pointer dangling.
-    auto resultRecord = std::optional<Record> { Record {} };
+    auto resultRecord = std::optional<Record> { detail::MakeUninitialized<Record>() };
     if (detail::ReadSingleResult(_stmt.Connection(), reader, *resultRecord))
     {
         SetModifiedState<ModifiedState::NotModified>(resultRecord.value());
@@ -2770,7 +2770,7 @@ std::optional<Record> DataMapper::QuerySingle(SqlSelectQueryBuilder selectQuery,
     _stmt.Prepare(composedSql);
     auto reader = _stmt.Execute(std::forward<Args>(args)...);
 
-    auto resultRecord = std::optional<Record> { Record {} };
+    auto resultRecord = std::optional<Record> { detail::MakeUninitialized<Record>() };
     if (!detail::ReadSingleResult(_stmt.Connection(), reader, *resultRecord))
         return std::nullopt;
 
@@ -2825,7 +2825,7 @@ std::vector<Record> DataMapper::Query(std::string_view sqlQueryString, InputPara
 
         for (;;)
         {
-            auto& record = result.emplace_back();
+            auto& record = detail::EmplaceBackUninitialized(result);
 
             if (canSafelyBindOutputColumns)
                 BindOutputColumns(record, reader);
@@ -2907,7 +2907,7 @@ std::vector<std::tuple<First, Second, Rest...>> DataMapper::Query(SqlSelectQuery
 
     for (;;)
     {
-        auto& record = result.emplace_back();
+        auto& record = detail::EmplaceBackUninitialized(result);
 
         if (canSafelyBindOutputColumns)
             BindElements(record);
@@ -2958,7 +2958,7 @@ std::vector<Record> DataMapper::Query(SqlSelectQueryBuilder::ComposedQuery const
 
     for (;;)
     {
-        auto& record = records.emplace_back();
+        auto& record = detail::EmplaceBackUninitialized(records);
 
         if (canSafelyBindOutputColumns)
             BindOutputColumns<ElementMask>(record, reader);
@@ -3843,7 +3843,7 @@ void DataMapper::StreamRecords(QueryText const& query, Callable const& each, Inp
     _stmt.Prepare(query);
     auto cursor = _stmt.Execute(inputParameters...);
 
-    auto record = Record {};
+    auto record = detail::MakeUninitialized<Record>();
     BindOutputColumns(record, cursor);
     while (cursor.FetchRow())
     {
@@ -3856,7 +3856,7 @@ void DataMapper::StreamRecords(QueryText const& query, Callable const& each, Inp
         // fetch does not necessarily overwrite the whole of a variable-width buffer: a shorter value
         // leaves the tail of the previous one in place, so a string column can come back as a blend of
         // two rows. Assigning a fresh record clears every field's buffer and indicator first.
-        record = Record {};
+        record = detail::MakeUninitialized<Record>();
         BindOutputColumns(record, cursor);
     }
 }
