@@ -139,6 +139,16 @@ The `Inspect()` function is used to provide a human-readable representation of t
 
 This function should be used purely for debugging purposes.
 
+## UnwritableYear() (optional)
+
+`static std::optional<SQLSMALLINT> UnwritableYear(T const& value) noexcept` tells, before anything is
+bound, that a value holds a date or timestamp whose year cannot be written (a negative year, see below), and
+returns that year. The binders of `SqlDate`, `SqlDateTime`, `std::optional`, `Field`, `BelongsTo` and
+`SqlVariant` define it, and a batch that executes row by row checks every row through it before the first
+one is stored. A custom binder that wraps a date should define it too, forwarding to the date's binder.
+Without it, its bad rows are still refused with `22008`, by the wrapped date's `InputParameter()`, but in
+such a batch the rows before the bad one are already stored.
+
 ## `SqlGuid` and `SqlTime`: what a read returns
 
 - **`SqlGuid` on SQLite.** SQLite stores a GUID as text. Reading a column whose text is not a GUID (see
@@ -148,6 +158,12 @@ This function should be used purely for debugging purposes.
   text, so the variant holds a `SqlGuid` where the text is one, and the text as a `std::string` otherwise.
   A variant reads through the `SqlGuid` binder, and so fails with `22018`, only where the driver reports
   the column as `SQL_GUID`.
+- **`SqlDate` and `SqlDateTime` with a negative year are not written.** SQLite would store text no reader
+  accepts, SQL Server rejects such a date, and PostgreSQL stores a BC date its driver reads back without the
+  sign; so binding one fails with a `SqlException`, SQLSTATE `22008`, also inside a `std::optional`, a `Field`
+  or a `SqlVariant`. A batch checks every row first, also where it executes row by row (a column range that is
+  not contiguous, a record with a column that is not bound in place, a driver without row-wise parameter
+  arrays), so no row of it is stored. Years 0 to 9999 are written as before (PostgreSQL itself refuses year 0).
 - **`SqlTime` carries whole seconds.** It is bound as `SQL_C_TYPE_TIME`, whose structure has no fraction,
   so after a read the fraction is always 0, on every database and path; a fraction set before writing is
   not stored.

@@ -398,36 +398,6 @@ namespace detail
         return cb.ServerType() == SqlServerType::MICROSOFT_SQL && cb.DriverName() == "SQLSRV32.DLL"sv;
     }
 
-    /// The layout of the parameter array that is being bound.
-    struct SqlParameterArrayLayout
-    {
-        /// The byte distance from one row's value to the next.
-        std::size_t rowStride {};
-        /// The number of rows.
-        std::size_t rowCount {};
-    };
-
-    /// Reads the layout of the parameter array the statement is bound with.
-    ///
-    /// @param stmt The statement whose parameters are being bound.
-    /// @param valueSize The size of one value, which is the stride of a column-wise array.
-    /// @param columnWiseRowCount The row count of a column-wise (or single-row) binding.
-    /// @return The row size and parameter set size of a row-wise binding, otherwise the column-wise layout.
-    [[nodiscard]] inline SqlParameterArrayLayout CurrentParameterArrayLayout(SQLHSTMT stmt,
-                                                                             std::size_t valueSize,
-                                                                             std::size_t columnWiseRowCount) noexcept
-    {
-        auto bindType = SQLULEN { SQL_PARAM_BIND_BY_COLUMN };
-        if (!SQL_SUCCEEDED(SQLGetStmtAttr(stmt, SQL_ATTR_PARAM_BIND_TYPE, &bindType, 0, nullptr))
-            || bindType == SQL_PARAM_BIND_BY_COLUMN)
-            return { .rowStride = valueSize, .rowCount = columnWiseRowCount };
-
-        auto parameterSetSize = SQLULEN { 1 };
-        if (!SQL_SUCCEEDED(SQLGetStmtAttr(stmt, SQL_ATTR_PARAMSET_SIZE, &parameterSetSize, 0, nullptr)))
-            parameterSetSize = 1;
-        return { .rowStride = static_cast<std::size_t>(bindType), .rowCount = static_cast<std::size_t>(parameterSetSize) };
-    }
-
     /// Binds the timestamps at @p first as `datetime` (23/3) for the legacy in-box SQL Server ODBC driver.
     ///
     /// The driver rejects fractions finer than the bound scale, so this binds a copy truncated to whole
@@ -480,11 +450,21 @@ struct LIGHTWEIGHT_API SqlDataBinder<SqlDateTime>
 {
     static constexpr auto ColumnType = SqlColumnTypeDefinitions::DateTime {};
 
+    /// The year of @p value if it cannot be written (see detail::IsWritableYear()).
+    /// @param value The value to write.
+    /// @return Its year if the value is refused, otherwise @c std::nullopt.
+    [[nodiscard]] static constexpr std::optional<SQLSMALLINT> UnwritableYear(SqlDateTime const& value) noexcept
+    {
+        return detail::UnwritableYearOf(value.sqlValue.year);
+    }
+
     static LIGHTWEIGHT_FORCE_INLINE SQLRETURN InputParameter(SQLHSTMT stmt,
                                                              SQLUSMALLINT column,
                                                              SqlDateTime const& value,
                                                              SqlDataBinderCallback& cb) noexcept
     {
+        if (detail::RefuseUnwritableYear(value.sqlValue.year, cb))
+            return SQL_ERROR;
         // A row-wise batch binds row 0 through here, so the layout comes from the statement.
         if (detail::IsLegacySqlServerDriver(cb))
             return detail::BindLegacySqlServerDateTimes(
@@ -512,6 +492,13 @@ struct LIGHTWEIGHT_API SqlDataBinder<SqlDateTime>
                                                                   SqlDataBinderCallback& cb,
                                                                   SQLLEN* indicators = nullptr) noexcept
     {
+        // Once per batch: the layout (column- or row-wise) comes from the statement.
+        if (detail::RefuseUnwritableYears(values,
+                                          detail::CurrentParameterArrayLayout(stmt, sizeof(*values), rowCount).rowStride,
+                                          rowCount,
+                                          indicators,
+                                          cb))
+            return SQL_ERROR;
         if (detail::IsLegacySqlServerDriver(cb))
         {
             auto const layout = detail::SqlParameterArrayLayout {

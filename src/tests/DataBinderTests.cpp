@@ -15,6 +15,7 @@
 #include <algorithm>
 #include <array>
 #include <cstdlib>
+#include <deque>
 #include <format>
 #include <limits>
 #include <numbers>
@@ -4588,4 +4589,122 @@ TEST_CASE_METHOD(SqlTestFixture,
     REQUIRE(rows[1].size() == 2);
     CHECK(rows[1][0].TryGetStringView() == std::optional<std::string_view> { "" });
     CHECK(std::holds_alternative<SqlDate>(rows[1][1].value));
+}
+
+namespace
+{
+
+/// A row of the batches of the negative-year test.
+struct DatedRow
+{
+    std::int64_t id {};
+    SqlDate date {};
+    SqlDateTime moment {};
+};
+
+/// A row of the negative-year test whose dates are bound through the wrappers of a date.
+struct WrappedDatedRow
+{
+    std::int64_t id {};
+    std::optional<SqlDate> date;
+    Field<SqlDateTime> moment;
+};
+
+} // namespace
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "A date with a negative year fails to be written instead of storing unreadable text",
+                 "[SqlDataBinder]")
+{
+    using namespace std::chrono;
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("NegativeYear")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Bigint {})
+            .Column("D", SqlColumnTypeDefinitions::Date {})
+            .Column("T", SqlColumnTypeDefinitions::DateTime {});
+    });
+    auto const negativeDate = SqlDate { year { -5 }, January, day { 2 } };
+    auto const negativeMoment = SqlDateTime { year { -5 }, January, day { 2 }, hours { 3 }, minutes { 4 }, seconds { 5 } };
+    auto const goodDate = SqlDate { year { 2024 }, January, day { 2 } };
+    auto const goodMoment = SqlDateTime { year { 2024 }, January, day { 2 }, hours { 3 }, minutes { 4 }, seconds { 5 } };
+    auto const sqlStateOf = [](auto const& write) -> std::string {
+        try
+        {
+            write();
+            return "none";
+        }
+        catch (SqlException const& error)
+        {
+            return error.info().sqlState;
+        }
+    };
+    stmt.Prepare(R"(INSERT INTO "NegativeYear" ("Id", "D", "T") VALUES (?, ?, ?))");
+
+    // A single row, and each column of a column-wise and a row-wise batch, a bad value in its second row.
+    CHECK(sqlStateOf([&] { (void) stmt.Execute(1, negativeDate, goodMoment); }) == "22008");
+    CHECK(sqlStateOf([&] { (void) stmt.Execute(2, goodDate, negativeMoment); }) == "22008");
+    CHECK(sqlStateOf([&] { (void) stmt.Execute(3, std::optional { negativeDate }, goodMoment); }) == "22008");
+    CHECK(sqlStateOf([&] {
+              (void) stmt.ExecuteBatch(std::vector<std::int64_t> { 4, 5 },
+                                       std::vector { goodDate, negativeDate },
+                                       std::vector { goodMoment, goodMoment });
+          })
+          == "22008");
+    auto const rows = std::vector { DatedRow { .id = 6, .date = goodDate, .moment = goodMoment },
+                                    DatedRow { .id = 7, .date = goodDate, .moment = negativeMoment } };
+    CHECK(sqlStateOf([&] {
+              (void) stmt.ExecuteBatch(
+                  std::span { rows },
+                  [](DatedRow const& row) -> std::int64_t const& { return row.id; },
+                  [](DatedRow const& row) -> SqlDate const& { return row.date; },
+                  [](DatedRow const& row) -> SqlDateTime const& { return row.moment; });
+          })
+          == "22008");
+
+    // The batches that execute row by row refuse the bad second row before the first one is stored: a column
+    // batch that is not contiguous, and rows with a column that is not bound in place (a Field) or, on a
+    // driver without row-wise parameter arrays, any rows.
+    CHECK(sqlStateOf([&] {
+              (void) stmt.ExecuteBatch(std::deque<std::int64_t> { 20, 21 },
+                                       std::deque { goodDate, negativeDate },
+                                       std::deque { goodMoment, goodMoment });
+          })
+          == "22008");
+    CHECK(sqlStateOf([&] {
+              (void) stmt.ExecuteBatch(std::deque<std::int64_t> { 22, 23 },
+                                       std::deque { SqlVariant { goodDate }, SqlVariant { negativeDate } },
+                                       std::deque { goodMoment, goodMoment });
+          })
+          == "22008");
+    auto const badOptionalRows = std::vector {
+        WrappedDatedRow { .id = 24, .date = std::nullopt, .moment = goodMoment },
+        WrappedDatedRow { .id = 25, .date = negativeDate, .moment = goodMoment },
+    };
+    auto const badFieldRows = std::vector {
+        WrappedDatedRow { .id = 26, .date = goodDate, .moment = goodMoment },
+        WrappedDatedRow { .id = 27, .date = goodDate, .moment = negativeMoment },
+    };
+    CHECK(sqlStateOf([&] {
+              (void) stmt.ExecuteBatch(
+                  std::span { badOptionalRows },
+                  [](WrappedDatedRow const& row) -> std::int64_t const& { return row.id; },
+                  [](WrappedDatedRow const& row) -> std::optional<SqlDate> const& { return row.date; },
+                  [](WrappedDatedRow const& row) -> Field<SqlDateTime> const& { return row.moment; });
+          })
+          == "22008");
+    CHECK(sqlStateOf([&] {
+              (void) stmt.ExecuteBatch(
+                  std::span { badFieldRows },
+                  [](WrappedDatedRow const& row) -> std::int64_t const& { return row.id; },
+                  [](WrappedDatedRow const& row) -> std::optional<SqlDate> const& { return row.date; },
+                  [](WrappedDatedRow const& row) -> Field<SqlDateTime> const& { return row.moment; });
+          })
+          == "22008");
+    CHECK(stmt.ExecuteDirectScalar<int>(R"(SELECT COUNT(*) FROM "NegativeYear")"sv) == 0);
+
+    // Years from 0 on are written as before (PostgreSQL has no year 0 and refuses it itself).
+    stmt.Prepare(R"(INSERT INTO "NegativeYear" ("Id", "D", "T") VALUES (?, ?, ?))");
+    (void) stmt.Execute(8, goodDate, goodMoment);
+    CHECK((stmt.ExecuteDirectScalar<SqlDate>(R"(SELECT "D" FROM "NegativeYear" WHERE "Id" = 8)"sv) == goodDate));
 }

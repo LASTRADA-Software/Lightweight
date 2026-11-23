@@ -462,6 +462,21 @@ struct LIGHTWEIGHT_API SqlDataBinder<SqlVariant>
                                     SqlVariant const& variantValue,
                                     SqlDataBinderCallback& cb) noexcept;
 
+    /// The year of the variant's date or timestamp if it cannot be written (see detail::IsWritableYear()).
+    /// @param variantValue The value to write.
+    /// @return Its year if the value is refused, otherwise @c std::nullopt (also for any other alternative).
+    [[nodiscard]] static constexpr std::optional<SQLSMALLINT> UnwritableYear(SqlVariant const& variantValue) noexcept
+    {
+        return std::visit(
+            []<typename T>(T const& value) -> std::optional<SQLSMALLINT> {
+                if constexpr (SqlBinderChecksYear<T>)
+                    return SqlDataBinder<T>::UnwritableYear(value);
+                else
+                    return std::nullopt;
+            },
+            variantValue.value);
+    }
+
     /// Reads the column into the alternative its SQL type maps to.
     /// @param stmt The statement handle.
     /// @param column The 1-based column index.

@@ -576,6 +576,10 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     /// @copydoc SqlDataBinderCallback::DescribeResultColumnType
     [[nodiscard]] LIGHTWEIGHT_API std::optional<SQLSMALLINT> DescribeResultColumnType(
         SQLUSMALLINT column) const noexcept override;
+    /// Records a binder's refusal, which the next failed RequireSuccess() raises instead of the handle's
+    /// (absent) diagnostic.
+    /// @param error The SQLSTATE and message to raise.
+    LIGHTWEIGHT_API void ReportInputParameterError(SqlErrorInfo const& error) noexcept override;
     LIGHTWEIGHT_API void ClearBatchIndicators();
     /// Sets up column-wise array binding of @p rowCount rows and binds @p columns as input parameters.
     /// @param columns The columns to bind.
@@ -1820,6 +1824,25 @@ namespace detail
     struct IsNarrowFixedStringColumn<std::optional<SqlFixedString<N, char, Mode>>>: std::true_type
     {
     };
+
+    /// @brief Refuses a batch of which a value cannot be written, before any of it is bound or executed.
+    ///
+    /// Checks the value @p project yields of every element of @p values through
+    /// @c SqlDataBinder<Value>::UnwritableYear (see SqlBinderChecksYear); a value type without that check
+    /// costs nothing.
+    /// @param values The rows (or the values of one column) of the batch.
+    /// @param project Yields the value to check from an element of @p values.
+    /// @throws SqlException SQLSTATE 22008 for the first value whose year cannot be written.
+    template <std::ranges::range Values, typename Project>
+    void RequireWritableYears(Values const& values, Project const& project)
+    {
+        using Value =
+            std::remove_cvref_t<std::invoke_result_t<Project const&, std::ranges::range_reference_t<Values const>>>;
+        if constexpr (SqlBinderChecksYear<Value>)
+            for (auto const& element: values)
+                if (auto const year = SqlDataBinder<Value>::UnwritableYear(std::invoke(project, element)))
+                    throw SqlException(UnwritableYearError(*year));
+    }
 } // namespace detail
 
 /// @brief Whether @p V is a char fixed-capacity string, or a @c std::optional of one. The row-wise batch binds
@@ -1906,6 +1929,10 @@ SqlResultCursor SqlStatement::ExecuteBatchSoft(FirstColumnBatch const& firstColu
     ZoneValue(rowCount);
     if (!((std::size(moreColumnBatches) == rowCount) && ...))
         throw std::invalid_argument { "Uneven number of rows" };
+
+    // Rows execute one by one: a value that cannot be written is refused before the first one is stored.
+    detail::RequireWritableYears(firstColumnBatch, std::identity {});
+    (detail::RequireWritableYears(moreColumnBatches, std::identity {}), ...);
 
     for (auto const rowIndex: std::views::iota(size_t { 0 }, rowCount))
     {
@@ -2029,6 +2056,8 @@ SqlResultCursor SqlStatement::ExecuteBatchNativeRowWise(Rows const& rows, Column
         using ValueType = std::remove_cvref_t<decltype(accessor(rowData[0]))>;
         // Types needing a per-row indicator (optionals, inline fixed-capacity strings) provide a
         // row-wise batch binder; indicator-free fixed values bind directly via InputParameter.
+        // A date's binder sees only row 0 here: every row's year must be one that can be written.
+        detail::RequireWritableYears(std::span { rowData, rowCount }, accessor);
         if constexpr (SqlHasRowWiseBatchBinder<ValueType>)
             RequireSuccess(SqlDataBinder<ValueType>::BatchRowWiseInputParameter(
                 m_hStmt, column, std::addressof(accessor(rowData[0])), sizeof(RowElem), rowCount, *this));
@@ -2057,6 +2086,9 @@ SqlResultCursor SqlStatement::ExecuteBatchSoftRowMajor(Rows const& rows, ColumnA
     auto const* rowData = std::ranges::data(rows);
     auto const rowCount = std::ranges::size(rows);
     ZoneValue(rowCount);
+
+    // Rows execute one by one: a value that cannot be written is refused before the first one is stored.
+    (detail::RequireWritableYears(std::span { rowData, rowCount }, accessors), ...);
 
     for (auto const rowIndex: std::views::iota(std::size_t { 0 }, rowCount))
     {

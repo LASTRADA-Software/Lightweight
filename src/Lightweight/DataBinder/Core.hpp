@@ -17,6 +17,7 @@
 #include <functional>
 #include <memory>
 #include <optional>
+#include <ranges>
 #include <string_view>
 #include <utility>
 
@@ -212,6 +213,15 @@ class LIGHTWEIGHT_API SqlDataBinderCallback
         (void) column;
         return std::nullopt;
     }
+
+    /// Records why a binder refused to bind a value, which it then answers with @c SQL_ERROR: the driver
+    /// posted no diagnostic for it, so the error the caller raises is this one.
+    ///
+    /// @param error The SQLSTATE and message to report.
+    virtual void ReportInputParameterError(SqlErrorInfo const& error) noexcept
+    {
+        (void) error;
+    }
 };
 
 namespace detail
@@ -259,8 +269,125 @@ namespace detail
     }
 } // namespace detail
 
+namespace detail
+{
+    /// The layout of the parameter array that is being bound.
+    struct SqlParameterArrayLayout
+    {
+        /// The byte distance from one row's value to the next.
+        std::size_t rowStride {};
+        /// The number of rows.
+        std::size_t rowCount {};
+    };
+
+    /// Reads the layout of the parameter array the statement is bound with.
+    ///
+    /// @param stmt The statement whose parameters are being bound.
+    /// @param valueSize The size of one value, which is the stride of a column-wise array.
+    /// @param columnWiseRowCount The row count of a column-wise (or single-row) binding.
+    /// @return The row size and parameter set size of a row-wise binding, otherwise the column-wise layout.
+    [[nodiscard]] inline SqlParameterArrayLayout CurrentParameterArrayLayout(SQLHSTMT stmt,
+                                                                             std::size_t valueSize,
+                                                                             std::size_t columnWiseRowCount) noexcept
+    {
+        auto bindType = SQLULEN { SQL_PARAM_BIND_BY_COLUMN };
+        if (!SQL_SUCCEEDED(SQLGetStmtAttr(stmt, SQL_ATTR_PARAM_BIND_TYPE, &bindType, 0, nullptr))
+            || bindType == SQL_PARAM_BIND_BY_COLUMN)
+            return { .rowStride = valueSize, .rowCount = columnWiseRowCount };
+
+        auto parameterSetSize = SQLULEN { 1 };
+        if (!SQL_SUCCEEDED(SQLGetStmtAttr(stmt, SQL_ATTR_PARAMSET_SIZE, &parameterSetSize, 0, nullptr)))
+            parameterSetSize = 1;
+        return { .rowStride = static_cast<std::size_t>(bindType), .rowCount = static_cast<std::size_t>(parameterSetSize) };
+    }
+
+    /// @brief Whether a date or timestamp with year @p year can be written so that it reads back: a negative
+    /// year cannot (SQLite stores text no reader accepts, SQL Server rejects it, PostgreSQL makes it a BC date
+    /// its driver reads back without the sign). Years 0 to 9999 are written as before.
+    /// @param year The year to write.
+    /// @return @c true if it can be written.
+    [[nodiscard]] constexpr bool IsWritableYear(SQLSMALLINT year) noexcept
+    {
+        return year >= 0;
+    }
+
+    /// @brief The error of writing a date or timestamp with year @p year, which IsWritableYear() refuses.
+    /// @param year The refused year.
+    /// @return SQLSTATE 22008 (datetime field overflow) and a message naming the year.
+    [[nodiscard]] inline SqlErrorInfo UnwritableYearError(SQLSMALLINT year)
+    {
+        return SqlErrorInfo {
+            .nativeErrorCode = 0,
+            .sqlState = "22008",
+            .message = std::format("A date with the year {} cannot be written: no supported database stores a negative "
+                                   "year so that it reads back.",
+                                   year),
+        };
+    }
+
+    /// @brief Refuses a date or timestamp of year @p year that cannot be written (see IsWritableYear()),
+    /// reporting why to @p cb.
+    /// @return @c true if the value was refused: the binder then answers @c SQL_ERROR.
+    [[nodiscard]] inline bool RefuseUnwritableYear(SQLSMALLINT year, SqlDataBinderCallback& cb) noexcept
+    {
+        if (IsWritableYear(year))
+            return false;
+        try
+        {
+            cb.ReportInputParameterError(UnwritableYearError(year));
+        }
+        catch (...)
+        {
+            cb.ReportInputParameterError(SqlErrorInfo {});
+        }
+        return true;
+    }
+
+    /// @brief Refuses an array of dates or timestamps at @p first, laid out @p stride bytes apart, of which one
+    /// cannot be written; rows whose @p indicators slot says NULL are skipped.
+    /// @return @c true if a value was refused.
+    template <typename Value>
+    [[nodiscard]] bool RefuseUnwritableYears(Value const* first,
+                                             std::size_t stride,
+                                             std::size_t rowCount,
+                                             SQLLEN const* indicators,
+                                             SqlDataBinderCallback& cb) noexcept
+    {
+        auto const* const bytes = reinterpret_cast<std::byte const*>(first);
+        for (auto const row: std::views::iota(std::size_t { 0 }, rowCount))
+        {
+            if (indicators != nullptr
+                && *reinterpret_cast<SQLLEN const*>(reinterpret_cast<std::byte const*>(indicators) + (row * stride))
+                       == SQL_NULL_DATA)
+                continue;
+            if (RefuseUnwritableYear(reinterpret_cast<Value const*>(bytes + (row * stride))->sqlValue.year, cb))
+                return true;
+        }
+        return false;
+    }
+
+    /// @brief The year @p year if a date or timestamp of that year cannot be written (see IsWritableYear()).
+    /// @param year The year to write.
+    /// @return @p year if it is refused, otherwise @c std::nullopt.
+    [[nodiscard]] constexpr std::optional<SQLSMALLINT> UnwritableYearOf(SQLSMALLINT year) noexcept
+    {
+        if (IsWritableYear(year))
+            return std::nullopt;
+        return year;
+    }
+} // namespace detail
+
 template <typename>
 struct SqlDataBinder;
+
+/// @brief Whether the binder of @p T can tell, before anything is bound, that a value of @p T holds a date or
+/// timestamp whose year cannot be written (see detail::IsWritableYear()): the dates themselves and the
+/// wrappers that bind through them. A batch that executes row by row checks every row through it first, so
+/// that no row is stored when one would be refused; a type without it costs nothing.
+template <typename T>
+concept SqlBinderChecksYear = requires(T const& value) {
+    { SqlDataBinder<T>::UnwritableYear(value) } -> std::same_as<std::optional<SQLSMALLINT>>;
+};
 
 // Default traits for output string parameters
 // This needs to be implemented for each string type that should be used as output parameter via

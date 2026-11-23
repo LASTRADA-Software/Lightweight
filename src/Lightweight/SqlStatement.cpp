@@ -98,6 +98,7 @@ struct SqlStatement::Data
     // Declared SQL type of each parameter of the prepared query, described on first demand (a NULL
     // being bound) and dropped whenever the handle is given a different query.
     std::optional<std::vector<SQLSMALLINT>> describedParameterTypes;
+    std::optional<SqlErrorInfo> inputParameterError; // a binder's refusal, raised by the next failed RequireSuccess()
 
     /// @brief Lifecycle of the transparent block-prefetch on the current result set.
     enum class PrefetchMode : std::uint8_t
@@ -441,6 +442,7 @@ SqlStatement::SqlStatement():
                  .declaredNumericDigits = {},
                  .resultColumnTypes = {},
                  .describedParameterTypes = {},
+                 .inputParameterError = {},
                  .prefetchMode = Data::PrefetchMode::Unarmed,
                  .prefetch = {},
                  .prefetchBlockRows = 0,
@@ -1837,7 +1839,25 @@ void SqlStatement::ConsumePendingResults(std::source_location location)
 
 void SqlStatement::RequireSuccess(SQLRETURN error, std::source_location sourceLocation) const
 {
+    if (!SQL_SUCCEEDED(error) && m_data->inputParameterError)
+    {
+        auto refusal = std::move(*m_data->inputParameterError);
+        m_data->inputParameterError.reset();
+        throw SqlException(std::move(refusal), sourceLocation);
+    }
     Lightweight::RequireSuccess(m_hStmt, error, sourceLocation);
+}
+
+void SqlStatement::ReportInputParameterError(SqlErrorInfo const& error) noexcept
+{
+    try
+    {
+        m_data->inputParameterError = error;
+    }
+    catch (...)
+    {
+        m_data->inputParameterError.reset(); // out of memory: the handle's diagnostic is all there is
+    }
 }
 
 SqlQueryBuilder SqlStatement::Query(std::string_view const& table) const
