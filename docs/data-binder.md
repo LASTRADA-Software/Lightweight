@@ -241,9 +241,11 @@ string instead.
 
 ## How `SqlVariant` decides which alternative to fill
 
-`SqlDataBinder<SqlVariant>::GetColumn` queries the driver for
-**`SQL_DESC_CONCISE_TYPE`** and dispatches into the matching variant alternative
-based on the concise ODBC SQL type code.
+`SqlDataBinder<SqlVariant>::GetColumn` asks the driver for the column's concise ODBC SQL type
+code with **`SQLDescribeCol`** and dispatches into the matching variant alternative. It does not
+ask `SQLColAttribute(SQL_DESC_CONCISE_TYPE)`, which the SQLite ODBC driver answers with `SQL_WCHAR`
+for a BLOB column. A statement asks it once per result set and column, so the rows after the first
+cost no describe call.
 
 The verbose `SQL_DESC_TYPE` collapses every datetime subtype into the single
 value `SQL_DATETIME` (9) and every interval subtype into `SQL_INTERVAL` (10), so
@@ -256,6 +258,25 @@ it cannot distinguish DATE from TIME from TIMESTAMP. The concise type does:
 | TIMESTAMP    | `SQL_TYPE_TIMESTAMP` (93)| `SqlDateTime`       |
 | DECIMAL / NUMERIC | `SQL_DECIMAL` (3), `SQL_NUMERIC` (2) | `SqlDynamicNumeric` |
 | BINARY / VARBINARY / LONGVARBINARY | `SQL_BINARY` (-2), `SQL_VARBINARY` (-3), `SQL_LONGVARBINARY` (-4) | `SqlBinary` |
+
+### SQLite: a cell whose value is not of its column's type
+
+SQLite lets a cell hold a value of another type than its column's, such as the text `'hello'` in
+an `INTEGER` column. The SQLite ODBC driver reports such a cell as NULL when it is read as the
+column's type. The per-row variant read then reads the cell again as text, so it comes back as
+the text, and a real NULL stays NULL.
+
+**Known limit.** A block-prefetched result set cannot read a cell again. A raw
+`cursor.GetColumn<SqlVariant>(column)` on a SQLite result set that was already block-prefetched
+reads such a cell as NULL. The following read it as text:
+
+- `SqlVariantRowCursor`, and `DataMapper::Query<SqlVariantRow>()`, which reads through it;
+- `ExecuteDirectScalar<SqlVariant>()`;
+- any read on a connection with `SetDefaultPrefetchDepth(1)`.
+
+`SqlVariantRowCursor` and `ExecuteDirectScalar<SqlVariant>()` keep the result set on the
+per-row path on SQLite. SQL Server and PostgreSQL enforce column types, so no such cell exists
+there.
 
 ## `SqlDynamicNumeric`: exact decimals in a `SqlVariant`
 

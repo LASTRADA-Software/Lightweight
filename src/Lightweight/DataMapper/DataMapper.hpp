@@ -2803,15 +2803,10 @@ std::vector<Record> DataMapper::Query(std::string_view sqlQueryString, InputPara
     if constexpr (std::same_as<Record, SqlVariantRow>)
     {
         _stmt.Prepare(sqlQueryString);
-        SqlResultCursor cursor = _stmt.Execute(std::forward<InputParameters>(inputParameters)...);
-        size_t const numResultColumns = cursor.NumColumnsAffected();
-        while (cursor.FetchRow())
-        {
-            auto& record = result.emplace_back();
-            record.reserve(numResultColumns);
-            for (auto const i: std::views::iota(1U, numResultColumns + 1))
-                record.emplace_back(cursor.GetColumn<SqlVariant>(static_cast<SQLUSMALLINT>(i)));
-        }
+        // Through the variant row cursor, which keeps the result set on the per-row path where a typed read
+        // reports a cell not of its column's type as NULL (SQLite): the cell's text comes back, not NULL.
+        for (auto& row: SqlVariantRowCursor { _stmt.Execute(std::forward<InputParameters>(inputParameters)...) })
+            result.emplace_back(std::move(row));
     }
     else
     {

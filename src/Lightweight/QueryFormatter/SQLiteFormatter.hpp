@@ -52,6 +52,11 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
         return false;
     }
 
+    [[nodiscard]] bool ReportsUnconvertibleCellsAsNull() const noexcept override
+    {
+        return true;
+    }
+
     [[nodiscard]] bool BoundsBulkLoadTransactionSize() const noexcept override
     {
         return true;

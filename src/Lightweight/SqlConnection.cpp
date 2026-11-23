@@ -528,6 +528,7 @@ SqlConnection::SqlConnection(SqlConnection&& other) noexcept:
     m_acceptsWideQueryText { other.m_acceptsWideQueryText },
     m_narrowTextBinding { other.m_narrowTextBinding },
     m_readsBoundColumnsAgain { other.m_readsBoundColumnsAgain },
+    m_reportsUnconvertibleCellsAsNull { other.m_reportsUnconvertibleCellsAsNull },
     m_stringTruncationMode { other.m_stringTruncationMode },
     m_handleOwnership { other.m_handleOwnership },
     m_data { other.m_data }
@@ -555,6 +556,7 @@ SqlConnection& SqlConnection::operator=(SqlConnection&& other) noexcept
     m_acceptsWideQueryText = other.m_acceptsWideQueryText;
     m_narrowTextBinding = other.m_narrowTextBinding;
     m_readsBoundColumnsAgain = other.m_readsBoundColumnsAgain;
+    m_reportsUnconvertibleCellsAsNull = other.m_reportsUnconvertibleCellsAsNull;
     m_stringTruncationMode = other.m_stringTruncationMode;
     m_handleOwnership = other.m_handleOwnership;
     m_data = other.m_data;
@@ -1176,6 +1178,7 @@ void SqlConnection::DetectServer()
     // Decided before the first statement is issued, so every statement takes the right entry point.
     m_acceptsWideQueryText = DriverAcceptsWideQueryText(m_hDbc);
     m_narrowTextBinding = DetectNarrowTextBinding(m_serverType, m_data->driverConnectionString, m_data->dataSourceName);
+    m_reportsUnconvertibleCellsAsNull = detail::ReportsUnconvertibleCellsAsNull(m_serverType);
 
     // Whether a bound value longer than its buffer can be read in full (see ReadsBoundColumnsAgain()).
     SQLUINTEGER getDataExtensions = 0;

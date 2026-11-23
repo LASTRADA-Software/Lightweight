@@ -476,6 +476,11 @@ class SqlConnection final
     /// per connect.
     [[nodiscard]] bool ReadsBoundColumnsAgain() const noexcept;
 
+    /// Whether the driver reports a cell its column type cannot convert as NULL (see
+    /// SqlQueryFormatter::ReportsUnconvertibleCellsAsNull); @c false for a backend without a formatter. Decided
+    /// once per connect.
+    [[nodiscard]] bool ReportsUnconvertibleCellsAsNull() const noexcept;
+
     /// Retrieves a query formatter suitable for the SQL server being connected.
     [[nodiscard]] SqlQueryFormatter const& QueryFormatter() const noexcept;
 
@@ -802,6 +807,7 @@ class SqlConnection final
     bool m_acceptsWideQueryText = true;
     detail::NarrowTextBinding m_narrowTextBinding = detail::NarrowTextBinding::Narrow;
     bool m_readsBoundColumnsAgain = true;
+    bool m_reportsUnconvertibleCellsAsNull = false;
     SqlStringTruncationMode m_stringTruncationMode = SqlStringTruncationMode::Truncate;
     SqlHandleOwnership m_handleOwnership = SqlHandleOwnership::Owned;
 
@@ -832,6 +838,11 @@ inline detail::NarrowTextBinding SqlConnection::NarrowTextBindingMode() const no
 inline bool SqlConnection::ReadsBoundColumnsAgain() const noexcept
 {
     return m_readsBoundColumnsAgain;
+}
+
+inline bool SqlConnection::ReportsUnconvertibleCellsAsNull() const noexcept
+{
+    return m_reportsUnconvertibleCellsAsNull;
 }
 
 inline SqlQueryFormatter const& SqlConnection::QueryFormatter() const noexcept

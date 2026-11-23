@@ -39,6 +39,13 @@ class PostgreSqlFormatter final: public SQLiteQueryFormatter
         return true;
     }
 
+    /// PostgreSQL enforces its column types: undoes the SQLite formatter's answer.
+    [[nodiscard]] bool ReportsUnconvertibleCellsAsNull() const noexcept override
+    {
+        return false;
+    }
+
+    /// The PostgreSQL driver converts every integer C type over its range: undoes the SQLite formatter's answer.
     [[nodiscard]] bool BoundsBulkLoadTransactionSize() const noexcept override
     {
         return false;

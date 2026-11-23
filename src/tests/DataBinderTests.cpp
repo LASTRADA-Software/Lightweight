@@ -4363,3 +4363,229 @@ TEST_CASE("SqlDateTime: values of every year compare and sort in time order", "[
     CHECK(early < late);
     CHECK((early.value() < late.value()));
 }
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "SqlVariant reads binary cells as bytes and integers in 64 bits",
+                 "[SqlDataBinder],[SqlVariant]")
+{
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("VariantCells")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Integer {})
+            .Column("Bytes", SqlColumnTypeDefinitions::VarBinary { .size = 16 })
+            .Column("Wide", SqlColumnTypeDefinitions::Bigint {});
+    });
+    auto const bytes = SqlBinary { 0xDE, 0xAD, 0xBE, 0xEF };
+    stmt.Prepare(R"(INSERT INTO "VariantCells" ("Id", "Bytes", "Wide") VALUES (?, ?, ?))");
+    (void) stmt.Execute(1, bytes, std::int64_t { 5'000'000'000 });
+
+    for (auto const depth: { std::size_t { 1 }, PrefetchDepthDefault })
+    {
+        INFO("prefetch depth " << depth);
+        stmt.Connection().SetDefaultPrefetchDepth(depth);
+        auto cursor = stmt.ExecuteDirect(R"(SELECT "Bytes", "Wide" FROM "VariantCells")"sv);
+        REQUIRE(cursor.FetchRow());
+        auto const binary = cursor.GetColumn<SqlVariant>(1);
+        auto const wide = cursor.GetColumn<SqlVariant>(2);
+        REQUIRE(std::holds_alternative<SqlBinary>(binary.value));
+        CHECK((std::get<SqlBinary>(binary.value) == bytes)); // no printer for SqlBinary
+        CHECK(wide.TryGetLongLong() == std::optional<long long> { 5'000'000'000 });
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "SqlVariant reads a SQLite cell whose value is not of its column's type as stored",
+                 "[SqlDataBinder],[SqlVariant]")
+{
+    auto stmt = SqlStatement {};
+    UNSUPPORTED_DATABASE(stmt, SqlServerType::MICROSOFT_SQL); // enforces column types: such a cell cannot exist
+    UNSUPPORTED_DATABASE(stmt, SqlServerType::POSTGRESQL);    // the same
+
+    (void) stmt.ExecuteDirect("DROP TABLE IF EXISTS variant_affinity"sv);
+    (void) stmt.ExecuteDirect(
+        "CREATE TABLE variant_affinity (k INTEGER, i INTEGER, d DATE, ts TIMESTAMP, tm TIME, b BLOB)"sv);
+    (void) stmt.ExecuteDirect("INSERT INTO variant_affinity VALUES "
+                              "(1, 'hello', 'notadate', 'nottimestamp', 'nottime', x'DEADBEEF'), "
+                              "(2, 5000000000, '2024-01-02', '2024-01-02 03:04:05', '03:04:05', NULL), "
+                              "(3, NULL, NULL, NULL, NULL, x'00')"sv);
+
+    for (auto const depth: { std::size_t { 1 }, PrefetchDepthDefault })
+    {
+        INFO("prefetch depth " << depth);
+        stmt.Connection().SetDefaultPrefetchDepth(depth);
+        auto rows = std::vector<std::vector<SqlVariant>> {};
+        auto cursor = stmt.ExecuteDirect("SELECT i, d, ts, tm, b FROM variant_affinity ORDER BY k"sv);
+        while (cursor.FetchRow())
+        {
+            auto& row = rows.emplace_back();
+            for (auto const column: std::views::iota(SQLUSMALLINT { 1 }, SQLUSMALLINT { 6 }))
+                row.push_back(cursor.GetColumn<SqlVariant>(column));
+        }
+        REQUIRE(rows.size() == 3);
+
+        // Text in typed columns comes back as the text, not as NULL.
+        CHECK(rows[0][0].TryGetStringView() == std::optional<std::string_view> { "hello" });
+        CHECK(rows[0][1].TryGetStringView() == std::optional<std::string_view> { "notadate" });
+        CHECK(rows[0][2].TryGetStringView() == std::optional<std::string_view> { "nottimestamp" });
+        CHECK(rows[0][3].TryGetStringView() == std::optional<std::string_view> { "nottime" });
+        REQUIRE(std::holds_alternative<SqlBinary>(rows[0][4].value));
+        CHECK((std::get<SqlBinary>(rows[0][4].value) == SqlBinary { 0xDE, 0xAD, 0xBE, 0xEF }));
+
+        // A 64-bit integer in an INTEGER column, and typed values, read as such.
+        CHECK(rows[1][0].TryGetLongLong() == std::optional<long long> { 5'000'000'000 });
+        CHECK(std::holds_alternative<SqlDate>(rows[1][1].value));
+        CHECK(std::holds_alternative<SqlDateTime>(rows[1][2].value));
+        CHECK(std::holds_alternative<SqlTime>(rows[1][3].value));
+
+        // Real NULLs stay NULL.
+        for (auto const column: std::views::iota(std::size_t { 0 }, std::size_t { 4 }))
+            CHECK(rows[2][column].IsNull());
+
+        // An INTEGER-only result set, which block prefetch would otherwise read: the variant row cursor and the
+        // variant scalar read it per row, so the text and the wide integer survive.
+        auto values = std::vector<SqlVariant> {};
+        for (auto& row: SqlVariantRowCursor(stmt.ExecuteDirect("SELECT i FROM variant_affinity ORDER BY k"sv)))
+            values.push_back(row.at(0));
+        REQUIRE(values.size() == 3);
+        CHECK(values[0].TryGetStringView() == std::optional<std::string_view> { "hello" });
+        CHECK(values[1].TryGetLongLong() == std::optional<long long> { 5'000'000'000 });
+        CHECK(values[2].IsNull());
+        auto const scalar = stmt.ExecuteDirectScalar<SqlVariant>("SELECT i FROM variant_affinity WHERE k = 1"sv);
+        CHECK(scalar.TryGetStringView() == std::optional<std::string_view> { "hello" });
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "Known limit: a raw SqlVariant read of a prefetched SQLite block reads a mistyped cell as NULL",
+                 "[SqlDataBinder],[SqlVariant]")
+{
+    auto stmt = SqlStatement {};
+    UNSUPPORTED_DATABASE(stmt, SqlServerType::MICROSOFT_SQL); // enforces column types: such a cell cannot exist
+    UNSUPPORTED_DATABASE(stmt, SqlServerType::POSTGRESQL);    // the same
+
+    (void) stmt.ExecuteDirect("DROP TABLE IF EXISTS variant_limit"sv);
+    (void) stmt.ExecuteDirect("CREATE TABLE variant_limit (k INTEGER, i INTEGER)"sv);
+    (void) stmt.ExecuteDirect("INSERT INTO variant_limit VALUES (1, 'hello'), (2, 7)"sv);
+    auto const query = "SELECT i FROM variant_limit ORDER BY k"sv;
+
+    auto const readRaw = [&] {
+        auto values = std::vector<SqlVariant> {};
+        auto cursor = stmt.ExecuteDirect(query);
+        while (cursor.FetchRow())
+            values.push_back(cursor.GetColumn<SqlVariant>(1));
+        return values;
+    };
+
+    // The documented limit: the block was fetched before the variant read, and the driver reported the
+    // text in the INTEGER column as NULL; a prefetched block cannot read the cell again as text.
+    stmt.Connection().SetDefaultPrefetchDepth(PrefetchDepthDefault);
+    auto const prefetched = readRaw();
+    REQUIRE(prefetched.size() == 2);
+    CHECK(prefetched[0].IsNull());
+    CHECK(prefetched[1].TryGetLongLong() == std::optional<long long> { 7 });
+
+    // The ways out the documentation names read it as the text.
+    auto viaRowCursor = std::vector<SqlVariant> {};
+    for (auto& row: SqlVariantRowCursor(stmt.ExecuteDirect(query)))
+        viaRowCursor.push_back(row.at(0));
+    REQUIRE(viaRowCursor.size() == 2);
+    CHECK(viaRowCursor[0].TryGetStringView() == std::optional<std::string_view> { "hello" });
+    CHECK(stmt.ExecuteDirectScalar<SqlVariant>("SELECT i FROM variant_limit WHERE k = 1"sv).TryGetStringView()
+          == std::optional<std::string_view> { "hello" });
+
+    stmt.Connection().SetDefaultPrefetchDepth(1);
+    auto const perRow = readRaw();
+    REQUIRE(perRow.size() == 2);
+    CHECK(perRow[0].TryGetStringView() == std::optional<std::string_view> { "hello" });
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "SqlVariant reads of a statement describe each result set's columns anew",
+                 "[SqlDataBinder],[SqlVariant]")
+{
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("VariantDescribe")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Integer {})
+            .RequiredColumn("Name", SqlColumnTypeDefinitions::Varchar { .size = 20 })
+            .RequiredColumn("Number", SqlColumnTypeDefinitions::Integer {});
+    });
+    std::ignore = stmt.ExecuteDirect(R"(INSERT INTO "VariantDescribe" ("Id", "Name", "Number") VALUES (1, 'first', 42))");
+    std::ignore = stmt.ExecuteDirect(R"(INSERT INTO "VariantDescribe" ("Id", "Name", "Number") VALUES (2, 'second', 43))");
+
+    // The statement keeps each column's type for the result set it described, so the rows after the first ask the
+    // driver nothing; the next query's column 1 has another type and must be described again.
+    auto const read = [&](std::string_view column) {
+        auto cells = std::vector<SqlVariant> {};
+        for (auto& row: SqlVariantRowCursor {
+                 stmt.ExecuteDirect(std::format(R"(SELECT "{}" FROM "VariantDescribe" ORDER BY "Id")", column)) })
+            cells.push_back(std::move(row.at(0)));
+        return cells;
+    };
+    auto const names = read("Name");
+    REQUIRE(names.size() == 2);
+    CHECK(std::holds_alternative<std::string>(names[0].value));
+    CHECK(names[1].ToString() == "second");
+    auto const numbers = read("Number");
+    REQUIRE(numbers.size() == 2);
+    CHECK_FALSE(std::holds_alternative<std::string>(numbers[0].value));
+    CHECK(numbers[0].ToString() == "42");
+    CHECK(numbers[1].ToString() == "43");
+    auto const namesAgain = read("Name");
+    REQUIRE(namesAgain.size() == 2);
+    CHECK(std::holds_alternative<std::string>(namesAgain[0].value));
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "SqlVariant reads of a prepared SELECT ? describe each execute's column anew",
+                 "[SqlDataBinder],[SqlVariant]")
+{
+    // Executed again with another parameter type, the driver may give the column that type (SQL Server prepares
+    // the statement again as nvarchar): a type kept from the previous execute would read the text as an integer.
+    // Each read must equal the read of a statement that executes the query once.
+    auto stmt = SqlStatement {};
+    stmt.Connection().SetDefaultPrefetchDepth(1);
+    stmt.Prepare("SELECT ?");
+    auto const readThrough = [](SqlStatement& statement, auto const& value) {
+        auto cells = std::vector<std::string> {};
+        for (auto& row: SqlVariantRowCursor { statement.Execute(value) })
+            cells.push_back(std::format(
+                "{}:{}", std::holds_alternative<std::string>(row.at(0).value) ? "text" : "other", row.at(0).ToString()));
+        return cells;
+    };
+    auto const once = [&](auto const& value) {
+        auto fresh = SqlStatement {};
+        fresh.Prepare("SELECT ?");
+        return readThrough(fresh, value);
+    };
+    CHECK(readThrough(stmt, 42) == once(42));
+    CHECK(readThrough(stmt, std::string { "abc" }) == once(std::string { "abc" }));
+    CHECK(readThrough(stmt, 43) == once(43));
+    CHECK(once(std::string { "abc" }) == std::vector<std::string> { "text:abc" });
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "DataMapper::Query<SqlVariantRow> reads a SQLite cell not of its column's type as stored",
+                 "[SqlDataBinder],[SqlVariant]")
+{
+    auto dm = DataMapper {};
+    auto stmt = SqlStatement { dm.Connection() };
+    UNSUPPORTED_DATABASE(stmt, SqlServerType::MICROSOFT_SQL); // enforces column types: such a cell cannot exist
+    UNSUPPORTED_DATABASE(stmt, SqlServerType::POSTGRESQL);    // the same
+
+    (void) stmt.ExecuteDirect("DROP TABLE IF EXISTS variant_query"sv);
+    (void) stmt.ExecuteDirect("CREATE TABLE variant_query (k INTEGER, i INTEGER, d DATE)"sv);
+    (void) stmt.ExecuteDirect("INSERT INTO variant_query VALUES (1, 'hello', 'notadate'), (2, '', '2024-01-02')"sv);
+
+    // At the default depth, which block-prefetches an INTEGER and DATE result set: a copy tool built on this
+    // must get the text, not NULL.
+    dm.Connection().SetDefaultPrefetchDepth(PrefetchDepthDefault);
+    auto const rows = dm.Query<SqlVariantRow>("SELECT i, d FROM variant_query ORDER BY k"sv);
+    REQUIRE(rows.size() == 2);
+    REQUIRE(rows[0].size() == 2);
+    CHECK(rows[0][0].TryGetStringView() == std::optional<std::string_view> { "hello" });
+    CHECK(rows[0][1].TryGetStringView() == std::optional<std::string_view> { "notadate" });
+    REQUIRE(rows[1].size() == 2);
+    CHECK(rows[1][0].TryGetStringView() == std::optional<std::string_view> { "" });
+    CHECK(std::holds_alternative<SqlDate>(rows[1][1].value));
+}

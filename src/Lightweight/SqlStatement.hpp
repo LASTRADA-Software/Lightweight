@@ -410,6 +410,7 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
   private:
     friend class SqlResultCursor;
     friend class RowArrayCursor;
+    friend class SqlVariantRowIterator;
     template <typename T>
     friend class SqlRowIterator;
 
@@ -572,6 +573,9 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     /// @return The declared SQL type, or @c std::nullopt when the driver cannot describe it.
     [[nodiscard]] LIGHTWEIGHT_API std::optional<SQLSMALLINT> DescribeInputParameterType(
         SQLUSMALLINT column) noexcept override;
+    /// @copydoc SqlDataBinderCallback::DescribeResultColumnType
+    [[nodiscard]] LIGHTWEIGHT_API std::optional<SQLSMALLINT> DescribeResultColumnType(
+        SQLUSMALLINT column) const noexcept override;
     LIGHTWEIGHT_API void ClearBatchIndicators();
     /// Sets up column-wise array binding of @p rowCount rows and binds @p columns as input parameters.
     /// @param columns The columns to bind.
@@ -649,6 +653,10 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     /// @brief Flags that a bound output column's target type cannot be served from the block buffer, so
     /// arming must decline prefetch for this result set and keep the per-row path.
     LIGHTWEIGHT_API void MarkPrefetchBindingUnsupported() noexcept;
+    /// @brief Keeps the result set about to be read into SqlVariant values on the per-row path where the
+    /// driver reports a cell its column type cannot convert as NULL (see
+    /// SqlQueryFormatter::ReportsUnconvertibleCellsAsNull()): only the per-row read can read it again as text.
+    LIGHTWEIGHT_API void KeepVariantReadsPerRow() noexcept;
     /// @brief The class of C++ type a bound output column reads into. The block buffer serves a column
     /// only when its SQL type is one this class reads the same way on the per-row path; for any other
     /// pairing (e.g. an INTEGER column bound to a SqlDateTime) the per-row conversion is driver-specific,
@@ -832,6 +840,8 @@ inline SqlPreparedStatementCaching SqlStatement::PreparedStatementCaching() cons
 /// API for reading an SQL query result set.
 class [[nodiscard]] SqlResultCursor
 {
+    friend class SqlVariantRowIterator;
+
   public:
     /// Constructs a result cursor for the given SQL statement.
     explicit LIGHTWEIGHT_FORCE_INLINE SqlResultCursor(SqlStatement& stmt) noexcept:
@@ -1259,6 +1269,7 @@ class [[nodiscard]] SqlVariantRowIterator
         _cursor { &cursor }
     {
         _row.reserve(_numResultColumns);
+        cursor.m_stmt->KeepVariantReadsPerRow(); // before the first fetch decides on block prefetch
         ++(*this);
     }
 
@@ -2863,6 +2874,7 @@ template <typename T>
 inline T SqlStatement::ExecuteDirectScalar(std::string_view const& query, std::source_location location)
 {
     auto cursor = ExecuteDirect(query, location);
+    KeepVariantReadsPerRow();
     // FetchRow() throws on a failure; false means an empty result set, which has no value to report.
     if (!FetchRow())
         throw SqlException(SqlErrorInfo { .nativeErrorCode = 0,

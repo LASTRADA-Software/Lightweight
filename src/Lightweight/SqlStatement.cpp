@@ -62,12 +62,16 @@ struct SqlStatement::Data
     // The precision and scale each result column declares, asked of the driver once per result set and column (see
     // SqlStatement::DeclaredDynamicNumericDigits()).
     std::vector<std::optional<SqlDataBinder<SqlDynamicNumeric>::DeclaredDigits>> declaredNumericDigits;
+    // The SQL type of each result column, asked of the driver once per result set and column (see
+    // SqlStatement::DescribeResultColumnType()).
+    std::vector<std::optional<SQLSMALLINT>> resultColumnTypes;
 
-    /// @brief Drops the result set's declared digits: every execute may produce columns of other types (a
-    /// re-executed `SELECT ?` takes its parameter's type).
+    /// @brief Drops the result set's column types and declared digits: every execute may produce columns of other
+    /// types (a re-executed `SELECT ?` takes its parameter's type).
     void ForgetResultSetColumns() noexcept
     {
         declaredNumericDigits.clear();
+        resultColumnTypes.clear();
     }
 
     /// @brief Drops what was asked of the driver about the result set's columns, since the next query's may differ.
@@ -435,6 +439,7 @@ SqlStatement::SqlStatement():
                  .outputColumnBeingBound = 0,
                  .declaredOutputColumnSizes = {},
                  .declaredNumericDigits = {},
+                 .resultColumnTypes = {},
                  .describedParameterTypes = {},
                  .prefetchMode = Data::PrefetchMode::Unarmed,
                  .prefetch = {},
@@ -1361,6 +1366,24 @@ SqlDataBinder<SqlDynamicNumeric>::DeclaredDigits SqlStatement::DeclaredDynamicNu
     return *declared;
 }
 
+std::optional<SQLSMALLINT> SqlStatement::DescribeResultColumnType(SQLUSMALLINT column) const noexcept
+{
+    try
+    {
+        auto& types = m_data->resultColumnTypes;
+        if (types.size() <= column)
+            types.resize(static_cast<std::size_t>(column) + 1);
+        auto& type = types[column];
+        if (!type)
+            type = detail::DescribeResultColumnSqlType(m_hStmt, column);
+        return type;
+    }
+    catch (...)
+    {
+        return std::nullopt; // the binder then asks the driver itself
+    }
+}
+
 void SqlStatement::DropOutputColumnBindings() noexcept
 {
     m_data->ForgetResultColumnDescriptions(); // the next query's result set may differ
@@ -1378,6 +1401,12 @@ void SqlStatement::NoteOutputColumnBoundDirectly() noexcept
 void SqlStatement::MarkPrefetchBindingUnsupported() noexcept
 {
     m_data->prefetchBindingUnsupported = true;
+}
+
+void SqlStatement::KeepVariantReadsPerRow() noexcept
+{
+    if (m_connection != nullptr && m_connection->ReportsUnconvertibleCellsAsNull())
+        MarkPrefetchBindingUnsupported();
 }
 
 void SqlStatement::RecordPrefetchColumn(SQLUSMALLINT column,
@@ -1543,8 +1572,13 @@ SqlVariant SqlStatement::MakePrefetchVariantCell(RowArrayCursor const& cursor, s
             return SqlVariant { SqlVariant::InnerType { static_cast<short>(cursor.GetI64(row, column).value_or(0)) } };
         case SQL_SMALLINT:
             return SqlVariant { SqlVariant::InnerType { static_cast<short>(cursor.GetI64(row, column).value_or(0)) } };
-        case SQL_INTEGER:
-            return SqlVariant { SqlVariant::InnerType { static_cast<int>(cursor.GetI64(row, column).value_or(0)) } };
+        case SQL_INTEGER: {
+            // An int when it fits, as the per-row read gives it; SQLite stores wider integers in INTEGER columns.
+            auto const value = cursor.GetI64(row, column).value_or(0);
+            if (std::in_range<int>(value))
+                return SqlVariant { SqlVariant::InnerType { static_cast<int>(value) } };
+            return SqlVariant { SqlVariant::InnerType { static_cast<long long>(value) } };
+        }
         case SQL_BIGINT:
             return SqlVariant { SqlVariant::InnerType { static_cast<long long>(cursor.GetI64(row, column).value_or(0)) } };
         case SQL_REAL:

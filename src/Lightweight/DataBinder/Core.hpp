@@ -9,6 +9,7 @@
 #include "../SqlServerType.hpp"
 
 #include <algorithm>
+#include <array>
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
@@ -65,6 +66,12 @@ namespace detail
     /// @brief Elements a growable container is bound with at least, where the driver can read a bound
     /// column again (see @ref SqlDataBinderCallback::MinimumOutputColumnSize).
     inline constexpr std::size_t DefaultBoundColumnSize = 255;
+
+    /// @brief Whether @p serverType's driver reports a cell its column type cannot convert as NULL; forwards to
+    /// @c SqlQueryFormatter::ReportsUnconvertibleCellsAsNull.
+    /// @param serverType The backend.
+    /// @return The formatter's answer; @c false for a backend without a formatter.
+    [[nodiscard]] LIGHTWEIGHT_API bool ReportsUnconvertibleCellsAsNull(SqlServerType serverType) noexcept;
 } // namespace detail
 
 /// Callback interface for SqlDataBinder to allow post-processing of output columns.
@@ -193,7 +200,64 @@ class LIGHTWEIGHT_API SqlDataBinderCallback
         (void) column;
         return std::nullopt;
     }
+
+    /// The SQL type the driver describes for result column @p column (see detail::DescribeResultColumnSqlType()),
+    /// asked of the driver once per result set and column, so a binder that picks its read by the column's type
+    /// for every row's cell (SqlVariant) asks nothing after the first row.
+    /// @param column The 1-based column index.
+    /// @return The SQL type, or @c std::nullopt when the callback keeps none or the driver cannot describe the
+    ///         column (the binder then asks the driver itself, and reports its error).
+    [[nodiscard]] virtual std::optional<SQLSMALLINT> DescribeResultColumnType(SQLUSMALLINT column) const noexcept
+    {
+        (void) column;
+        return std::nullopt;
+    }
 };
+
+namespace detail
+{
+    /// Asks the driver for the concise SQL type of result column @p column with @c SQLDescribeColW.
+    ///
+    /// SQLDescribeCol reports the concise SQL type code (e.g. SQL_TYPE_DATE, SQL_TYPE_TIME, SQL_TYPE_TIMESTAMP). It
+    /// is asked rather than SQLColAttribute(SQL_DESC_CONCISE_TYPE), which the SQLite driver answers with SQL_WCHAR
+    /// for a BLOB column. The W variant keeps the ODBC call surface on the Unicode-app path the rest of the library
+    /// uses. The column name is not needed, but a real buffer with its true length is passed: psqlODBC under
+    /// unixODBC fails a null or zero-length name buffer with HY001 ("Could not allocate memory for column name").
+    /// On the stack, and a name longer than it is only truncated (01004, a success).
+    /// @param stmt The statement handle.
+    /// @param column The 1-based column index.
+    /// @param columnType Receives the SQL type.
+    /// @return The driver's return code.
+    inline SQLRETURN DescribeResultColumnSqlType(SQLHSTMT stmt, SQLUSMALLINT column, SQLSMALLINT* columnType) noexcept
+    {
+        SQLULEN columnSize {};
+        SQLSMALLINT decimalDigits {};
+        SQLSMALLINT nullable {};
+        auto columnName = std::array<SQLWCHAR, 64> {};
+        SQLSMALLINT columnNameLength {};
+        return SQLDescribeColW(stmt,
+                               column,
+                               columnName.data(),
+                               static_cast<SQLSMALLINT>(columnName.size()),
+                               &columnNameLength,
+                               columnType,
+                               &columnSize,
+                               &decimalDigits,
+                               &nullable);
+    }
+
+    /// Asks the driver for the concise SQL type of result column @p column (see the overload above).
+    /// @param stmt The statement handle.
+    /// @param column The 1-based column index.
+    /// @return The SQL type, or @c std::nullopt when the driver cannot describe the column.
+    inline std::optional<SQLSMALLINT> DescribeResultColumnSqlType(SQLHSTMT stmt, SQLUSMALLINT column) noexcept
+    {
+        SQLSMALLINT columnType {};
+        if (!SQL_SUCCEEDED(DescribeResultColumnSqlType(stmt, column, &columnType)))
+            return std::nullopt;
+        return columnType;
+    }
+} // namespace detail
 
 template <typename>
 struct SqlDataBinder;

@@ -467,6 +467,17 @@ class [[nodiscard]] LIGHTWEIGHT_API SqlQueryFormatter
         return {};
     }
 
+    /// @brief Whether the driver reports a cell whose stored value its declared column type cannot convert
+    /// (text in an INTEGER or DATE column) as NULL when the cell is read as that type.
+    ///
+    /// Defaults to `false`. SQLite returns `true`: its columns' types are declarations only, and its driver
+    /// answers such a typed read with @c SQL_NULL_DATA, so a SqlVariant reads the cell again as text.
+    /// @return `true` if a typed read's NULL may hide a value of another type.
+    [[nodiscard]] virtual bool ReportsUnconvertibleCellsAsNull() const noexcept
+    {
+        return false;
+    }
+
   protected:
     /// Formats a table name with optional schema prefix.
     static std::string FormatTableName(std::string_view schema, std::string_view table);

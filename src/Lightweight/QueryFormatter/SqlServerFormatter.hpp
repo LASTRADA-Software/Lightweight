@@ -61,6 +61,13 @@ class SqlServerQueryFormatter final: public SQLiteQueryFormatter
         return true;
     }
 
+    /// SQL Server enforces its column types: undoes the SQLite formatter's answer.
+    [[nodiscard]] bool ReportsUnconvertibleCellsAsNull() const noexcept override
+    {
+        return false;
+    }
+
+    /// The SQL Server driver converts every integer C type over its range: undoes the SQLite formatter's answer.
     [[nodiscard]] bool BoundsBulkLoadTransactionSize() const noexcept override
     {
         return false;

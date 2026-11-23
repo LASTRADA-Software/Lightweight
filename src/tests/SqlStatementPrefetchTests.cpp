@@ -369,7 +369,12 @@ TEST_CASE_METHOD(SqlTestFixture, "Prefetch: SqlRowIterator and SqlVariantRowCurs
         }
         CHECK(actual == expected);
         REQUIRE(actual.size() == rowCount);
-        CHECK(probe.blockFetches >= 2);
+        // Where the driver reports a cell its column type cannot convert as NULL (SQLite), the variant cursor
+        // reads per row, so that cell can be read again as text.
+        if (stmt.Connection().QueryFormatter().ReportsUnconvertibleCellsAsNull())
+            CHECK(probe.blockFetches == 0);
+        else
+            CHECK(probe.blockFetches >= 2);
     }
 }
 
