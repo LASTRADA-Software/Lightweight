@@ -478,6 +478,16 @@ class [[nodiscard]] LIGHTWEIGHT_API SqlQueryFormatter
         return false;
     }
 
+    /// @brief Whether the driver may report a boolean true as -1.
+    ///
+    /// Defaults to `false`. PostgreSQL returns `true`: psqlODBC with the connection option `TrueIsMinus1=1` reports a
+    /// boolean true as -1 (through @c SQL_C_BIT the byte 0xFF), so a @c bool read there takes -1 as @c true.
+    /// @return `true` if -1 is a form of a boolean true on this backend.
+    [[nodiscard]] virtual bool BooleanTrueMayBeMinusOne() const noexcept
+    {
+        return false;
+    }
+
   protected:
     /// Formats a table name with optional schema prefix.
     static std::string FormatTableName(std::string_view schema, std::string_view table);

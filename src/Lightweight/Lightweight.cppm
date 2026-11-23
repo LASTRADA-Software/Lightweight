@@ -234,6 +234,7 @@ using Lightweight::SqlOptimalMaxColumnSize;
 using Lightweight::SqlOutputColumnBinder;
 using Lightweight::SqlOutputColumnLength;
 using Lightweight::SqlOutputColumnPreFetch;
+using Lightweight::SqlOutputColumnStaging;
 using Lightweight::SqlPoolStatistics;
 using Lightweight::SqlPreparedStatementCache;
 using Lightweight::SqlPreparedStatementCaching;

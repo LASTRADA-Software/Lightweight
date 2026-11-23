@@ -14,9 +14,12 @@
 
 #include <algorithm>
 #include <array>
+#include <cstdint>
 #include <cstdlib>
+#include <cstring>
 #include <deque>
 #include <format>
+#include <functional>
 #include <limits>
 #include <numbers>
 #include <optional>
@@ -4733,4 +4736,496 @@ TEST_CASE_METHOD(SqlTestFixture,
     stmt.Prepare(R"(INSERT INTO "NegativeYear" ("Id", "D", "T") VALUES (?, ?, ?))");
     (void) stmt.Execute(8, goodDate, goodMoment);
     CHECK((stmt.ExecuteDirectScalar<SqlDate>(R"(SELECT "D" FROM "NegativeYear" WHERE "Id" = 8)"sv) == goodDate));
+}
+
+/// A record with a @c bool member over a BIGINT column, read by SqlRowIterator. At namespace scope, not in an
+/// anonymous namespace: MSVC cannot reflect a type with internal linkage.
+struct BoolFromIntegerRecord
+{
+    static constexpr std::string_view TableName = "BoolFromInteger";
+
+    Field<std::int64_t> Id;
+    Field<bool> V;
+};
+
+namespace
+{
+
+/// A number read as @c bool: "true", "false", or the SQLSTATE of the failure.
+std::string BoolOutcome(std::function<bool()> const& read)
+{
+    try
+    {
+        return read() ? "true" : "false";
+    }
+    catch (SqlException const& error)
+    {
+        return error.info().sqlState;
+    }
+}
+
+/// Rows of a bool read through a row-wise fetch or a record iterator: the values, or the SQLSTATE of the failure.
+std::string BoolRowsOutcome(std::function<std::vector<bool>()> const& read)
+{
+    try
+    {
+        auto text = std::string {};
+        for (auto const value: read())
+            text += value ? "1" : "0";
+        return text;
+    }
+    catch (SqlException const& error)
+    {
+        return error.info().sqlState;
+    }
+}
+
+} // namespace
+
+TEST_CASE_METHOD(SqlTestFixture, "A bool reads 0 and 1 and fails with 22003 for any other number", "[SqlDataBinder]")
+{
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("BoolFromInteger")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Bigint {})
+            .RequiredColumn("V", SqlColumnTypeDefinitions::Bigint {});
+    });
+    auto const values = std::array<std::int64_t, 6> { 0, 1, 2, -1, 255, 256 };
+    for (auto const index: std::views::iota(std::size_t { 0 }, values.size()))
+        (void) stmt.ExecuteDirect(
+            std::format(R"(INSERT INTO "BoolFromInteger" ("Id", "V") VALUES ({}, {}))", index, values[index]));
+
+    // Every read but the row-wise fetch reads the number itself, per row and from the block alike: 0 and 1, and -1
+    // where the driver may report a boolean true as -1 (PostgreSQL), else 22003.
+    auto const minusOneIsTrue = stmt.Connection().BooleanTrueMayBeMinusOne();
+    auto const expected = [&](std::int64_t value) -> std::string {
+        if (value == 1 || (value == -1 && minusOneIsTrue))
+            return "true";
+        return value == 0 ? "false" : "22003";
+    };
+
+    for (auto const depth: { std::size_t { 1 }, PrefetchDepthDefault })
+    {
+        stmt.Connection().SetDefaultPrefetchDepth(depth);
+        for (auto const index: std::views::iota(std::size_t { 0 }, values.size()))
+        {
+            INFO(std::format("depth {} value {}", depth, values[index]));
+            auto const query = std::format(R"(SELECT "V" FROM "BoolFromInteger" WHERE "Id" = {})", index);
+            CHECK(BoolOutcome([&] {
+                      auto cursor = stmt.ExecuteDirect(query);
+                      if (!cursor.FetchRow())
+                          throw std::runtime_error("no row");
+                      return cursor.GetColumn<bool>(1);
+                  })
+                  == expected(values[index]));
+            CHECK(BoolOutcome([&] {
+                      auto cursor = stmt.ExecuteDirect(query);
+                      if (!cursor.FetchRow())
+                          throw std::runtime_error("no row");
+                      return cursor.GetNullableColumn<bool>(1).value_or(false);
+                  })
+                  == expected(values[index]));
+            CHECK(BoolOutcome([&] {
+                      auto value = false;
+                      auto cursor = stmt.ExecuteDirect(query);
+                      cursor.BindOutputColumns(&value);
+                      if (!cursor.FetchRow())
+                          throw std::runtime_error("no row");
+                      return value;
+                  })
+                  == expected(values[index]));
+            CHECK(BoolOutcome([&] {
+                      auto value = std::optional<bool> {};
+                      auto cursor = stmt.ExecuteDirect(query);
+                      cursor.BindOutputColumns(&value);
+                      if (!cursor.FetchRow())
+                          throw std::runtime_error("no row");
+                      return value.value_or(false);
+                  })
+                  == expected(values[index]));
+            CHECK(BoolOutcome([&] { return stmt.ExecuteDirectScalar<bool>(query).value_or(false); })
+                  == expected(values[index]));
+        }
+
+        // A record member read per row: the first row that is neither 0 nor 1 (2) fails the read.
+        CHECK(BoolRowsOutcome([&] {
+                  auto rows = std::vector<bool> {};
+                  for (auto const& record: SqlRowIterator<BoolFromIntegerRecord> { stmt.Connection() })
+                      rows.push_back(record.V.Value());
+                  return rows;
+              })
+              == "22003");
+    }
+
+    // The row-wise fetch (FetchAllRowWise, and DataMapper All() through it) binds the record's bool in place as
+    // SQL_C_BIT and so takes what the driver writes there: SQL Server fails 2 with 22003, PostgreSQL writes the low
+    // byte (2 fails with 22003, 256 reads false), SQLite writes 1 for any positive number and 0 otherwise.
+    auto const isSqlite = stmt.Connection().ServerType() == SqlServerType::SQLITE;
+    auto const isPostgres = stmt.Connection().ServerType() == SqlServerType::POSTGRESQL;
+    struct BoolRow
+    {
+        std::int64_t id = 0;
+        bool value = false;
+    };
+    auto const rowWise = [&](std::string_view where) {
+        return BoolRowsOutcome([&] {
+            auto rows = std::vector<BoolRow> {};
+            auto cursor =
+                stmt.ExecuteDirect(std::format(R"(SELECT "Id", "V" FROM "BoolFromInteger" WHERE {} ORDER BY "Id")", where));
+            cursor.FetchAllRowWise(
+                rows,
+                8,
+                [](BoolRow& row) -> std::int64_t& { return row.id; },
+                [](BoolRow& row) -> bool& { return row.value; });
+            auto result = std::vector<bool> {};
+            for (auto const& row: rows)
+                result.push_back(row.value);
+            return result;
+        });
+    };
+    CHECK(rowWise("1 = 1") == std::string { isSqlite ? "011011" : "22003" });
+    auto const rowWise256 = [&]() -> std::string {
+        if (isSqlite)
+            return "1";
+        return isPostgres ? "0" : "22003";
+    }();
+    CHECK(rowWise(R"("V" = 256)") == rowWise256);
+    auto const rowWiseMinusOne = [&]() -> std::string {
+        if (isSqlite)
+            return "0";
+        return isPostgres ? "1" : "22003";
+    }();
+    CHECK(rowWise(R"("V" = -1)") == rowWiseMinusOne);
+    // PostgreSQL writes the low byte 0xFF, a boolean true reported as -1.
+    CHECK(rowWise(R"("V" = 255)") == std::string { isSqlite || isPostgres ? "1" : "22003" });
+
+    auto dm = DataMapper {};
+    CHECK(BoolRowsOutcome([&] {
+              auto rows = std::vector<bool> {};
+              for (auto const& record: dm.Query<BoolFromIntegerRecord>().OrderBy("Id").All())
+                  rows.push_back(record.V.Value());
+              return rows;
+          })
+          == std::string { isSqlite ? "011011" : "22003" });
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "A bool column round-trips, with and without prefetch", "[SqlDataBinder]")
+{
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("BoolRoundTrip")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Bigint {})
+            .Column("V", SqlColumnTypeDefinitions::Bool {});
+    });
+    stmt.Prepare(R"(INSERT INTO "BoolRoundTrip" ("Id", "V") VALUES (?, ?))");
+    (void) stmt.Execute(std::int64_t { 1 }, true);
+    (void) stmt.Execute(std::int64_t { 2 }, std::optional<bool> {});
+    (void) stmt.Execute(std::int64_t { 3 }, false);
+
+    auto variantsPerRow = std::vector<std::string> {};
+    for (auto const depth: { std::size_t { 1 }, PrefetchDepthDefault })
+    {
+        INFO("depth " << depth);
+        stmt.Connection().SetDefaultPrefetchDepth(depth);
+        auto value = true;
+        auto maybe = std::optional<bool> {};
+        auto variants = std::vector<std::string> {};
+        auto cursor = stmt.ExecuteDirect(R"(SELECT "V", "V" FROM "BoolRoundTrip" ORDER BY "Id")");
+        cursor.BindOutputColumns(&value, &maybe);
+        auto read = std::string {};
+        auto const optionalText = [](std::optional<bool> const& v) {
+            if (!v.has_value())
+                return "-";
+            return *v ? "1" : "0";
+        };
+        while (cursor.FetchRow())
+            read += std::format("{}{} ", value ? "1" : "0", optionalText(maybe));
+        // A NULL read into a bound bool sets it to false, also after a true.
+        CHECK(read == "11 0- 00 ");
+        for (auto& row: SqlVariantRowCursor { stmt.ExecuteDirect(R"(SELECT "V" FROM "BoolRoundTrip" ORDER BY "Id")") })
+            variants.push_back(row.at(0).ToString());
+        // The variant's alternative follows the driver's column type (PostgreSQL reports a boolean as text by
+        // default); both depths read the same.
+        if (depth == 1)
+            variantsPerRow = variants;
+        CHECK(variants == variantsPerRow);
+        CHECK(variants.size() == 3);
+    }
+}
+
+/// A record with a @c bool member over a BOOLEAN column, read on a connection with psqlODBC's TrueIsMinus1. At
+/// namespace scope: MSVC cannot reflect a type with internal linkage.
+struct BoolMinusOneRecord
+{
+    static constexpr std::string_view TableName = "BoolMinusOne";
+
+    Field<std::int64_t> Id;
+    Field<std::optional<bool>> V;
+};
+
+TEST_CASE_METHOD(SqlTestFixture, "A bool reads a boolean true reported as -1 as true", "[SqlDataBinder]")
+{
+    auto stmt = SqlStatement {};
+    if (!stmt.Connection().BooleanTrueMayBeMinusOne())
+        SKIP("Only psqlODBC reports a boolean true as -1 (connection option TrueIsMinus1=1).");
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("BoolMinusOne")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Bigint {})
+            .Column("V", SqlColumnTypeDefinitions::Bool {});
+    });
+    stmt.Prepare(R"(INSERT INTO "BoolMinusOne" ("Id", "V") VALUES (?, ?))");
+    (void) stmt.Execute(std::int64_t { 1 }, true);
+    (void) stmt.Execute(std::int64_t { 2 }, std::optional<bool> {});
+    (void) stmt.Execute(std::int64_t { 3 }, false);
+
+    auto connectionString = SqlConnection::DefaultConnectionString();
+    connectionString.value += ";TrueIsMinus1=1";
+    auto connection = SqlConnection { connectionString };
+    auto minusOne = SqlStatement { connection };
+    // The driver does report it so: a true read as a number is -1.
+    CHECK(minusOne.ExecuteDirectScalar<std::int64_t>(R"(SELECT "V" FROM "BoolMinusOne" WHERE "Id" = 1)").value_or(0) == -1);
+
+    auto const optionalText = [](std::optional<bool> const& value) {
+        if (!value.has_value())
+            return "-";
+        return *value ? "1" : "0";
+    };
+    for (auto const depth: { std::size_t { 1 }, PrefetchDepthDefault })
+    {
+        INFO("depth " << depth);
+        connection.SetDefaultPrefetchDepth(depth);
+        auto read = std::string {};
+        auto cursor = minusOne.ExecuteDirect(R"(SELECT "V" FROM "BoolMinusOne" ORDER BY "Id")");
+        while (cursor.FetchRow())
+            read += optionalText(cursor.GetNullableColumn<bool>(1));
+        CHECK(read == "1-0");
+
+        auto value = false;
+        auto bound = std::string {};
+        cursor = minusOne.ExecuteDirect(R"(SELECT "V" FROM "BoolMinusOne" ORDER BY "Id")");
+        cursor.BindOutputColumns(&value);
+        while (cursor.FetchRow())
+            bound += value ? "1" : "0";
+        CHECK(bound == "100");
+
+        auto records = std::string {};
+        for (auto const& record: SqlRowIterator<BoolMinusOneRecord> { connection })
+            records += optionalText(record.V.Value());
+        CHECK(records == "1-0");
+    }
+
+    struct BoolRow
+    {
+        std::int64_t id = 0;
+        std::optional<bool> value;
+    };
+    auto rows = std::vector<BoolRow> {};
+    auto cursor = minusOne.ExecuteDirect(R"(SELECT "Id", "V" FROM "BoolMinusOne" ORDER BY "Id")");
+    cursor.FetchAllRowWise(
+        rows,
+        8,
+        [](BoolRow& row) -> std::int64_t& { return row.id; },
+        [](BoolRow& row) -> std::optional<bool>& { return row.value; });
+    auto rowWise = std::string {};
+    for (auto const& row: rows)
+        rowWise += optionalText(row.value);
+    CHECK(rowWise == "1-0");
+
+    auto dm = DataMapper { std::move(connection) };
+    auto all = std::string {};
+    for (auto const& record: dm.Query<BoolMinusOneRecord>().OrderBy("Id").All())
+        all += optionalText(record.V.Value());
+    CHECK(all == "1-0");
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "FetchAllRowWise keeps the rows of the blocks before a failing one, and only those",
+                 "[SqlStatement]")
+{
+    auto stmt = SqlStatement {};
+    if (stmt.Connection().ServerType() == SqlServerType::SQLITE)
+        SKIP("The SQLite driver writes 1 for any positive number through SQL_C_BIT, so no row fails.");
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("BoolBlocks")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Bigint {})
+            .RequiredColumn("V", SqlColumnTypeDefinitions::Bigint {});
+    });
+    // Blocks of 4 rows: the second block's second row holds 2, which no bool reads.
+    for (auto const id: std::views::iota(0, 8))
+        (void) stmt.ExecuteDirect(
+            std::format(R"(INSERT INTO "BoolBlocks" ("Id", "V") VALUES ({}, {}))", id, id == 5 ? 2 : id % 2));
+
+    struct BoolRow
+    {
+        std::int64_t id = 0;
+        bool value = false;
+    };
+    auto rows = std::vector<BoolRow> { BoolRow { .id = -1, .value = true } };
+    auto cursor = stmt.ExecuteDirect(R"(SELECT "Id", "V" FROM "BoolBlocks" ORDER BY "Id")");
+    auto error = std::string {};
+    try
+    {
+        cursor.FetchAllRowWise(
+            rows, 4, [](BoolRow& row) -> std::int64_t& { return row.id; }, [](BoolRow& row) -> bool& { return row.value; });
+    }
+    catch (SqlException const& exception)
+    {
+        error = exception.info().sqlState;
+    }
+    CHECK(error == "22003");
+    // What the vector held before, then the first block.
+    REQUIRE(rows.size() == 5);
+    for (auto const index: std::views::iota(std::size_t { 0 }, rows.size()))
+    {
+        INFO("row " << index);
+        CHECK(rows[index].id == static_cast<std::int64_t>(index) - 1);
+        auto byte = static_cast<unsigned char>(0xAA);
+        std::memcpy(&byte, &rows[index].value, 1);
+        CHECK(byte <= 1);
+        CHECK(rows[index].value == (index == 0 || index % 2 == 0));
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "FetchAllRowWise reports a row's error, not an earlier row's warning", "[SqlStatement]")
+{
+    auto stmt = SqlStatement {};
+    if (stmt.Connection().ServerType() != SqlServerType::MICROSOFT_SQL)
+        SKIP("Only the SQL Server driver warns of a truncated fraction (01S07) and fails a later row in the block.");
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("RowErrorAfterWarning")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Bigint {})
+            .RequiredColumn("V", SqlColumnTypeDefinitions::Real { .precision = 53 });
+    });
+    // Row 1 loses its fraction (a warning), row 2 does not fit an int32_t (an error).
+    (void) stmt.ExecuteDirect(R"(INSERT INTO "RowErrorAfterWarning" ("Id", "V") VALUES (1, 1.5), (2, 5000000000))");
+
+    struct IntRow
+    {
+        std::int64_t id = 0;
+        std::int32_t value = 0;
+    };
+    auto rows = std::vector<IntRow> {};
+    auto cursor = stmt.ExecuteDirect(R"(SELECT "Id", "V" FROM "RowErrorAfterWarning" ORDER BY "Id")");
+    auto error = std::string {};
+    try
+    {
+        cursor.FetchAllRowWise(
+            rows,
+            8,
+            [](IntRow& row) -> std::int64_t& { return row.id; },
+            [](IntRow& row) -> std::int32_t& { return row.value; });
+    }
+    catch (SqlException const& exception)
+    {
+        error = exception.info().sqlState;
+    }
+    CHECK(error == "22003");
+    CHECK(rows.empty());
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "A SqlVariant reads a bit column by the bool rule, with and without prefetch",
+                 "[SqlDataBinder]")
+{
+    auto stmt = SqlStatement {};
+    if (stmt.Connection().ServerType() != SqlServerType::SQLITE)
+        SKIP("Only SQLite stores a number other than 0 or 1 in a column it describes as SQL_BIT.");
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("VariantBit")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Bigint {})
+            .Column("V", SqlColumnTypeDefinitions::Bool {});
+    });
+    (void) stmt.ExecuteDirect(R"(INSERT INTO "VariantBit" ("Id", "V") VALUES (0, 0), (1, 1), (2, 2), (3, -1))");
+
+    auto const variantOutcome = [](std::function<SqlVariant()> const& read) -> std::string {
+        try
+        {
+            return read().ToString();
+        }
+        catch (SqlException const& error)
+        {
+            return error.info().sqlState;
+        }
+    };
+    for (auto const depth: { std::size_t { 1 }, PrefetchDepthDefault })
+    {
+        stmt.Connection().SetDefaultPrefetchDepth(depth);
+        auto outcomes = std::string {};
+        for (auto const id: std::views::iota(0, 4))
+        {
+            outcomes += variantOutcome([&] {
+                auto cursor = stmt.ExecuteDirect(std::format(R"(SELECT "V" FROM "VariantBit" WHERE "Id" = {})", id));
+                if (!cursor.FetchRow())
+                    throw std::runtime_error("no row");
+                return cursor.GetColumn<SqlVariant>(1);
+            });
+            outcomes += ' ';
+        }
+        INFO("depth " << depth);
+        CHECK(outcomes == "false true 22003 22003 ");
+
+        auto rows = std::string {};
+        try
+        {
+            for (auto& row: SqlVariantRowCursor { stmt.ExecuteDirect(R"(SELECT "V" FROM "VariantBit" ORDER BY "Id")") })
+                rows += row.at(0).ToString() + ' ';
+        }
+        catch (SqlException const& error)
+        {
+            rows += error.info().sqlState;
+        }
+        CHECK(rows == "false true 22003");
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "A bool reads text the driver cannot give as a number in a BOOLEAN column as NULL",
+                 "[SqlDataBinder]")
+{
+    auto stmt = SqlStatement {};
+    if (stmt.Connection().ServerType() != SqlServerType::SQLITE)
+        SKIP("Only SQLite stores text in a column it describes as SQL_BIT.");
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("BoolText")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Bigint {})
+            .Column("V", SqlColumnTypeDefinitions::Bool {});
+    });
+    (void) stmt.ExecuteDirect(R"(INSERT INTO "BoolText" ("Id", "V") VALUES (1, 'true'))");
+    auto const query = std::string_view { R"(SELECT "V" FROM "BoolText" WHERE "Id" = 1)" };
+    auto const optionalText = [](std::optional<bool> const& value) -> std::string_view {
+        if (!value.has_value())
+            return "-";
+        return *value ? "1" : "0";
+    };
+
+    // SQLite describes the column as SQL_BIT, so a bool is read through SQL_C_SBIGINT, which the driver answers
+    // with NULL for text; the block prefetch reports the cell as NULL as well. (Through SQL_C_BIT the driver parses
+    // 'true' as 1, which earlier versions returned per row.)
+    for (auto const depth: { std::size_t { 1 }, PrefetchDepthDefault })
+    {
+        INFO("depth " << depth);
+        stmt.Connection().SetDefaultPrefetchDepth(depth);
+        auto read = std::string {};
+        {
+            auto cursor = stmt.ExecuteDirect(query);
+            REQUIRE(cursor.FetchRow());
+            read += optionalText(cursor.GetNullableColumn<bool>(1));
+        }
+        {
+            auto value = std::optional<bool> { true };
+            auto cursor = stmt.ExecuteDirect(query);
+            cursor.BindOutputColumns(&value);
+            REQUIRE(cursor.FetchRow());
+            read += optionalText(value);
+        }
+        {
+            auto cursor = stmt.ExecuteDirect(query);
+            REQUIRE(cursor.FetchRow());
+            auto const variant = cursor.GetColumn<SqlVariant>(1);
+            read += variant.IsNull() ? "-" : variant.ToString();
+        }
+        // A SqlVariant read per row reads such a cell again as text; a block-prefetched one reads it as NULL (see
+        // docs/data-binder.md).
+        CHECK(read == (depth == 1 ? "--true" : "---"));
+    }
 }

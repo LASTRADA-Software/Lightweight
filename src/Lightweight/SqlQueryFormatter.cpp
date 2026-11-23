@@ -53,6 +53,12 @@ SqlQueryFormatter const& SqlQueryFormatter::PostgrSQL()
     return formatter;
 }
 
+bool detail::BooleanTrueMayBeMinusOne(SqlServerType serverType) noexcept
+{
+    auto const* formatter = SqlQueryFormatter::Get(serverType);
+    return formatter != nullptr && formatter->BooleanTrueMayBeMinusOne();
+}
+
 bool detail::ReportsUnconvertibleCellsAsNull(SqlServerType serverType) noexcept
 {
     auto const* formatter = SqlQueryFormatter::Get(serverType);

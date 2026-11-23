@@ -485,6 +485,10 @@ class SqlConnection final
     /// once per connect.
     [[nodiscard]] bool ReportsUnconvertibleCellsAsNull() const noexcept;
 
+    /// Whether the driver may report a boolean true as -1 (see SqlQueryFormatter::BooleanTrueMayBeMinusOne);
+    /// @c false for a backend without a formatter. Decided once per connect.
+    [[nodiscard]] bool BooleanTrueMayBeMinusOne() const noexcept;
+
     /// Retrieves a query formatter suitable for the SQL server being connected.
     [[nodiscard]] SqlQueryFormatter const& QueryFormatter() const noexcept;
 
@@ -813,6 +817,7 @@ class SqlConnection final
     detail::NarrowTextBinding m_narrowTextBinding = detail::NarrowTextBinding::Narrow;
     bool m_readsBoundColumnsAgain = true;
     bool m_reportsUnconvertibleCellsAsNull = false;
+    bool m_booleanTrueMayBeMinusOne = false;
     SqlStringTruncationMode m_stringTruncationMode = SqlStringTruncationMode::Truncate;
     SqlHandleOwnership m_handleOwnership = SqlHandleOwnership::Owned;
 
@@ -848,6 +853,11 @@ inline bool SqlConnection::ReadsBoundColumnsAgain() const noexcept
 inline bool SqlConnection::ReportsUnconvertibleCellsAsNull() const noexcept
 {
     return m_reportsUnconvertibleCellsAsNull;
+}
+
+inline bool SqlConnection::BooleanTrueMayBeMinusOne() const noexcept
+{
+    return m_booleanTrueMayBeMinusOne;
 }
 
 inline SqlQueryFormatter const& SqlConnection::QueryFormatter() const noexcept

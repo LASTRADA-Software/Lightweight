@@ -44,6 +44,9 @@ struct SqlStatement::Data
     std::deque<std::vector<std::byte>> batchStagingBuffers;
     // The row-strided indicators of a row-wise fetch's columns (see SqlStatement::ProvideRowWiseFetchIndicators()).
     std::deque<std::vector<std::byte>> fetchIndicatorBuffers;
+    /// The staging of each output column (see SqlStatement::ProvideOutputColumnStaging()). A deque, so a staging
+    /// bound to the driver never moves when a later column adds one.
+    std::deque<SqlOutputColumnStaging> outputColumnStaging;
     std::vector<std::function<void()>> postExecuteCallbacks;
 
     /// @brief What the binders planned for one bound output column. Re-binding the column clears the
@@ -461,6 +464,19 @@ std::string const& SqlStatement::DriverName() const noexcept
     return m_connection->DriverName();
 }
 
+SqlOutputColumnStaging* SqlStatement::ProvideOutputColumnStaging(SQLUSMALLINT column)
+{
+    auto& slots = m_data->outputColumnStaging;
+    if (slots.size() < column)
+        slots.resize(column);
+    return &slots[column - 1U];
+}
+
+bool SqlStatement::BooleanTrueMayBeMinusOne() const noexcept
+{
+    return m_connection != nullptr && m_connection->BooleanTrueMayBeMinusOne();
+}
+
 detail::NarrowTextBinding SqlStatement::NarrowTextBindingMode() const noexcept
 {
     return m_connection->NarrowTextBindingMode();
@@ -474,6 +490,7 @@ SqlStatement::SqlStatement():
                  .batchIndicators = {},
                  .batchStagingBuffers = {},
                  .fetchIndicatorBuffers = {},
+                 .outputColumnStaging = {},
                  .postExecuteCallbacks = {},
                  .outputColumnCallbacks = {},
                  .columnsWithCallbacks = {},
@@ -1618,7 +1635,9 @@ SqlVariant SqlStatement::MakePrefetchVariantCell(RowArrayCursor const& cursor, s
     switch (cursor.ColumnSqlType(column))
     {
         case SQL_BIT:
-            return SqlVariant { SqlVariant::InnerType { static_cast<bool>(cursor.GetI64(row, column).value_or(0)) } };
+            // The rule of the per-row bool read: 0 and 1 (and -1 where the driver reports a boolean true so), else 22003.
+            return SqlVariant { SqlVariant::InnerType {
+                detail::BoolFromInteger(cursor.GetI64(row, column).value_or(0), column, BooleanTrueMayBeMinusOne()) } };
         case SQL_TINYINT:
             // Unsigned 0..255 on SQL Server; int8_t would wrap 128..255 to negatives. Widen to short,
             // matching the per-row SqlVariant path so a prefetched cell compares equal to a per-row one.

@@ -168,6 +168,57 @@ such a batch the rows before the bad one are already stored.
   so after a read the fraction is always 0, on every database and path; a fraction set before writing is
   not stored.
 
+## `bool`
+
+A `bool` is never written by the driver into the `bool` itself: a `bool` holding any byte but 0 or 1 is undefined
+behaviour, and PostgreSQL's driver converts a number to `SQL_C_BIT` by writing its low byte (2 as 2, -1 as 0xFF,
+256 as 0). A per-row read (`GetColumn`, a bound column, `ExecuteDirectScalar`, `SqlRowIterator`) reads into a
+value the statement stages, through the C type that fits the column's described SQL type (a `SqlVariant` reads a
+column described as `SQL_BIT` through the same `bool` read):
+
+| Column type                                              | Read as         | Reads as `true` / `false`                                    |
+|----------------------------------------------------------|-----------------|--------------------------------------------------------------|
+| integer or bit (`BIT`, `BOOLEAN`, `SMALLINT` … `BIGINT`) | `SQL_C_SBIGINT` | 1 / 0; -1 is `true` on PostgreSQL (see below); else `22003`  |
+| floating point or decimal (`REAL`, `FLOAT`, `NUMERIC` …) | `SQL_C_DOUBLE`  | [1, 2) / [0, 1); else `22003`, as ODBC converts to `SQL_C_BIT` |
+| text and anything else                                   | `SQL_C_BIT`     | byte 1 / 0 (0xFF as -1 above); else `22003`                  |
+
+The block prefetch, including a prefetched `SqlVariant` of a bit column, applies the same rule to the number it
+holds, so a single read gives the same result with and without prefetch on every database: anything but 0 and 1
+(and -1 on PostgreSQL) fails with `22003`. Text goes through `SQL_C_BIT` because the drivers parse `'true'` only
+there (through `SQL_C_SBIGINT` SQLite reports it as `NULL` and PostgreSQL as 0). On SQLite, text in a column
+described as integer or bit (`'true'` in a `BOOLEAN` column) therefore reads as `NULL`, per row as under prefetch;
+earlier versions read it as `true` per row. Choosing the C type costs a look-up of the column's type, which the
+statement asks the driver once per result set and column; a column bound before `Execute()` describes the prepared
+statement. A `NULL` read into a bound non-optional `bool` sets it to `false`, as the block prefetch does.
+
+**PostgreSQL: a boolean true as -1.** psqlODBC with the connection option `TrueIsMinus1=1` reports a `BOOLEAN`
+true as -1 (through `SQL_C_BIT` the byte 0xFF). Since the option is not visible to the library, a `bool` read on
+PostgreSQL accepts -1 as `true` whatever the connection string says (`SqlQueryFormatter::BooleanTrueMayBeMinusOne`);
+in particular, -1 in an `INTEGER` or `BIGINT` column reads as `true` there, where it fails with `22003` on SQL
+Server and SQLite. For single reads, any other number (2, 255, 256, -2 …) still fails with `22003`; the row-wise
+fetch below takes what the driver writes instead.
+
+**The row-wise fetch differs.** `FetchAllRowWise` — and the DataMapper's `All()`, `First(n)`, `Range()` and the
+two-record JOIN, which use it for a record whose columns are all fixed-width — binds each record's `bool` in place
+as `SQL_C_BIT`, so it takes what the driver's bit conversion writes, then checks that byte before the record is
+used: 0 and 1 read as they are, 0xFF as `true` on PostgreSQL, any other byte fails with `22003`. For a number other
+than 0 or 1 that means:
+
+- **SQL Server** fails the row with `22003`, as a single read does.
+- **PostgreSQL** writes the number's low byte: a number whose low byte is 1 or 0xFF reads `true` (257 and -255 via
+  0x01; 255, 511, -1 and -257 via 0xFF), one whose low byte is 0 reads `false` (256, 512, -256), and any other
+  fails with `22003` (2, 254).
+- **SQLite** writes 1 for any positive number and 0 otherwise: 2, 255 and 256 read `true`, -1 reads `false`.
+
+| Value in an integer column | Single read, with or without prefetch | Row-wise: SQL Server | PostgreSQL | SQLite  |
+|----------------------------|---------------------------------------|----------------------|------------|---------|
+| 2                          | `22003`                               | `22003`              | `22003`    | `true`  |
+| 255                        | `22003`                               | `22003`              | `true`     | `true`  |
+| 256                        | `22003`                               | `22003`              | `false`    | `true`  |
+| -1                         | `22003` (`true` on PostgreSQL)        | `22003`              | `true`     | `false` |
+
+When a row-wise block fails, the vector keeps the rows of the blocks before it, and none of the failing block.
+
 ## `SqlNumeric<Precision, Scale>` precision limits
 
 `Precision` is a count of **decimal digits**. It may be at most
@@ -368,5 +419,8 @@ in the connection string:
 |----------------|----------------|-------------------------------------------------------------------------------------------------------------------------------|
 | `BoolsAsChar`  | `0`            | Reports `BOOLEAN` columns as `SQL_BIT` so they dispatch into the `bool` alternative. The driver default reports them as `SQL_CHAR`. |
 | `LFConversion` | `0`            | Disables LF↔CRLF translation. Required for byte-exact round-trips of `TEXT`/`VARCHAR` values containing `\n`.                  |
+
+`TrueIsMinus1=1` is not required and is accepted: a `bool` read on PostgreSQL takes the -1 it then reports for a
+`BOOLEAN` true as `true` (see [`bool`](#bool)).
 
 The canonical postgres entry with these options is in `scripts/tests/.test-env.yml`.

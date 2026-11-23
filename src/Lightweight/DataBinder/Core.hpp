@@ -19,6 +19,7 @@
 #include <optional>
 #include <ranges>
 #include <string_view>
+#include <type_traits>
 #include <utility>
 
 #include <sql.h>
@@ -85,12 +86,60 @@ namespace detail
         });
     }
 
+    /// @brief Whether @p serverType's driver may report a boolean true as -1; forwards to
+    /// @c SqlQueryFormatter::BooleanTrueMayBeMinusOne.
+    /// @param serverType The backend.
+    /// @return The formatter's answer; @c false for a backend without a formatter.
+    [[nodiscard]] LIGHTWEIGHT_API bool BooleanTrueMayBeMinusOne(SqlServerType serverType) noexcept;
+
+    /// @brief The @c bool a number read for a @c bool stands for: 0 is @c false, 1 is @c true, and -1 is @c true
+    /// where @p minusOneIsTrue (a driver that reports a boolean true as -1).
+    /// @param value The number.
+    /// @param column The 1-based column index, for the error.
+    /// @param minusOneIsTrue Whether -1 is the dialect's form of a boolean true.
+    /// @return The @c bool.
+    /// @throws SqlException 22003 for any other number, as SQL Server's driver fails it.
+    [[nodiscard]] inline bool BoolFromInteger(std::int64_t value, SQLUSMALLINT column, bool minusOneIsTrue)
+    {
+        if (value == 1 || (value == -1 && minusOneIsTrue))
+            return true;
+        if (value != 0)
+            ThrowNumericValueOutOfRange(column, value, minusOneIsTrue ? -1 : 0, 1);
+        return false;
+    }
+
+    /// @brief The @c bool a floating-point number read for a @c bool stands for, as ODBC converts a number to
+    /// @c SQL_C_BIT: its integral part where the number is in [0, 2).
+    /// @param value The number.
+    /// @param column The 1-based column index, for the error.
+    /// @return The @c bool.
+    /// @throws SqlException 22003 for a number outside [0, 2) or NaN.
+    [[nodiscard]] inline bool BoolFromFloatingPoint(double value, SQLUSMALLINT column)
+    {
+        if (!(value >= 0.0 && value < 2.0))
+            ThrowNumericValueOutOfRange(column, value, 0, 1);
+        return value >= 1.0;
+    }
+
     /// @brief Whether @p serverType's driver reports a cell its column type cannot convert as NULL; forwards to
     /// @c SqlQueryFormatter::ReportsUnconvertibleCellsAsNull.
     /// @param serverType The backend.
     /// @return The formatter's answer; @c false for a backend without a formatter.
     [[nodiscard]] LIGHTWEIGHT_API bool ReportsUnconvertibleCellsAsNull(SqlServerType serverType) noexcept;
 } // namespace detail
+
+/// The staging a statement keeps for one bound output column whose binder converts a staged value per row (see
+/// @c SqlDataBinderCallback::ProvideOutputColumnStaging): the value the driver writes, and what the binder's
+/// post-fetch step needs to convert it.
+struct SqlOutputColumnStaging
+{
+    alignas(std::int64_t) std::array<std::byte, sizeof(std::int64_t)> value {}; //!< The value the driver writes.
+    void* target = nullptr;                                                     //!< The bound variable.
+    SQLLEN* indicator = nullptr;                                                //!< The column's indicator.
+    SQLUSMALLINT column = 0;                                                    //!< The 1-based column index.
+    std::uint8_t kind = 0;                 //!< Which C type the binder bound, in the binder's own terms.
+    bool booleanTrueMayBeMinusOne = false; //!< The dialect's form of a boolean true, for the @c bool binder.
+};
 
 /// Callback interface for SqlDataBinder to allow post-processing of output columns.
 ///
@@ -239,6 +288,26 @@ class LIGHTWEIGHT_API SqlDataBinderCallback
     {
         (void) error;
     }
+
+    /// Provides the staging of output column @p column, which stays valid as long as the callback: a binder that
+    /// converts a staged value per row binds its value there instead of the variable, keeps what its post-fetch
+    /// step needs in it, so that step captures only a pointer (no allocation per bind), and binding the same column
+    /// again reuses it.
+    /// @param column The 1-based column index.
+    /// @return The staging, or @c nullptr when the callback keeps none (the binder then allocates its own).
+    [[nodiscard]] virtual SqlOutputColumnStaging* ProvideOutputColumnStaging(SQLUSMALLINT column)
+    {
+        (void) column;
+        return nullptr;
+    }
+
+    /// Whether the driver may report a boolean true as -1 (see @c SqlQueryFormatter::BooleanTrueMayBeMinusOne). A
+    /// statement answers from its connection, which decides it once per connect.
+    /// @return @c true where a @c bool read takes -1 as @c true.
+    [[nodiscard]] virtual bool BooleanTrueMayBeMinusOne() const noexcept
+    {
+        return detail::BooleanTrueMayBeMinusOne(ServerType());
+    }
 };
 
 namespace detail
@@ -283,6 +352,42 @@ namespace detail
         if (!SQL_SUCCEEDED(DescribeResultColumnSqlType(stmt, column, &columnType)))
             return std::nullopt;
         return columnType;
+    }
+
+    /// Prepares the staging of output column @p fields.column for a binder that binds its value there and converts
+    /// it into @p fields.target after every fetch with @p Convert: the statement's staging of the column, else one
+    /// the planned step owns. With the statement's staging the step captures one pointer, so it fits
+    /// @c std::function's inline buffer and binding the column again allocates nothing. Everything the conversion
+    /// needs is in @p fields: nothing is written to the staging once the step is handed to @p cb.
+    /// @tparam Convert The conversion, called with the staging after every fetch.
+    /// @param cb The binder callback.
+    /// @param fields The column, variable, indicator and conversion details; its @c value is ignored.
+    /// @return The address of the staged value, which the binder binds; valid as long as the planned step.
+    template <auto Convert>
+    std::byte* PlanStagedOutputColumn(SqlDataBinderCallback& cb, SqlOutputColumnStaging const& fields)
+    {
+        if (auto* const slot = cb.ProvideOutputColumnStaging(fields.column); slot != nullptr)
+        {
+            *slot = fields;
+            slot->value = {};
+            auto* const bound = slot->value.data();
+            auto step = [slot] {
+                Convert(*slot);
+            };
+            // libstdc++ keeps a callable inline only if it is trivially copyable and fits two pointers.
+            static_assert(sizeof(step) <= 2 * sizeof(void*) && std::is_trivially_copyable_v<decltype(step)>,
+                          "kept within std::function's inline buffer");
+            cb.PlanPostProcessOutputColumn(step);
+            return bound;
+        }
+        auto staging = std::make_shared<SqlOutputColumnStaging>(fields);
+        staging->value = {};
+        auto* const bound = staging->value.data();
+        auto step = [staging = std::move(staging)] {
+            Convert(*staging);
+        };
+        cb.PlanPostProcessOutputColumn(std::move(step));
+        return bound;
     }
 } // namespace detail
 

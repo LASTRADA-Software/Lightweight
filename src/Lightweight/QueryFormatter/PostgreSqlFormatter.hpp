@@ -45,6 +45,12 @@ class PostgreSqlFormatter final: public SQLiteQueryFormatter
         return false;
     }
 
+    /// psqlODBC reports a boolean true as -1 under the connection option TrueIsMinus1=1.
+    [[nodiscard]] bool BooleanTrueMayBeMinusOne() const noexcept override
+    {
+        return true;
+    }
+
     /// The PostgreSQL driver converts every integer C type over its range: undoes the SQLite formatter's answer.
     [[nodiscard]] bool BoundsBulkLoadTransactionSize() const noexcept override
     {

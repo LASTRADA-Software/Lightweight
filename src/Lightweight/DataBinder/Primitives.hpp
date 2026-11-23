@@ -62,6 +62,174 @@ struct SqlSimpleDataBinder
     }
 };
 
+/// Binds a @c bool as @c SQL_BIT. A read goes through a value the statement stages, never straight into the
+/// @c bool, and applies the rule of the block prefetch, so a read gives the same with and without it: a number
+/// reads 0 as @c false and 1 as @c true, -1 as @c true where the driver reports a boolean true so
+/// (@c SqlQueryFormatter::BooleanTrueMayBeMinusOne, PostgreSQL), and fails with SQLSTATE 22003 otherwise; a
+/// floating-point number reads as its integral part where it is in [0, 2). The C type follows the column's
+/// described SQL type: @c SQL_C_SBIGINT for an integer or bit column (the drivers write the number itself, where
+/// @c SQL_C_BIT gets PostgreSQL's low byte and SQLite's "positive is 1"), @c SQL_C_DOUBLE for a floating-point or
+/// decimal column (SQLite answers a fraction through @c SQL_C_SBIGINT as NULL), and @c SQL_C_BIT for text and any
+/// other type (the drivers parse 'true' only there). A NULL read into a bound @c bool sets it to @c false, as
+/// the block prefetch does.
+template <>
+struct SqlDataBinder<bool>
+{
+    /// The column type the DataMapper creates for @c bool.
+    static constexpr SqlColumnTypeDefinition ColumnType = SqlColumnTypeDefinitions::Bool {};
+
+    /// Binds @p value as an input parameter.
+    /// @return The driver's result.
+    static LIGHTWEIGHT_FORCE_INLINE SQLRETURN InputParameter(SQLHSTMT stmt,
+                                                             SQLUSMALLINT column,
+                                                             bool const& value,
+                                                             SqlDataBinderCallback& /*cb*/) noexcept
+    {
+        return SQLBindParameter(stmt, column, SQL_PARAM_INPUT, SQL_C_BIT, SQL_BIT, 0, 0, (SQLPOINTER) &value, 0, nullptr);
+    }
+
+    /// Binds a contiguous (column-wise) or row-strided (row-wise) array of values as an input parameter.
+    /// @return The driver's result.
+    static LIGHTWEIGHT_FORCE_INLINE SQLRETURN BatchInputParameter(SQLHSTMT stmt,
+                                                                  SQLUSMALLINT column,
+                                                                  bool const* values,
+                                                                  size_t /*rowCount*/,
+                                                                  SqlDataBinderCallback& /*cb*/,
+                                                                  SQLLEN* indicators = nullptr) noexcept
+    {
+        return SQLBindParameter(
+            stmt, column, SQL_PARAM_INPUT, SQL_C_BIT, SQL_BIT, 0, 0, (SQLPOINTER) values, sizeof(bool), indicators);
+    }
+
+    /// Binds @p result as an output column, through the statement's staging of @p column.
+    /// @return The driver's result.
+    static LIGHTWEIGHT_FORCE_INLINE SQLRETURN
+    OutputColumn(SQLHSTMT stmt, SQLUSMALLINT column, bool* result, SQLLEN* indicator, SqlDataBinderCallback& cb) noexcept
+    {
+        auto const source = SourceOf(stmt, column, cb);
+        auto* const staged =
+            detail::PlanStagedOutputColumn<&ConvertStaged>(cb,
+                                                           SqlOutputColumnStaging {
+                                                               .value = {},
+                                                               .target = result,
+                                                               .indicator = indicator,
+                                                               .column = column,
+                                                               .kind = std::to_underlying(source),
+                                                               .booleanTrueMayBeMinusOne = cb.BooleanTrueMayBeMinusOne(),
+                                                           });
+        return SQLBindCol(stmt, column, CTypeOf(source), staged, 0, indicator);
+    }
+
+    /// Reads column @p column of the current row into @p result.
+    /// @return The driver's result.
+    /// @throws SqlException 22003 for a value that stands for neither @c false nor @c true.
+    static LIGHTWEIGHT_FORCE_INLINE SQLRETURN
+    GetColumn(SQLHSTMT stmt, SQLUSMALLINT column, bool* result, SQLLEN* indicator, SqlDataBinderCallback const& cb)
+    {
+        auto const source = SourceOf(stmt, column, cb);
+        auto staging = SqlOutputColumnStaging {
+            .value = {},
+            .target = result,
+            .indicator = indicator,
+            .column = column,
+            .kind = std::to_underlying(source),
+            .booleanTrueMayBeMinusOne = cb.BooleanTrueMayBeMinusOne(),
+        };
+        auto const rv = SQLGetData(stmt, column, CTypeOf(source), staging.value.data(), 0, indicator);
+        if (SQL_SUCCEEDED(rv) && *indicator != SQL_NULL_DATA)
+            *result = FromStaged(staging);
+        return rv;
+    }
+
+    /// @return @p value as text.
+    static LIGHTWEIGHT_FORCE_INLINE std::string Inspect(bool value)
+    {
+        return std::to_string(value);
+    }
+
+  private:
+    /// The C type a @c bool column is read through.
+    enum class Source : std::uint8_t
+    {
+        Bit,           //!< @c SQL_C_BIT, for text and any type not listed below.
+        Integer,       //!< @c SQL_C_SBIGINT, for an integer or bit column.
+        FloatingPoint, //!< @c SQL_C_DOUBLE, for a floating-point or decimal column.
+    };
+
+    /// The ODBC C type of each @c Source.
+    static constexpr auto SourceCTypes = std::array<SQLSMALLINT, 3> { SQL_C_BIT, SQL_C_SBIGINT, SQL_C_DOUBLE };
+
+    /// @return The ODBC C type of @p source.
+    static constexpr SQLSMALLINT CTypeOf(Source source) noexcept
+    {
+        return SourceCTypes[std::to_underlying(source)];
+    }
+
+    /// The source a column of SQL type @p type is read through.
+    static constexpr Source SourceOfSqlType(std::optional<SQLSMALLINT> type) noexcept
+    {
+        switch (type.value_or(SQL_UNKNOWN_TYPE))
+        {
+            case SQL_BIT:
+            case SQL_TINYINT:
+            case SQL_SMALLINT:
+            case SQL_INTEGER:
+            case SQL_BIGINT:
+                return Source::Integer;
+            case SQL_REAL:
+            case SQL_FLOAT:
+            case SQL_DOUBLE:
+            case SQL_NUMERIC:
+            case SQL_DECIMAL:
+                return Source::FloatingPoint;
+            default:
+                return Source::Bit;
+        }
+    }
+
+    /// The source result column @p column is read through, by the SQL type the driver describes for it (the
+    /// statement's, asked once per result set and column).
+    static Source SourceOf(SQLHSTMT stmt, SQLUSMALLINT column, SqlDataBinderCallback const& cb) noexcept
+    {
+        auto type = cb.DescribeResultColumnType(column);
+        if (!type)
+            type = detail::DescribeResultColumnSqlType(stmt, column);
+        return SourceOfSqlType(type);
+    }
+
+    /// Stores the staged value of a bound column into its @c bool: @c false for NULL.
+    static void ConvertStaged(SqlOutputColumnStaging const& staging)
+    {
+        *static_cast<bool*>(staging.target) = *staging.indicator != SQL_NULL_DATA && FromStaged(staging);
+    }
+
+    /// The @c bool the staged value stands for, by the C type it was read through.
+    /// @throws SqlException 22003 for a value that stands for neither @c false nor @c true.
+    static bool FromStaged(SqlOutputColumnStaging const& staging)
+    {
+        switch (static_cast<Source>(staging.kind))
+        {
+            case Source::Integer: {
+                auto value = std::int64_t {};
+                std::memcpy(&value, staging.value.data(), sizeof(value));
+                return detail::BoolFromInteger(value, staging.column, staging.booleanTrueMayBeMinusOne);
+            }
+            case Source::FloatingPoint: {
+                auto value = 0.0;
+                std::memcpy(&value, staging.value.data(), sizeof(value));
+                return detail::BoolFromFloatingPoint(value, staging.column);
+            }
+            case Source::Bit:
+                break;
+        }
+        // SQL_C_BIT: the byte 0xFF is a boolean true reported as -1.
+        auto const byte = std::to_integer<unsigned char>(staging.value[0]);
+        auto const value =
+            byte == std::numeric_limits<unsigned char>::max() ? std::int64_t { -1 } : static_cast<std::int64_t>(byte);
+        return detail::BoolFromInteger(value, staging.column, staging.booleanTrueMayBeMinusOne);
+    }
+};
+
 template <typename Int64Type, SQLSMALLINT TheCType>
 struct Int64DataBinderHelper
 {
@@ -291,7 +459,6 @@ struct SqlDataBinder<char>
 };
 
 // clang-format off
-template <> struct SqlDataBinder<bool>: SqlSimpleDataBinder<bool, SQL_BIT, SQL_BIT, SqlColumnTypeDefinitions::Bool {}> {};
 template <> struct SqlDataBinder<int8_t>: SqlSimpleDataBinder<int8_t, SQL_C_STINYINT, SQL_TINYINT, SqlColumnTypeDefinitions::Tinyint {}> {};
 template <> struct SqlDataBinder<uint8_t>: SqlSimpleDataBinder<uint8_t, SQL_C_UTINYINT, SQL_TINYINT, SqlColumnTypeDefinitions::Tinyint {}> {};
 template <> struct SqlDataBinder<int16_t>: SqlSimpleDataBinder<int16_t, SQL_C_SSHORT, SQL_SMALLINT, SqlColumnTypeDefinitions::Smallint {}> {};
