@@ -66,45 +66,24 @@ std::u8string ToUtf8(std::u16string_view u16InputString)
     return u8String;
 }
 
-// Converts a UTF-8 string to a UTF-16 string.
+// Converts a UTF-8 string to a UTF-16 string; an ill-formed subsequence becomes one U+FFFD for its maximal subpart (see
+// Utf32Converter::Decode()).
 std::u16string ToUtf16(std::u8string_view u8InputString)
 {
     std::u16string u16String;
     u16String.reserve(u8InputString.size());
 
-    char32_t codePoint = 0;
-    int codeUnits = 0;
-    for (auto const c8: u8InputString)
+    while (!u8InputString.empty())
     {
-        if ((c8 & 0b1100'0000) == 0b1000'0000)
+        if (u8InputString.front() < 0x80) // ASCII: one byte, one code unit
         {
-            codePoint = (codePoint << 6) | (c8 & 0b0011'1111);
-            --codeUnits;
-            if (codeUnits == 0)
-            {
-                detail::UnicodeConverter<char16_t>::Convert(codePoint, std::back_inserter(u16String));
-                codePoint = 0;
-            }
+            u16String.push_back(static_cast<char16_t>(u8InputString.front()));
+            u8InputString.remove_prefix(1);
+            continue;
         }
-        else if ((c8 & 0b1000'0000) == 0)
-        {
-            u16String.push_back(char16_t(c8));
-        }
-        else if ((c8 & 0b1110'0000) == 0b1100'0000)
-        {
-            codePoint = c8 & 0b0001'1111;
-            codeUnits = 1;
-        }
-        else if ((c8 & 0b1111'0000) == 0b1110'0000)
-        {
-            codePoint = c8 & 0b0000'1111;
-            codeUnits = 2;
-        }
-        else if ((c8 & 0b1111'1000) == 0b1111'0000)
-        {
-            codePoint = c8 & 0b0000'0111;
-            codeUnits = 3;
-        }
+        auto const [codePoint, length] = detail::Utf32Converter::Decode(u8InputString);
+        detail::UnicodeConverter<char16_t>::Convert(codePoint, std::back_inserter(u16String));
+        u8InputString.remove_prefix(length);
     }
 
     return u16String;
