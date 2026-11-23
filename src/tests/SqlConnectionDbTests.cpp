@@ -1486,6 +1486,17 @@ class ConnectionEventCountingLogger: public SqlLogger::Null
         ++m_closed;
     }
 
+    void OnError(SqlErrorInfo const& /*errorInfo*/, std::source_location /*sourceLocation*/) override
+    {
+        ++m_errors;
+    }
+
+    /// @return The errors reported.
+    [[nodiscard]] int Errors() const noexcept
+    {
+        return m_errors;
+    }
+
     /// @return The connections reported opened.
     [[nodiscard]] int Opened() const noexcept
     {
@@ -1502,6 +1513,7 @@ class ConnectionEventCountingLogger: public SqlLogger::Null
     SqlLogger& m_previousLogger = SqlLogger::GetLogger();
     int m_opened = 0;
     int m_closed = 0;
+    int m_errors = 0;
 };
 
 } // namespace
@@ -1565,4 +1577,27 @@ TEST_CASE_METHOD(SqlTestFixture,
     }
 
     transaction.Rollback();
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlConnection: a failed first connect reports no closing", "[SqlConnection]")
+{
+    auto const events = ConnectionEventCountingLogger {};
+    {
+        auto connection = SqlConnection { std::nullopt };
+        CHECK_FALSE(connection.Connect(SqlConnectionString { "DRIVER={Lightweight No Such Driver}" }));
+        auto const errorsOfConnect = events.Errors();
+        connection.Close();
+        CHECK(events.Errors() == errorsOfConnect); // no "connection not open" from the disconnect either
+    } // and the destructor's Close() neither
+    CHECK(events.Opened() == 0);
+    CHECK(events.Closed() == 0);
+
+    // A connection that was opened is reported closed once.
+    {
+        auto connection = SqlConnection {};
+        REQUIRE(connection.IsAlive());
+        connection.Close();
+    }
+    CHECK(events.Opened() == 1);
+    CHECK(events.Closed() == 1);
 }

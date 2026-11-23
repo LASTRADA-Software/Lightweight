@@ -435,6 +435,7 @@ struct SqlConnection::Data
     // appended; none after a data-source connect and on a borrowed handle, whose connects pass no attribute.
     SqlServerType driverAttributeDialect = SqlServerType::UNKNOWN;
     std::optional<SqlConnectionStringMap> appendedDriverAttributes;
+    bool openedReported = false; // OnConnectionOpened() was reported for the current handle, so Close() reports closing.
     SqlRetrySettings connectRetrySettings;          // How Connect() retries a transient failure.
     SqlRetrySleeper* connectRetrySleeper = nullptr; // Waits between connect attempts; null = ThreadSleeper().
     uint64_t sessionId = 0; // Identifies the current connected session (0 while not connected), see SessionId().
@@ -997,6 +998,7 @@ std::expected<void, SqlErrorInfo> SqlConnection::ConnectOnce(SqlConnectionDataSo
     // one, so every test connects through the SqlConnectionString overload instead, whose counterpart
     // of this call (below) is exercised.
     LIGHTWEIGHT_STATS_CONNECTION_OPENED();
+    m_data->openedReported = true;
 
     if (gPostConnectedHook)
         gPostConnectedHook(*this);
@@ -1055,6 +1057,7 @@ std::expected<void, SqlErrorInfo> SqlConnection::ConnectOnce(SqlConnectionString
     RememberDriverTextEntry(driverKey, m_acceptsWideQueryText);
     SqlLogger::GetLogger().OnConnectionOpened(*this);
     LIGHTWEIGHT_STATS_CONNECTION_OPENED();
+    m_data->openedReported = true;
 
     if (gPostConnectedHook)
         gPostConnectedHook(*this);
@@ -1305,8 +1308,13 @@ void SqlConnection::Close() noexcept
     if (!m_hDbc)
         return;
 
+    // Only a connection reported opened is reported closed: a handle whose first Connect() failed never was.
+    auto const wasOpened = m_data && m_data->openedReported;
     if (m_data)
+    {
         m_data->sessionId = 0;
+        m_data->openedReported = false;
+    }
 
     if (m_handleOwnership == SqlHandleOwnership::Borrowed)
     {
@@ -1316,8 +1324,11 @@ void SqlConnection::Close() noexcept
         return;
     }
 
-    SqlLogger::GetLogger().OnConnectionClosed(*this);
-    LIGHTWEIGHT_STATS_CONNECTION_CLOSED();
+    if (wasOpened)
+    {
+        SqlLogger::GetLogger().OnConnectionClosed(*this);
+        LIGHTWEIGHT_STATS_CONNECTION_CLOSED();
+    }
 
     // Statement handles are children of the DBC handle: free them before it goes away. The pooled ones,
     // and the ones live SqlStatement objects still hold: ODBC lets SQLDisconnect free those, but the
@@ -1327,7 +1338,8 @@ void SqlConnection::Close() noexcept
     FreeStatementHandles();
 
     detail::UnregisterAnsiOnlyHandle(m_hDbc);
-    if (!SQL_SUCCEEDED(SQLDisconnect(m_hDbc)))
+    // A handle that never connected answers 08003 ("connection not open"): nothing to report.
+    if (!SQL_SUCCEEDED(SQLDisconnect(m_hDbc)) && wasOpened)
         SqlLogger::GetLogger().OnError(SqlErrorInfo::FromConnectionHandle(m_hDbc));
     SQLFreeHandle(SQL_HANDLE_DBC, m_hDbc);
     SQLFreeHandle(SQL_HANDLE_ENV, m_hEnv);
