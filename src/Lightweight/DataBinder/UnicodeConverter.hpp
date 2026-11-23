@@ -21,13 +21,18 @@ namespace Lightweight
 namespace detail
 {
 
+    /// U+FFFD REPLACEMENT CHARACTER: what every ill-formed code unit and every code point that is no Unicode
+    /// scalar value converts to, one per unit, so that no well-formed unit next to it is lost.
+    inline constexpr auto ReplacementCharacter = char32_t { 0xFFFD };
+
     template <typename>
     struct UnicodeConverter;
 
     template <>
     struct LIGHTWEIGHT_API UnicodeConverter<char8_t>
     {
-        // Converts a UTF-32 code point to one to four UTF-8 code units.
+        // Converts a UTF-32 code point to one to four UTF-8 code units. A surrogate or a code point above
+        // U+10FFFF has no UTF-8 form and becomes U+FFFD.
         template <typename OutputIterator>
         static constexpr OutputIterator Convert(char32_t input, OutputIterator output) noexcept
         {
@@ -42,9 +47,15 @@ namespace detail
             }
             else if (input <= 0xFFFF)
             {
+                if (input >= 0xD800 && input <= 0xDFFF)
+                    input = ReplacementCharacter;
                 *output++ = static_cast<char8_t>(((input >> 12) & 0b0000'1111) | 0b1110'0000);
                 *output++ = static_cast<char8_t>(((input >> 6) & 0b0011'1111) | 0b1000'0000);
                 *output++ = static_cast<char8_t>(((input >> 0) & 0b0011'1111) | 0b1000'0000);
+            }
+            else if (input > 0x10FFFF)
+            {
+                return Convert(ReplacementCharacter, output);
             }
             else
             {
@@ -60,7 +71,8 @@ namespace detail
     template <>
     struct LIGHTWEIGHT_API UnicodeConverter<char16_t>
     {
-        // Converts a UTF-32 code point to one or two UTF-16 code units.
+        // Converts a UTF-32 code point to one or two UTF-16 code units. A surrogate or a code point above
+        // U+10FFFF has no UTF-16 form and becomes U+FFFD.
         template <typename OutputIterator>
         static constexpr OutputIterator Convert(char32_t input, OutputIterator output) noexcept
         {
@@ -71,11 +83,8 @@ namespace detail
             }
             else if (input < 0x10000)
             {
-                if (input < 0xE000)
-                    return output; // The UTF-16 code point can not be in surrogate range.
-
-                // [0xE000 .. 0xFFFF]
-                *output++ = char16_t(input);
+                // A surrogate code point is no scalar value; written as is it would pair up with a neighbour.
+                *output++ = char16_t(input < 0xE000 ? ReplacementCharacter : input);
                 return output;
             }
             else if (input < 0x110000) // [0xD800 .. 0xDBFF] [0xDC00 .. 0xDFFF]
@@ -85,7 +94,10 @@ namespace detail
                 return output;
             }
             else
-                return output; // Too large UTF-16 code point.
+            {
+                *output++ = char16_t(ReplacementCharacter); // Too large for UTF-16.
+                return output;
+            }
         }
     };
 
@@ -100,7 +112,7 @@ namespace detail
     struct Utf32Converter
     {
         /// The code point an ill-formed byte decodes to.
-        static constexpr auto InvalidCodePoint = char32_t { 0xFFFD };
+        static constexpr auto InvalidCodePoint = ReplacementCharacter;
 
         /// One decoded code point and the bytes it took.
         struct Decoded
@@ -170,6 +182,34 @@ namespace detail
         }
     };
 
+    /// Decodes UTF-16 one code point at a time. An unpaired surrogate (a high one not followed by a low one,
+    /// or a low one not preceded by a high one) gives U+FFFD and decoding resumes at the next code unit, so
+    /// the unit after it is decoded on its own and never swallowed.
+    struct Utf16Decoder
+    {
+        /// One decoded code point and the code units it took.
+        struct Decoded
+        {
+            char32_t codePoint; //!< The code point, or ReplacementCharacter.
+            std::size_t length; //!< Code units consumed: 2 for a surrogate pair, else 1.
+        };
+
+        /// Decodes the code point @p text starts with.
+        /// @param text The input; not empty.
+        /// @return The code point and the code units it took.
+        [[nodiscard]] static constexpr Decoded Decode(std::u16string_view text) noexcept
+        {
+            auto const first = text.front();
+            if (first < 0xD800 || first > 0xDFFF)
+                return { .codePoint = first, .length = 1 };
+            if (first <= 0xDBFF && text.size() > 1 && text[1] >= 0xDC00 && text[1] <= 0xDFFF)
+                return { .codePoint = 0x10000 + ((static_cast<char32_t>(first) - 0xD800) << 10)
+                                      + (static_cast<char32_t>(text[1]) - 0xDC00),
+                         .length = 2 };
+            return { .codePoint = ReplacementCharacter, .length = 1 };
+        }
+    };
+
     /// The code points of a UTF-8 string (see Utf32Converter::Decode()).
     struct [[nodiscard]] Utf32Iterator
     {
@@ -221,12 +261,14 @@ namespace detail
 ///
 /// @brief Functions for converting between different (Unicode) encodings.
 
-/// Converts from UTF-32 to UTF-8.
+/// Converts from UTF-32 to UTF-8. A code point that is no Unicode scalar value (a surrogate, or one above
+/// U+10FFFF) becomes U+FFFD.
 ///
 /// @ingroup Unicode
 LIGHTWEIGHT_API std::u8string ToUtf8(std::u32string_view u32InputString);
 
-/// Converts from UTF-16 to UTF-8.
+/// Converts from UTF-16 to UTF-8. Each unpaired surrogate becomes one U+FFFD, and the code unit after it is
+/// decoded on its own.
 ///
 /// @ingroup Unicode
 LIGHTWEIGHT_API std::u8string ToUtf8(std::u16string_view u16InputString);
@@ -251,7 +293,8 @@ inline LIGHTWEIGHT_FORCE_INLINE std::u8string ToUtf8(std::basic_string_view<T> u
     return ToUtf8(std::u32string_view(reinterpret_cast<char32_t const*>(u32InputString.data()), u32InputString.size()));
 }
 
-/// Converts from UTF-32 to UTF-16.
+/// Converts from UTF-32 to UTF-16. A code point that is no Unicode scalar value (a surrogate, or one above
+/// U+10FFFF) becomes U+FFFD.
 ///
 /// @ingroup Unicode
 template <typename T>
@@ -322,7 +365,8 @@ T ToUtf32(std::u8string_view u8InputString)
     return result;
 }
 
-/// Converts from UTF-16 to UTF-32.
+/// Converts from UTF-16 to UTF-32. Each unpaired surrogate becomes one U+FFFD, and the code unit after it is
+/// decoded on its own.
 ///
 /// @ingroup Unicode
 template <typename T = std::u32string>
@@ -330,28 +374,13 @@ T ToUtf32(std::u16string_view u16InputString)
 {
     auto result = T {};
     result.reserve(u16InputString.size());
-
-    for (size_t i = 0; i < u16InputString.size(); ++i)
+    while (!u16InputString.empty())
     {
-        auto const c16 = u16InputString[i];
-        if (c16 >= 0xD800 && c16 <= 0xDBFF && i + 1 < u16InputString.size() && u16InputString[i + 1] >= 0xDC00
-            && u16InputString[i + 1] <= 0xDFFF)
-        {
-            auto const high = static_cast<char32_t>(c16 - 0xD800);
-            auto const low = static_cast<char32_t>(u16InputString[++i] - 0xDC00);
-            result.push_back(static_cast<char32_t>(0x10000 + (high << 10) + low));
-        }
-        else if (c16 >= 0xD800 && c16 <= 0xDFFF)
-        {
-            // Orphan surrogate (high without low, or stray low) — emit replacement.
-            result.push_back(detail::Utf32Converter::InvalidCodePoint);
-        }
-        else
-        {
-            result.push_back(static_cast<char32_t>(c16));
-        }
+        // An unpaired surrogate becomes U+FFFD (see Utf16Decoder::Decode()).
+        auto const [codePoint, length] = detail::Utf16Decoder::Decode(u16InputString);
+        result.push_back(static_cast<T::value_type>(codePoint));
+        u16InputString.remove_prefix(length);
     }
-
     return result;
 }
 

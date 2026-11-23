@@ -4,9 +4,13 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <cstddef>
+#include <cstdint>
 #include <initializer_list>
+#include <ranges>
 #include <string>
 #include <string_view>
+#include <vector>
 
 #if defined(_WIN32) || defined(_WIN64)
     #ifndef NOMINMAX
@@ -166,26 +170,27 @@ TEST_CASE("UTF-16 encoding: BMP non-surrogate above 0xDFFF", "[Unicode]")
     CHECK(u16High[1] == 0xFFFD);
 }
 
-TEST_CASE("UTF-16 encoding: surrogate-range input is dropped", "[Unicode]")
+TEST_CASE("UTF-16 encoding: surrogate-range input is replaced with U+FFFD", "[Unicode]")
 {
     // Path: 0xD800 <= input < 0xE000 (the surrogate range) is invalid in a
-    // UTF-32 source string. UnicodeConverter<char16_t>::Convert drops these
-    // silently to avoid producing structurally-broken UTF-16.
+    // UTF-32 source string. UnicodeConverter<char16_t>::Convert writes U+FFFD
+    // rather than structurally-broken UTF-16, and rather than dropping it unseen.
     std::u32string const surrogateInput { static_cast<char32_t>(0xD800), U'X' };
     auto const u16 = ToUtf16(std::u32string_view { surrogateInput });
-    // Only 'X' should make it through; the orphan surrogate is dropped.
-    REQUIRE(u16.size() == 1);
-    CHECK(u16[0] == u'X');
+    REQUIRE(u16.size() == 2);
+    CHECK(u16[0] == 0xFFFD);
+    CHECK(u16[1] == u'X');
 }
 
-TEST_CASE("UTF-16 encoding: out-of-range code point is dropped", "[Unicode]")
+TEST_CASE("UTF-16 encoding: out-of-range code point is replaced with U+FFFD", "[Unicode]")
 {
     // Path: input >= 0x110000 — the code point exceeds Unicode's defined range,
-    // and UnicodeConverter<char16_t>::Convert drops it silently.
+    // and UnicodeConverter<char16_t>::Convert writes U+FFFD for it.
     std::u32string const tooLarge { static_cast<char32_t>(0x110000), U'Y' };
     auto const u16 = ToUtf16(std::u32string_view { tooLarge });
-    REQUIRE(u16.size() == 1);
-    CHECK(u16[0] == u'Y');
+    REQUIRE(u16.size() == 2);
+    CHECK(u16[0] == 0xFFFD);
+    CHECK(u16[1] == u'Y');
 }
 
 TEST_CASE("UTF-32 from UTF-16: orphan surrogate replaced with U+FFFD", "[Unicode]")
@@ -453,6 +458,60 @@ TEST_CASE("UTF-8 decoding: valid text round-trips through every conversion", "[U
     CHECK(ToUtf8(std::u16string_view { utf16 }) == utf8);
     CHECK(ToUtf32(std::u16string_view { utf16 }) == text);
     CheckDecodes(utf8, text);
+}
+
+namespace
+{
+/// Unpaired surrogates in UTF-16 input, and what decoding them must give: one U+FFFD per unpaired unit,
+/// every other unit decoded on its own.
+struct UnpairedSurrogateCase
+{
+    std::u16string input;
+    std::u32string expected;
+};
+
+std::vector<UnpairedSurrogateCase> UnpairedSurrogateCases()
+{
+    constexpr auto High = char16_t { 0xD83D };
+    constexpr auto Low = char16_t { 0xDE00 };
+    return {
+        { .input = { High, u'A' }, .expected = U"�A" },               // high, then a BMP character
+        { .input = { u'C', High }, .expected = U"C�" },               // high at the end
+        { .input = { Low, u'B' }, .expected = U"�B" },                // low without a high
+        { .input = { High, High, Low }, .expected = U"�\U0001F600" }, // high, then a complete pair
+        { .input = { Low, High }, .expected = U"��" },                // reversed pair
+        { .input = { High, u'ä', Low }, .expected = U"�ä�" },
+    };
+}
+} // namespace
+
+TEST_CASE("UTF-16 decoding: an unpaired surrogate costs one U+FFFD and swallows nothing", "[Unicode]")
+{
+    auto const cases = UnpairedSurrogateCases();
+    for (auto const index: std::views::iota(std::size_t { 0 }, cases.size()))
+    {
+        INFO("case " << index);
+        auto const& [input, expected] = cases[index];
+        auto const view = std::u16string_view { input };
+        CHECK(ToUtf32(view) == expected);
+        CHECK(ToUtf8(view) == ToUtf8(std::u32string_view { expected }));
+        if constexpr (sizeof(wchar_t) == 2)
+        {
+            auto const wide = std::wstring(input.begin(), input.end());
+            CHECK(ToUtf8(std::wstring_view { wide }) == ToUtf8(std::u32string_view { expected }));
+        }
+    }
+}
+
+TEST_CASE("UTF-32 encoding: a code point that is no Unicode scalar value becomes U+FFFD", "[Unicode]")
+{
+    for (auto const invalid: { char32_t { 0xD800 }, char32_t { 0xDFFF }, char32_t { 0x110000 } })
+    {
+        INFO("code point " << static_cast<std::uint32_t>(invalid));
+        auto const input = std::u32string { invalid, U'X' };
+        CHECK(ToUtf16(std::u32string_view { input }) == u"�X");
+        CHECK(ToUtf8(std::u32string_view { input }) == u8"�X");
+    }
 }
 
 #if defined(_WIN32) || defined(_WIN64)

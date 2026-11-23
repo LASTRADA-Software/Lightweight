@@ -29,38 +29,23 @@ std::u8string ToUtf8(std::u32string_view u32InputString)
     return u8String;
 }
 
+// Converts a UTF-16 string to UTF-8; an unpaired surrogate becomes U+FFFD (see Utf16Decoder::Decode()).
 std::u8string ToUtf8(std::u16string_view u16InputString)
 {
     std::u8string u8String;
     u8String.reserve(u16InputString.size() * 4);
 
-    char32_t codePoint = 0;
-    int codeUnits = 0;
-    for (auto const c16: u16InputString)
+    while (!u16InputString.empty())
     {
-        if (c16 >= 0xD800 && c16 < 0xDC00)
+        if (u16InputString.front() < 0x80) // ASCII: one code unit, one byte
         {
-            codePoint = static_cast<char32_t>((c16 & 0x3FF) << 10);
-            codeUnits = 1;
+            u8String.push_back(static_cast<char8_t>(u16InputString.front()));
+            u16InputString.remove_prefix(1);
+            continue;
         }
-        else if (c16 >= 0xDC00 && c16 < 0xE000)
-        {
-            codePoint |= c16 & 0x3FF;
-            detail::UnicodeConverter<char8_t>::Convert(codePoint + 0x10000, std::back_inserter(u8String));
-            codePoint = 0;
-            codeUnits = 0;
-        }
-        else if (codeUnits == 0)
-        {
-            detail::UnicodeConverter<char8_t>::Convert(static_cast<char32_t>(c16), std::back_inserter(u8String));
-        }
-        else
-        {
-            codePoint |= c16 & 0x3FF;
-            detail::UnicodeConverter<char8_t>::Convert(codePoint + 0x10000, std::back_inserter(u8String));
-            codePoint = 0;
-            codeUnits = 0;
-        }
+        auto const [codePoint, length] = detail::Utf16Decoder::Decode(u16InputString);
+        detail::UnicodeConverter<char8_t>::Convert(codePoint, std::back_inserter(u8String));
+        u16InputString.remove_prefix(length);
     }
 
     return u8String;
