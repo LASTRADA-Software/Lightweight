@@ -52,6 +52,7 @@ var NAVTREE =
       [ "Query timeouts", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#query-timeouts", null ],
       [ "SQL Query Builder", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#sql-query-builder", null ],
       [ "High level Data Mapping", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#high-level-data-mapping", [
+        [ "Required fields", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#required-fields", null ],
         [ "Batched insert and update", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#batched-insert-and-update", null ],
         [ "Automatic <tt>created_at</tt> / <tt>updated_at</tt> timestamps", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#automatic-created_at--updated_at-timestamps", null ],
         [ "Eager loading of relations (<tt>With<>()</tt>)", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#eager-loading-of-relations-with", [
@@ -121,6 +122,7 @@ var NAVTREE =
       [ "Common Best Practices", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#common-best-practices", [
         [ "Use the DataMapper API", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-the-datamapper-api", null ],
         [ "Keep Data Model and Business Logic Separate", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#keep-data-model-and-business-logic-separate", null ],
+        [ "Let the Record Type Mirror the Schema", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#let-the-record-type-mirror-the-schema", null ],
         [ "Use Transactions with Care", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-transactions-with-care", null ],
         [ "Binding Output Parameters", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#binding-output-parameters", null ]
       ] ],
@@ -436,16 +438,16 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "annotated.html",
-"d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html#ad960d5dc5e9cb104a5cfa7dbc07971be",
-"d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a68b4434898a6ebceb06025065af79ec0",
-"d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#a04fd31415705ccc61b63eec99a7bf1f3",
-"d7/d79/UnicodeUpgradeProgress_8hpp_source.html",
-"d8/df7/classLightweight_1_1SqlQueryFormatter.html#a1aade87023f69d63e86f4aca06a97595",
-"da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html",
-"db/dad/classLightweight_1_1SqlStatement.html#aa8528873d2ff2b2f879f587e8aa5026a",
-"de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#a6f0e4d4b55c12d579e36521dcbc32a9c",
-"de/dd2/structLightweight_1_1SqlMigration_1_1BackupRecord.html",
-"functions_vars.html"
+"d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html#a91bfca7ee0426ab2e20aa926dc627293",
+"d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a4a3c08e9053c7409a170abd9891e15bf",
+"d6/d46/classLightweight_1_1Zip_1_1ZipEntry.html#a5d201bcfee8b32a1b40be54646a00387",
+"d7/d53/structLightweight_1_1SqlTime.html#aa3a8628bcc0afb2df5a174ed754d74df",
+"d8/deb/HasMany_8hpp_source.html",
+"da/d23/BelongsTo_8hpp_source.html",
+"db/dad/classLightweight_1_1SqlStatement.html#a974caa85fa8a93440fa9d7ef964464ee",
+"de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#a39e111bb6b1fd0a6d1b950385d1ae7bf",
+"de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#what-each-accessor-delivers",
+"functions_q.html"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

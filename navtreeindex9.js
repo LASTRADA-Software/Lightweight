@@ -1,5 +1,13 @@
 var NAVTREEINDEX9 =
 {
+"de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#what-each-accessor-delivers":[6,6,0],
+"de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#when-a-column-does-not-fit":[6,8,0],
+"de/db1/classLightweight_1_1Pool_1_1PooledDataMapper.html":[20,4,2],
+"de/db1/classLightweight_1_1Pool_1_1PooledDataMapper.html#a122267596e346b15d075ca4c347ac97d":[20,4,2,1],
+"de/db1/classLightweight_1_1Pool_1_1PooledDataMapper.html#ab3f4130283fddc423a1911a3962e739c":[20,4,2,0],
+"de/db1/classLightweight_1_1Pool_1_1PooledDataMapper.html#af18e106d18590f5e6b4f29a04389ecf5":[20,4,2,2],
+"de/dbb/StdString_8hpp_source.html":[23,0,1,1,19],
+"de/dc4/StrandExecutor_8hpp_source.html":[23,0,1,0,10],
 "de/dd2/structLightweight_1_1SqlMigration_1_1BackupRecord.html":[20,7,8],
 "de/dd2/structLightweight_1_1SqlMigration_1_1BackupRecord.html#a2c8c4abe2cedae396934a4ba46000a40":[20,7,8,4],
 "de/dd2/structLightweight_1_1SqlMigration_1_1BackupRecord.html#a796ebbc3e32f1c780a80729eff0330c3":[20,7,8,0],
@@ -241,13 +249,5 @@ var NAVTREEINDEX9 =
 "functions_m.html":[22,2,0,13],
 "functions_n.html":[22,2,0,14],
 "functions_o.html":[22,2,0,15],
-"functions_p.html":[22,2,0,16],
-"functions_q.html":[22,2,0,17],
-"functions_r.html":[22,2,0,18],
-"functions_s.html":[22,2,0,19],
-"functions_t.html":[22,2,0,20],
-"functions_type.html":[22,2,3],
-"functions_u.html":[22,2,0,21],
-"functions_v.html":[22,2,0,22],
-"functions_vars.html":[22,2,2]
+"functions_p.html":[22,2,0,16]
 };
