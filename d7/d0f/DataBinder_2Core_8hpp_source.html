@@ -219,10 +219,10 @@ $(document).ready(function(){initNavTree('d7/d0f/DataBinder_2Core_8hpp_source.ht
 <div class="line"><a id="l00116" name="l00116"></a><span class="lineno">  116</span><span class="comment">    /// The size a growable container bound to output column @p column has at least, without terminator.</span></div>
 <div class="line"><a id="l00117" name="l00117"></a><span class="lineno">  117</span><span class="comment">    ///</span></div>
 <div class="line"><a id="l00118" name="l00118"></a><span class="lineno">  118</span><span class="comment">    /// A value longer than the bound buffer is read again with @c SQLGetData. Where the driver can do</span></div>
-<div class="line"><a id="l00119" name="l00119"></a><span class="lineno">  119</span><span class="comment">    /// that for a bound column (@c SQL_GD_BOUND) this is @ref detail::DefaultBoundColumnSize. Where it</span></div>
+<div class="line"><a id="l00119" name="l00119"></a><span class="lineno">  119</span><span class="comment">    /// that for a bound column (@c SQL_GD_BOUND) this is @c detail::DefaultBoundColumnSize. Where it</span></div>
 <div class="line"><a id="l00120" name="l00120"></a><span class="lineno">  120</span><span class="comment">    /// cannot (MS SQL Server), it is the column&#39;s declared length, so every value the column can hold</span></div>
 <div class="line"><a id="l00121" name="l00121"></a><span class="lineno">  121</span><span class="comment">    /// fits, asked of the driver once per result set and column; a column too long for that (a MAX</span></div>
-<div class="line"><a id="l00122" name="l00122"></a><span class="lineno">  122</span><span class="comment">    /// column) gets @ref detail::DefaultBoundColumnSize, and a longer value fails the fetch.</span></div>
+<div class="line"><a id="l00122" name="l00122"></a><span class="lineno">  122</span><span class="comment">    /// column) gets @c detail::DefaultBoundColumnSize, and a longer value fails the fetch.</span></div>
 <div class="line"><a id="l00123" name="l00123"></a><span class="lineno">  123</span><span class="comment">    ///</span></div>
 <div class="line"><a id="l00124" name="l00124"></a><span class="lineno">  124</span><span class="comment">    /// @param column The 1-based column index.</span></div>
 <div class="line"><a id="l00125" name="l00125"></a><span class="lineno">  125</span><span class="comment">    /// @param length Which declared length counts the container&#39;s elements.</span></div>

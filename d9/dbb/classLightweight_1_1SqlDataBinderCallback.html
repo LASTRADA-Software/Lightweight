@@ -284,7 +284,7 @@ Public Member Functions</h2></td></tr>
 </table>
 </div><div class="memdoc">
 <p>The size a growable container bound to output column <code>column</code> has at least, without terminator.</p>
-<p>A value longer than the bound buffer is read again with <code>SQLGetData</code>. Where the driver can do that for a bound column (<code>SQL_GD_BOUND</code>) this is detail::DefaultBoundColumnSize. Where it cannot (MS SQL Server), it is the column's declared length, so every value the column can hold fits, asked of the driver once per result set and column; a column too long for that (a MAX column) gets detail::DefaultBoundColumnSize, and a longer value fails the fetch.</p>
+<p>A value longer than the bound buffer is read again with <code>SQLGetData</code>. Where the driver can do that for a bound column (<code>SQL_GD_BOUND</code>) this is <code>detail::DefaultBoundColumnSize</code>. Where it cannot (MS SQL Server), it is the column's declared length, so every value the column can hold fits, asked of the driver once per result set and column; a column too long for that (a MAX column) gets <code>detail::DefaultBoundColumnSize</code>, and a longer value fails the fetch.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">column</td><td>The 1-based column index. </td></tr>
