@@ -771,7 +771,7 @@ struct OptionalFields
 };
 
 template <>
-constexpr bool detail::CanSafelyBindOutputColumns<OptionalFields>(SqlServerType /*sqlServerType*/) noexcept
+constexpr bool detail::CanSafelyBindOutputColumns<OptionalFields>(bool /*readsBoundColumnsAgain*/) noexcept
 {
     // Force disabling the output column binding for this type
     return false;

@@ -19,6 +19,7 @@
 #include <functional>
 #include <limits>
 #include <memory>
+#include <new>
 #include <optional>
 #include <ranges>
 #include <stdexcept>
@@ -37,7 +38,41 @@ struct SqlStatement::Data
     std::deque<std::vector<std::byte>>
         batchStagingBuffers; // Holds temporary scratch buffers for batch input parameter binders
     std::vector<std::function<void()>> postExecuteCallbacks;
-    std::vector<std::function<void()>> postProcessOutputColumnCallbacks;
+
+    /// @brief What the binders planned for one bound output column. Re-binding the column clears the
+    /// slot (keeping the vectors' capacity), so binding a column anew for every row neither grows the
+    /// slot nor searches other columns' entries.
+    struct OutputColumnCallbacks
+    {
+        std::vector<SqlOutputColumnPreFetch> preFetch;  // run before every fetch, last planned first
+        std::vector<std::function<void()>> postProcess; // run after every fetch, in planning order
+        bool listed = false;                            // whether the column is in columnsWithCallbacks
+    };
+    // Planned by the output-column binders; they live as long as the column binding (until the column
+    // is bound again, or its binding is dropped with SQL_UNBIND), so a column bound once is served on
+    // every row of every execution. Indexed by column (slot 0: a binder run outside a column binding).
+    std::vector<OutputColumnCallbacks> outputColumnCallbacks;
+    // The columns whose slot may hold callbacks: the fetch loop visits only these.
+    std::vector<SQLUSMALLINT> columnsWithCallbacks;
+    SQLUSMALLINT outputColumnBeingBound = 0; // column the running OutputColumn binder plans callbacks for
+    // The bound buffer size each column's declared lengths ask for (by SqlOutputColumnLength), asked of
+    // the driver once per result set and column, so binding a column again for every row asks nothing
+    // (0: not asked yet). Only filled where the driver cannot read a bound column again.
+    std::vector<std::array<std::size_t, 2>> declaredOutputColumnSizes;
+
+    /// @brief The callback slot of @p column, listed for the fetch loop.
+    OutputColumnCallbacks& OutputColumnSlot(SQLUSMALLINT column)
+    {
+        if (outputColumnCallbacks.size() <= column)
+            outputColumnCallbacks.resize(static_cast<std::size_t>(column) + 1);
+        auto& slot = outputColumnCallbacks[column];
+        if (!slot.listed)
+        {
+            slot.listed = true;
+            columnsWithCallbacks.push_back(column);
+        }
+        return slot;
+    }
 
     // Declared SQL type of each parameter of the prepared query, described on first demand (a NULL
     // being bound) and dropped whenever the handle is given a different query.
@@ -58,11 +93,47 @@ struct SqlStatement::Data
     std::size_t prefetchRowInBlock = 0;                       // 0-based offset of the current logical row within that block
     std::vector<std::function<void()>> prefetchScatters;      // copy current block cell -> bound output
     std::vector<std::function<void()>> prefetchDeferredBinds; // real SQLBindCol thunks for the fallback
+    std::vector<PrefetchTarget> prefetchTargets;              // class of each bound column's destination
     bool prefetchBindingUnsupported = false;                  // a bound output column's target type cannot be served
                                                               // from the block buffer, so the set keeps the per-row path
+    bool prefetchDeferredBindsIssued = false;                 // the deferred binds are issued for this result set
+    bool outputColumnsBoundDirectly = false;                  // a column is bound with SQLBindCol outside the recorded
+                                                              // bindings, so only the per-row path fills it
     std::chrono::seconds queryTimeout {};                     // what SetQueryTimeout() asked for, to carry across handles
 
     static Data const NoData;
+
+    /// @brief Whether the block buffer serves a column of @p sqlType bound to a destination of class
+    /// @p target with the value the per-row @c SQLGetData path reads into it. Internal: a member of the
+    /// private Data only so it can name the private PrefetchTarget.
+    /// @param target The class of the bound destination.
+    /// @param sqlType The column's @c SQL_* type code.
+    /// @return @c true when prefetch and the per-row path read the same value.
+    static bool PrefetchTargetAccepts(PrefetchTarget target, SQLSMALLINT sqlType) noexcept
+    {
+        auto const isTemporal =
+            sqlType == SQL_TYPE_DATE || sqlType == SQL_DATE || sqlType == SQL_TYPE_TIMESTAMP || sqlType == SQL_TIMESTAMP;
+        auto const isGuid = sqlType == SQL_GUID;
+        // Text renders an integer exactly as the driver does; a floating-point value it would render through
+        // std::format (REAL 0.1 as "0.10000000149011612" where the driver gives "0.1"), so those keep the
+        // per-row path.
+        auto const isIntegerOrBit = sqlType == SQL_BIT || sqlType == SQL_TINYINT || sqlType == SQL_SMALLINT
+                                    || sqlType == SQL_INTEGER || sqlType == SQL_BIGINT;
+        switch (target)
+        {
+            case SqlStatement::PrefetchTarget::Any:
+                return true;
+            case SqlStatement::PrefetchTarget::Numeric:
+                return !isTemporal && !isGuid;
+            case SqlStatement::PrefetchTarget::Text:
+                return isIntegerOrBit;
+            case SqlStatement::PrefetchTarget::Temporal:
+                return isTemporal;
+            case SqlStatement::PrefetchTarget::Guid:
+                return isGuid;
+        }
+        return false;
+    }
 };
 
 SqlStatement::Data const SqlStatement::Data::NoData {};
@@ -279,7 +350,40 @@ void SqlStatement::ProcessPostExecuteCallbacks()
 
 void SqlStatement::PlanPostProcessOutputColumn(std::function<void()>&& cb)
 {
-    m_data->postProcessOutputColumnCallbacks.emplace_back(std::move(cb));
+    m_data->OutputColumnSlot(m_data->outputColumnBeingBound).postProcess.push_back(std::move(cb));
+}
+
+void SqlStatement::PlanPreFetchOutputColumn(SqlOutputColumnPreFetch const& step)
+{
+    m_data->OutputColumnSlot(m_data->outputColumnBeingBound).preFetch.push_back(step);
+}
+
+void SqlStatement::BeginOutputColumnBinding(SQLUSMALLINT column) noexcept
+{
+    DropOutputColumnCallbacks(column);
+    m_data->outputColumnBeingBound = column;
+}
+
+void SqlStatement::DropOutputColumnCallbacks(SQLUSMALLINT column) noexcept
+{
+    if (column < m_data->outputColumnCallbacks.size())
+    {
+        auto& slot = m_data->outputColumnCallbacks[column];
+        slot.preFetch.clear();
+        slot.postProcess.clear();
+    }
+}
+
+void SqlStatement::ResetOutputColumnCallbacks() noexcept
+{
+    for (auto const column: m_data->columnsWithCallbacks)
+    {
+        auto& slot = m_data->outputColumnCallbacks[column];
+        slot.preFetch.clear();
+        slot.postProcess.clear();
+        slot.listed = false;
+    }
+    m_data->columnsWithCallbacks.clear();
 }
 
 SqlServerType SqlStatement::ServerType() const noexcept
@@ -305,7 +409,10 @@ SqlStatement::SqlStatement():
                  .batchIndicators = {},
                  .batchStagingBuffers = {},
                  .postExecuteCallbacks = {},
-                 .postProcessOutputColumnCallbacks = {},
+                 .outputColumnCallbacks = {},
+                 .columnsWithCallbacks = {},
+                 .outputColumnBeingBound = 0,
+                 .declaredOutputColumnSizes = {},
                  .describedParameterTypes = {},
                  .prefetchMode = Data::PrefetchMode::Unarmed,
                  .prefetch = {},
@@ -313,6 +420,10 @@ SqlStatement::SqlStatement():
                  .prefetchRowInBlock = 0,
                  .prefetchScatters = {},
                  .prefetchDeferredBinds = {},
+                 .prefetchTargets = {},
+                 .prefetchBindingUnsupported = false,
+                 .prefetchDeferredBindsIssued = false,
+                 .outputColumnsBoundDirectly = false,
                  .queryTimeout = {},
              },
 
@@ -334,6 +445,7 @@ SqlStatement::SqlStatement(SqlStatement&& other) noexcept:
     m_data { std::move(other.m_data) },
     m_connection { other.m_connection },
     m_hStmt { other.m_hStmt },
+    m_sessionId { other.m_sessionId },
     m_preparedQuery { std::move(other.m_preparedQuery) },
     m_projectedFieldNames { std::move(other.m_projectedFieldNames) },
     m_projectionHasWildcard { other.m_projectionHasWildcard },
@@ -352,9 +464,14 @@ SqlStatement& SqlStatement::operator=(SqlStatement&& other) noexcept
     if (this == &other)
         return *this;
 
+    // The handle this statement holds goes the way the destructor sends it; overwriting it leaked one
+    // statement handle per assignment until the connection closed.
+    ReleaseHandle();
+
     m_data = std::move(other.m_data);
     m_connection = other.m_connection;
     m_hStmt = other.m_hStmt;
+    m_sessionId = other.m_sessionId;
     m_preparedQuery = std::move(other.m_preparedQuery);
     m_expectedParameterCount = other.m_expectedParameterCount;
     m_preparedParameterCount = other.m_preparedParameterCount;
@@ -391,6 +508,14 @@ SqlStatement::SqlStatement(std::nullopt_t /*nullopt*/):
 SqlStatement::~SqlStatement() noexcept
 {
     SqlLogger::GetLogger().OnFetchEnd();
+    ReleaseHandle();
+}
+
+void SqlStatement::ReleaseHandle() noexcept
+{
+    if (m_hStmt == SQL_NULL_HSTMT)
+        return; // moved-from, or constructed without a connection
+
     // A statement handle belongs to its connection: closing the connection frees the DBC handle, and
     // the driver manager invalidates every statement hanging off it at that point. Freeing this handle
     // afterwards reads released driver memory, which segfaults under unixODBC. Skip it when the
@@ -408,17 +533,30 @@ SqlStatement::~SqlStatement() noexcept
     if (m_connection && !m_connection->NativeHandle())
         return;
 
+    // Likewise when the connection has connected again since (Connect() disconnects first) or was
+    // replaced by move assignment: the handle died with the session it was allocated in, and must
+    // neither be freed again nor handed to the new session's cache.
+    ForgetHandleOfEndedSession();
+    if (m_hStmt == SQL_NULL_HSTMT)
+        return;
+
     // Hand the prepared handle back to the connection's pool, so the next statement preparing the same
     // query text can re-execute it. Falls through to freeing it when the pool declines to take it.
     if (ReleasePreparedHandle())
         return;
 
+    if (m_connection)
+        m_connection->UntrackStatementHandle(m_hStmt);
     detail::UnregisterAnsiOnlyHandle(m_hStmt);
     SQLFreeHandle(SQL_HANDLE_STMT, m_hStmt);
+    m_hStmt = SQL_NULL_HSTMT;
 }
 
-void SqlStatement::RegisterHandleTextEntry() noexcept
+void SqlStatement::RegisterHandleTextEntry()
 {
+    m_sessionId = m_connection->SessionId();
+    if (m_hStmt != SQL_NULL_HSTMT)
+        m_connection->TrackStatementHandle(m_hStmt);
     if (m_hStmt != SQL_NULL_HSTMT && !m_connection->AcceptsWideQueryText())
         detail::RegisterAnsiOnlyHandle(m_hStmt, m_connection->NativeHandle());
 }
@@ -433,12 +571,14 @@ void SqlStatement::SetQueryTimeout(std::chrono::seconds timeout)
     if (timeout < std::chrono::seconds::zero())
         throw std::invalid_argument("The query timeout must not be negative.");
 
+    RequireCurrentSession();
     RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_QUERY_TIMEOUT, OdbcIntAttr(static_cast<SQLULEN>(timeout.count())), 0));
     m_data->queryTimeout = timeout;
 }
 
 std::chrono::seconds SqlStatement::QueryTimeout() const
 {
+    RequireLiveHandle();
     auto timeout = SQLULEN {};
     RequireSuccess(SQLGetStmtAttr(m_hStmt, SQL_ATTR_QUERY_TIMEOUT, &timeout, 0, nullptr));
     return std::chrono::seconds { static_cast<std::chrono::seconds::rep>(timeout) };
@@ -466,8 +606,69 @@ bool SqlStatement::ReleasePreparedHandle() noexcept
     return cache != nullptr && ReleasePreparedHandle(*cache);
 }
 
+namespace
+{
+    /// The error of executing or fetching through a statement whose connection session ended.
+    SqlErrorInfo EndedSessionError()
+    {
+        return SqlErrorInfo {
+            .nativeErrorCode = 0,
+            .sqlState = "08003",
+            .message = "The statement was prepared in a connection session that has ended (the connection was closed "
+                       "or connected again): prepare it again.",
+        };
+    }
+} // namespace
+
+void SqlStatement::RequireCurrentSession()
+{
+    ForgetHandleOfEndedSession();
+    RequireLiveHandle();
+}
+
+bool SqlStatement::HasLiveHandle() const noexcept
+{
+    return m_connection == nullptr || (m_hStmt != SQL_NULL_HSTMT && m_connection->SessionId() == m_sessionId);
+}
+
+void SqlStatement::RequireLiveHandle() const
+{
+    if (HasLiveHandle())
+        return;
+
+    // A statement with a connection holds a handle unless its session ended (or the connection was never
+    // connected): every execution fails the same way until it is prepared again on a live session.
+    throw SqlException(EndedSessionError());
+}
+
+SqlErrorInfo SqlStatement::LastError() const
+{
+    // The diagnostics of a handle that died with an ended session are gone with it.
+    if (!HasLiveHandle())
+        return EndedSessionError();
+    return SqlErrorInfo::FromStatementHandle(m_hStmt);
+}
+
+void SqlStatement::ForgetHandleOfEndedSession() noexcept
+{
+    if (m_hStmt == SQL_NULL_HSTMT || m_connection == nullptr || m_connection->SessionId() == m_sessionId)
+        return;
+
+    // The driver freed this handle together with the session it belonged to (Close(), a re-connect, or
+    // the connection being move-assigned): it must be neither freed again nor pooled, and what it was
+    // prepared for is gone with it.
+    detail::UnregisterAnsiOnlyHandle(m_hStmt);
+    m_hStmt = SQL_NULL_HSTMT;
+    m_preparedQuery.clear();
+    m_expectedParameterCount = 0;
+    m_preparedParameterCount = 0;
+    m_reusedPreparedQuery = false;
+    m_numColumns.reset();
+}
+
 bool SqlStatement::ReleasePreparedHandle(SqlPreparedStatementCache& cache) noexcept
 {
+    ForgetHandleOfEndedSession();
     if (m_hStmt == SQL_NULL_HSTMT || m_preparedQuery.empty())
         return false;
 
@@ -484,6 +685,7 @@ bool SqlStatement::ReleasePreparedHandle(SqlPreparedStatementCache& cache) noexc
     // attributes reset. None of these unprepare the statement.
     CloseCursor();
     SQLFreeStmt(m_hStmt, SQL_UNBIND);
+    DropOutputColumnBindings();
     SQLFreeStmt(m_hStmt, SQL_RESET_PARAMS);
     ResetParameterArrayBinding();
 
@@ -491,6 +693,7 @@ bool SqlStatement::ReleasePreparedHandle(SqlPreparedStatementCache& cache) noexc
     if (m_data->queryTimeout != std::chrono::seconds::zero())
         SQLSetStmtAttr(m_hStmt, SQL_ATTR_QUERY_TIMEOUT, OdbcIntAttr(0), 0);
 
+    m_connection->UntrackStatementHandle(m_hStmt); // the cache owns it now
     cache.Release(m_preparedQuery,
                   SqlPreparedStatementCache::PreparedHandle { .nativeHandle = m_hStmt, .parameterCount = parameterCount });
 
@@ -517,8 +720,9 @@ void SqlStatement::ReleasePreparedHandleForDirectExecution()
     // first: a later Prepare() of that query text then still finds it. This matters for the DataMapper,
     // which drives its INSERT through one statement and immediately reuses it for the direct
     // last-insert-id query.
-    if (ReleasePreparedHandle())
-        EnsureStatementHandle();
+    ForgetHandleOfEndedSession();
+    ReleasePreparedHandle();
+    EnsureStatementHandle();
 }
 
 bool SqlStatement::AcquirePreparedHandle(SqlPreparedStatementCache& cache, std::string_view query)
@@ -537,11 +741,14 @@ bool SqlStatement::AcquirePreparedHandle(SqlPreparedStatementCache& cache, std::
     // Whatever we still hold was not worth pooling (it carries no prepared query), so it is surplus now.
     if (m_hStmt != SQL_NULL_HSTMT)
     {
+        m_connection->UntrackStatementHandle(m_hStmt);
         detail::UnregisterAnsiOnlyHandle(m_hStmt);
         SQLFreeHandle(SQL_HANDLE_STMT, m_hStmt);
     }
 
     m_hStmt = pooled->nativeHandle;
+    m_connection->TrackStatementHandle(m_hStmt);
+    m_sessionId = m_connection->SessionId(); // pooled handles belong to the current session
     ApplyQueryTimeoutToNewHandle();
     // Both counts: m_expectedParameterCount is what Execute() validates against, m_preparedParameterCount
     // is what a later release pools again (and what the own-handle reuse path restores).
@@ -563,6 +770,10 @@ void SqlStatement::Prepare(std::string_view query) &
     ZoneTextObject(query);
     SqlLogger::GetLogger().OnPrepare(query);
     LIGHTWEIGHT_STATS_SCOPE(::Lightweight::SqlStatisticsOperation::Prepare);
+
+    // A handle that died with an earlier session of the connection is replaced by a fresh one.
+    ForgetHandleOfEndedSession();
+    EnsureStatementHandle();
 
     // Preparing the very same query text again is a wasted round-trip: the handle already holds that
     // prepared statement. It is a common shape - one loader, one INSERT or one QuerySingle repeated
@@ -619,7 +830,6 @@ void SqlStatement::Prepare(std::string_view query) &
         m_data->describedParameterTypes.reset();
 
     m_data->postExecuteCallbacks.clear();
-    m_data->postProcessOutputColumnCallbacks.clear();
     m_data->inputIndicators.clear();
     m_data->batchIndicators.clear();
     m_data->batchStagingBuffers.clear();
@@ -632,6 +842,7 @@ void SqlStatement::Prepare(std::string_view query) &
 
     // Unbinds the columns, if any
     RequireSuccess(SQLFreeStmt(m_hStmt, SQL_UNBIND));
+    DropOutputColumnBindings();
 
     // Drops the previous query's parameter bindings. SQLPrepare does not clear them, and they are not
     // inert: the MS SQL Server driver answers SQLDescribeParam from these descriptors once a describe
@@ -801,6 +1012,7 @@ SqlResultCursor SqlStatement::ExecuteDirect(std::string_view const& query, std::
     m_projectionHasWildcard = false;
 
     RequireSuccess(SQLFreeStmt(m_hStmt, SQL_UNBIND));
+    DropOutputColumnBindings();
 
     m_data->inputIndicators.clear();
     m_data->batchIndicators.clear();
@@ -831,6 +1043,7 @@ SqlResultCursor SqlStatement::ExecuteWithVariants(std::vector<SqlVariant> const&
 {
     ZoneScopedN("SqlStatement::ExecuteWithVariants");
     ZoneTextObject(m_preparedQuery);
+    RequireCurrentSession();
     SqlLogger::GetLogger().OnExecute(m_preparedQuery);
 
     if (!(m_expectedParameterCount == (std::numeric_limits<decltype(m_expectedParameterCount)>::max)() && args.empty())
@@ -890,6 +1103,7 @@ SqlResultCursor SqlStatement::ExecuteBatch(std::span<SqlRawColumn const> columns
 {
     ZoneScopedN("SqlStatement::ExecuteBatch");
     ZoneTextObject(m_preparedQuery);
+    RequireCurrentSession();
     ZoneValue(rowCount);
     SqlLogger::GetLogger().OnExecute(m_preparedQuery);
 
@@ -911,6 +1125,7 @@ SqlResultCursor SqlStatement::ExecuteBatch(std::span<SqlRawColumn const> columns
 {
     ZoneScopedN("SqlStatement::ExecuteBatch(status)");
     ZoneTextObject(m_preparedQuery);
+    RequireCurrentSession();
     ZoneValue(rowCount);
     SqlLogger::GetLogger().OnExecute(m_preparedQuery);
 
@@ -967,6 +1182,7 @@ RowArrayCursor SqlStatement::ExecuteBatchFetch(std::string_view query, std::size
     m_projectionHasWildcard = false;
 
     RequireSuccess(SQLFreeStmt(m_hStmt, SQL_UNBIND));
+    DropOutputColumnBindings();
 
     m_data->inputIndicators.clear();
     m_data->batchIndicators.clear();
@@ -984,6 +1200,7 @@ RowArrayCursor SqlStatement::ExecuteBatchFetch(std::string_view query, std::size
 // Retrieves the number of rows affected by the last query.
 size_t SqlStatement::NumRowsAffected() const
 {
+    RequireLiveHandle();
     SQLLEN numRowsAffected {};
     RequireSuccess(SQLRowCount(m_hStmt, &numRowsAffected));
     return static_cast<size_t>(numRowsAffected);
@@ -992,6 +1209,7 @@ size_t SqlStatement::NumRowsAffected() const
 // Retrieves the number of columns affected by the last query.
 size_t SqlStatement::NumColumnsAffected() const
 {
+    RequireLiveHandle();
     if (!m_numColumns)
     {
         SQLSMALLINT numColumns {};
@@ -1052,6 +1270,7 @@ namespace
                 return false;
         }
     }
+
 } // namespace
 
 std::size_t SqlStatement::EffectivePrefetchDepth() const noexcept
@@ -1089,7 +1308,38 @@ void SqlStatement::ResetPrefetchBindings() noexcept
 {
     m_data->prefetchScatters.clear();
     m_data->prefetchDeferredBinds.clear();
+    m_data->prefetchTargets.clear();
     m_data->prefetchBindingUnsupported = false;
+}
+
+std::size_t SqlStatement::MinimumOutputColumnSize(SQLUSMALLINT column, SqlOutputColumnLength length)
+{
+    // A driver that reads a bound column again serves a longer value through SQLGetData: keep the small
+    // default, which costs no driver call and no memory for short values.
+    if (m_connection == nullptr || m_connection->ReadsBoundColumnsAgain())
+        return detail::DefaultBoundColumnSize;
+
+    auto& sizes = m_data->declaredOutputColumnSizes;
+    if (sizes.size() <= column)
+        sizes.resize(static_cast<std::size_t>(column) + 1, std::array<std::size_t, 2> {});
+    auto& size = sizes[column][static_cast<std::size_t>(length)];
+    if (size == 0)
+        size = detail::DeclaredBoundColumnSize(m_hStmt, column, length);
+    return size;
+}
+
+void SqlStatement::DropOutputColumnBindings() noexcept
+{
+    m_data->declaredOutputColumnSizes.clear(); // the next query's result set may differ
+    ResetPrefetchBindings();
+    ResetOutputColumnCallbacks();
+    m_data->prefetchDeferredBindsIssued = false;
+    m_data->outputColumnsBoundDirectly = false;
+}
+
+void SqlStatement::NoteOutputColumnBoundDirectly() noexcept
+{
+    m_data->outputColumnsBoundDirectly = true;
 }
 
 void SqlStatement::MarkPrefetchBindingUnsupported() noexcept
@@ -1098,6 +1348,7 @@ void SqlStatement::MarkPrefetchBindingUnsupported() noexcept
 }
 
 void SqlStatement::RecordPrefetchColumn(SQLUSMALLINT column,
+                                        PrefetchTarget target,
                                         std::function<void()> scatter,
                                         std::function<void()> deferredBind)
 {
@@ -1110,18 +1361,28 @@ void SqlStatement::RecordPrefetchColumn(SQLUSMALLINT column,
         m_data->prefetchScatters.resize(index + 1);
     if (m_data->prefetchDeferredBinds.size() <= index)
         m_data->prefetchDeferredBinds.resize(index + 1);
+    RecordPrefetchColumnTarget(column, target);
     m_data->prefetchScatters[index] = std::move(scatter);
     m_data->prefetchDeferredBinds[index] = std::move(deferredBind);
 }
 
+void SqlStatement::RecordPrefetchColumnTarget(SQLUSMALLINT column, PrefetchTarget target)
+{
+    auto const index = static_cast<std::size_t>(column - 1);
+    if (m_data->prefetchTargets.size() <= index)
+        m_data->prefetchTargets.resize(index + 1, PrefetchTarget::Any);
+    m_data->prefetchTargets[index] = target;
+}
+
 void SqlStatement::ResetPrefetchState() noexcept
 {
+    // The recorded bindings (scatters, deferred binds, targets) stay: like a column bound with
+    // SQLBindCol, they serve the next execution of the prepared statement too. They are dropped where
+    // the columns are unbound (DropOutputColumnBindings) or bound anew.
     m_data->prefetch.reset(); // dtor restores SQL_ATTR_ROW_ARRAY_SIZE/bind state on the handle
-    m_data->prefetchScatters.clear();
-    m_data->prefetchDeferredBinds.clear();
     m_data->prefetchBlockRows = 0;
     m_data->prefetchRowInBlock = NoPrefetchRow;
-    m_data->prefetchBindingUnsupported = false;
+    m_data->prefetchDeferredBindsIssued = false;
     m_data->prefetchMode = Data::PrefetchMode::Unarmed;
 }
 
@@ -1130,18 +1391,19 @@ void SqlStatement::ArmPrefetchOnFirstFetch() noexcept
     if (m_data->prefetchMode != Data::PrefetchMode::Unarmed)
         return;
 
-    // Disable the fast path: keep the deferred real-bind thunks (a bound-column loop relies on them and
-    // they are flushed by TryFetchRow, which can surface a bind error), but drop the unused scatters.
+    // Disable the fast path for this result set: the deferred real-bind thunks drive the per-row path
+    // (TryFetchRow issues them, which can surface a bind error). The scatters stay for a later
+    // execution whose result set the block buffer can serve.
     auto const disablePrefetch = [this] {
         m_data->prefetchMode = Data::PrefetchMode::Disabled;
-        m_data->prefetchScatters.clear();
     };
 
     auto const depth = EffectivePrefetchDepth();
-    if (depth <= 1 || m_data->prefetchBindingUnsupported)
+    if (depth <= 1 || m_data->prefetchBindingUnsupported || m_data->outputColumnsBoundDirectly)
     {
-        // Disabled outright, or a bound output column has a target type the block buffer cannot
-        // reconstruct (e.g. SqlNumeric, SqlTime, binary, or a user type) — keep the per-row path.
+        // Disabled outright, a bound output column has a target type the block buffer cannot
+        // reconstruct (e.g. SqlNumeric, SqlTime, binary, or a user type), or a column is bound with
+        // SQLBindCol rather than recorded (no scatter would fill it) — keep the per-row path.
         disablePrefetch();
         return;
     }
@@ -1184,6 +1446,15 @@ void SqlStatement::ArmPrefetchOnFirstFetch() noexcept
                 disablePrefetch();
                 return;
             }
+            // A column bound to a destination that reads this SQL type differently on the per-row path
+            // (a driver-specific conversion, or an error) keeps the per-row path, so both agree.
+            auto const index = static_cast<std::size_t>(column - 1);
+            if (index < m_data->prefetchTargets.size()
+                && !Data::PrefetchTargetAccepts(m_data->prefetchTargets[index], sqlType))
+            {
+                disablePrefetch();
+                return;
+            }
         }
 
         // Eligible by type: bind the block buffers. A RowArrayCursor ctor failure here throws before it
@@ -1192,7 +1463,9 @@ void SqlStatement::ArmPrefetchOnFirstFetch() noexcept
         m_data->prefetchBlockRows = 0;
         m_data->prefetchRowInBlock = NoPrefetchRow;
         m_data->prefetchMode = Data::PrefetchMode::Active;
-        m_data->prefetchDeferredBinds.clear(); // eligible: scatters serve reads, deferred binds unused
+        // The block buffers replaced any column binding an earlier result set's deferred binds made
+        // (and the cursor unbinds them when it goes), so that binding's callbacks go with it.
+        ResetOutputColumnCallbacks();
     }
     catch (...)
     {
@@ -1201,6 +1474,7 @@ void SqlStatement::ArmPrefetchOnFirstFetch() noexcept
         // per-row path still sees the open result set.
         m_data->prefetch.reset();
         SQLFreeStmt(m_hStmt, SQL_UNBIND);
+        ResetOutputColumnCallbacks(); // the deferred binds bind the columns again for the per-row path
         SQLSetStmtAttr(m_hStmt, SQL_ATTR_ROW_ARRAY_SIZE, OdbcIntAttr(1), 0);
         SQLSetStmtAttr(m_hStmt, SQL_ATTR_ROW_BIND_TYPE, OdbcIntAttr(SQL_BIND_BY_COLUMN), 0);
         SQLSetStmtAttr(m_hStmt, SQL_ATTR_ROW_STATUS_PTR, nullptr, 0);
@@ -1316,14 +1590,14 @@ std::expected<bool, SqlErrorInfo> SqlStatement::FetchRowPrefetched() noexcept
         {
             // End of result set. Drop the array binding now and switch to Disabled so a stray fetch after
             // EOF takes the (closed-cursor) per-row path rather than re-arming on a dead handle. The full
-            // reset to Unarmed happens in CloseCursor when the result cursor is torn down.
+            // reset to Unarmed happens in CloseCursor when the result cursor is torn down. The recorded
+            // bindings stay for the next execution; should it run without CloseCursor, the per-row path
+            // issues the deferred binds for it.
             m_data->prefetch.reset();
-            m_data->prefetchScatters.clear();
-            m_data->prefetchDeferredBinds.clear();
             m_data->prefetchRowInBlock = NoPrefetchRow;
             m_data->prefetchMode = Data::PrefetchMode::Disabled;
+            m_data->prefetchDeferredBindsIssued = false;
             SQLCloseCursor(m_hStmt);
-            m_data->postProcessOutputColumnCallbacks.clear();
             SqlLogger::GetLogger().OnFetchEnd();
             return false;
         }
@@ -1354,54 +1628,126 @@ std::expected<bool, SqlErrorInfo> SqlStatement::FetchRowPrefetched() noexcept
     return true;
 }
 
+namespace
+{
+    /// The error to report for the exception being handled: a SqlException's own, HY001 for a failed
+    /// allocation, otherwise the statement's diagnostic. Call only inside a catch block.
+    SqlErrorInfo ErrorOfCurrentException(SqlStatement const& stmt)
+    {
+        try
+        {
+            throw;
+        }
+        catch (SqlException const& error)
+        {
+            return error.info();
+        }
+        catch (std::bad_alloc const&)
+        {
+            return SqlErrorInfo { .nativeErrorCode = 0, .sqlState = "HY001", .message = "Memory allocation error" };
+        }
+        catch (...)
+        {
+            return stmt.LastError();
+        }
+    }
+} // namespace
+
+std::expected<void, SqlErrorInfo> SqlStatement::IssueDeferredBinds(std::source_location location) noexcept
+{
+    // Disabled (prefetch off, or the result set was ineligible). A bound-column loop deferred its real
+    // SQLBindCol calls pending that decision; issue them once per result set now so this and every
+    // subsequent SQLFetch materializes into the caller's bound storage. They are kept, because a later
+    // execution may need them again (a block-prefetched result set in between unbinds the columns). A
+    // bind error surfaces here so FetchRow throws as it would have at BindOutputColumns time on the
+    // non-prefetch path.
+    if (m_data->prefetchDeferredBindsIssued || m_data->prefetchDeferredBinds.empty())
+        return {};
+    m_data->prefetchDeferredBindsIssued = true;
+    try
+    {
+        for (auto const& deferredBind: m_data->prefetchDeferredBinds)
+            if (deferredBind)
+                deferredBind();
+        return {};
+    }
+    catch (...)
+    {
+        return MakeUnexpected(ErrorOfCurrentException(*this), m_preparedQuery, location);
+    }
+}
+
+std::expected<void, SqlErrorInfo> SqlStatement::RunPreFetchSteps(std::source_location location) noexcept
+{
+    // Restore what the previous row's post-processing changed in the bound buffers (and re-bind any
+    // that moved). Reverse order: a wrapping binder registered after the binder it wraps prepares first.
+    // A step can throw: growing a buffer whose storage the caller moved out allocates.
+    try
+    {
+        for (auto const column: m_data->columnsWithCallbacks)
+            for (auto& preFetch: m_data->outputColumnCallbacks[column].preFetch | std::views::reverse)
+                if (auto const rc = preFetch.run(preFetch, m_hStmt); !SQL_SUCCEEDED(rc))
+                    return MakeUnexpected(LastError(), m_preparedQuery, location);
+        return {};
+    }
+    catch (...)
+    {
+        return MakeUnexpected(ErrorOfCurrentException(*this), m_preparedQuery, location);
+    }
+}
+
+std::expected<void, SqlErrorInfo> SqlStatement::RunPostProcessCallbacks(std::source_location location) noexcept
+{
+    // Post-process the output columns (they stay planned for the following rows). A binder throws when
+    // it cannot read the row's value in full (see ThrowBoundValueNotReadable).
+    try
+    {
+        for (auto const column: m_data->columnsWithCallbacks)
+            for (auto const& postProcess: m_data->outputColumnCallbacks[column].postProcess)
+                postProcess();
+        return {};
+    }
+    catch (...)
+    {
+        return MakeUnexpected(ErrorOfCurrentException(*this), m_preparedQuery, location);
+    }
+}
+
 std::expected<bool, SqlErrorInfo> SqlStatement::TryFetchRow(std::source_location location) noexcept
 {
+    // A cursor kept across its connection's Close() (or Close() and Connect()) holds a handle the driver freed:
+    // one compare per row keeps the fetch loop from handing it to the driver, or reading a stale block.
+    if (m_connection != nullptr && m_connection->SessionId() != m_sessionId)
+    {
+        ForgetHandleOfEndedSession();
+        return MakeUnexpected(EndedSessionError(), m_preparedQuery, location);
+    }
+
     if (m_data->prefetchMode == Data::PrefetchMode::Unarmed)
         ArmPrefetchOnFirstFetch();
 
     if (m_data->prefetchMode == Data::PrefetchMode::Active)
         return FetchRowPrefetched();
 
-    // Disabled (prefetch off, or the result set was ineligible). A bound-column loop deferred its real
-    // SQLBindCol calls pending that decision; issue them once now so this and every subsequent SQLFetch
-    // materializes into the caller's bound storage. A bind error surfaces here so FetchRow throws as it
-    // would have at BindOutputColumns time on the non-prefetch path.
-    if (!m_data->prefetchDeferredBinds.empty())
-    {
-        auto deferredBinds = std::move(m_data->prefetchDeferredBinds);
-        m_data->prefetchDeferredBinds.clear();
-        try
-        {
-            for (auto const& deferredBind: deferredBinds)
-                if (deferredBind)
-                    deferredBind();
-        }
-        catch (SqlException const& error)
-        {
-            return MakeUnexpected(error.info(), m_preparedQuery, location);
-        }
-        catch (...)
-        {
-            return MakeUnexpected(LastError(), m_preparedQuery, location);
-        }
-    }
+    if (auto issued = IssueDeferredBinds(location); !issued)
+        return std::unexpected(std::move(issued.error()));
+    if (auto restored = RunPreFetchSteps(location); !restored)
+        return std::unexpected(std::move(restored.error()));
 
     auto const sqlResult = SQLFetch(m_hStmt);
     switch (sqlResult)
     {
         case SQL_NO_DATA:
+            // SQLCloseCursor keeps the column bindings, so their callbacks stay for the next execution.
             SQLCloseCursor(m_hStmt);
-            m_data->postProcessOutputColumnCallbacks.clear();
             SqlLogger::GetLogger().OnFetchEnd();
             return false;
         default:
             if (!SQL_SUCCEEDED(sqlResult))
                 return MakeUnexpected(LastError(), m_preparedQuery, location);
 
-            // post-process the output columns, if needed
-            for (auto const& postProcess: m_data->postProcessOutputColumnCallbacks)
-                postProcess();
-            m_data->postProcessOutputColumnCallbacks.clear();
+            if (auto processed = RunPostProcessCallbacks(location); !processed)
+                return std::unexpected(std::move(processed.error()));
             SqlLogger::GetLogger().OnFetchRow();
             LIGHTWEIGHT_STATS_ROWS(1, false);
             return true;
@@ -1410,6 +1756,9 @@ std::expected<bool, SqlErrorInfo> SqlStatement::TryFetchRow(std::source_location
 
 void SqlStatement::ConsumePendingResults(std::source_location location)
 {
+    // A cursor kept across its connection's Close() must not drain a freed handle: 08003 instead.
+    RequireCurrentSession();
+    m_data->declaredOutputColumnSizes.clear(); // the next result set's columns may differ
     while (true)
     {
         auto const rc = SQLMoreResults(m_hStmt);
@@ -1652,6 +2001,12 @@ void RowArrayCursor::ResetStatementState() noexcept
     if (!m_stmt)
         return;
 
+    // A cursor kept across its connection's Close() or re-connect must not touch the handle: the driver
+    // freed it, and its address may belong to another statement by now.
+    m_stmt->ForgetHandleOfEndedSession();
+    if (m_stmt->NativeHandle() == SQL_NULL_HSTMT)
+        return;
+
     // Restore the statement handle to a single-row, unbound state so it can be safely reused for
     // another query. Failures here are non-fatal (best-effort cleanup), so we don't go through
     // RequireSuccess which would throw.
@@ -1672,6 +2027,7 @@ RowArrayCursor::~RowArrayCursor() noexcept
 std::size_t RowArrayCursor::FetchArray()
 {
     ZoneScopedN("RowArrayCursor::FetchArray");
+    m_stmt->RequireCurrentSession(); // one compare per block; 08003 once the session ended
 
     m_rowsFetched = 0;
     auto const rc = SQLFetchScroll(m_stmt->NativeHandle(), SQL_FETCH_NEXT, 0);

@@ -15,7 +15,7 @@
 namespace Lightweight
 {
 
-constexpr size_t SqlMaxColumnSize = (std::numeric_limits<uint32_t>::max)();
+inline constexpr size_t SqlMaxColumnSize = (std::numeric_limits<uint32_t>::max)();
 
 /// SQL dynamic-capacity string that mimmicks standard library string.
 ///

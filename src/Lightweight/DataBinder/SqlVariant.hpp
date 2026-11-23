@@ -462,8 +462,19 @@ struct LIGHTWEIGHT_API SqlDataBinder<SqlVariant>
                                     SqlVariant const& variantValue,
                                     SqlDataBinderCallback& cb) noexcept;
 
+    /// Reads the column into the alternative its SQL type maps to.
+    /// @param stmt The statement handle.
+    /// @param column The 1-based column index.
+    /// @param result Receives the value, or @c SqlNullValue for NULL.
+    /// @param indicator The column's length/indicator.
+    /// @param cb The binder callback.
+    /// @return The driver's result, or @c SQL_ERROR for a type it cannot represent.
+    /// @throws SqlException What the alternative's binder throws: a column the driver reports as @c SQL_GUID
+    ///         is read through @c SqlDataBinder<SqlGuid>::GetColumn, which fails with 22018 for text that is not
+    ///         a GUID. The SQLite driver reports a GUID column as text (@c SQL_VARCHAR) instead: it reads as a
+    ///         @c SqlGuid where the text is one, and as that text (@c std::string) otherwise, without failing.
     static SQLRETURN GetColumn(
-        SQLHSTMT stmt, SQLUSMALLINT column, SqlVariant* result, SQLLEN* indicator, SqlDataBinderCallback const& cb) noexcept;
+        SQLHSTMT stmt, SQLUSMALLINT column, SqlVariant* result, SQLLEN* indicator, SqlDataBinderCallback const& cb);
 
     static LIGHTWEIGHT_FORCE_INLINE std::string Inspect(SqlVariant const& value) noexcept
     {

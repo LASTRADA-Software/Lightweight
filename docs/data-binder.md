@@ -112,11 +112,45 @@ The `GetColumn()` function retrieves the custom type from the SQL statement.
 Calling `GetColumn()` is usually less efficient than calling `OutputColumn()` because it requires
 an additional copy operation.
 
+### Custom types and block prefetch
+
+By default a connection fetches eligible result sets (all columns numeric, temporal or GUID) in blocks
+of rows and serves `GetColumn<T>()` from that block buffer (see "Transparent block-prefetch" in
+[usage.md](usage.md)). The block buffer holds the column's value as a built-in type; it cannot run a
+custom binder. Where the column type is known before the first fetch, Lightweight keeps such a result
+set on the per-row path, so the custom binder runs: a column bound with `BindOutputColumns()`,
+`ExecuteDirectScalar<CustomType>()`, and the members of a record read with `SqlRowIterator<T>`.
+
+A raw `GetColumn<CustomType>()` on a result set that is already block-prefetched learns the type too late
+and throws a `SqlException` (SQLSTATE `HY000`) instead of returning a wrong value. Two ways out:
+
+- bind the column with `BindOutputColumns()` (or `BindOutputColumn()`) before the first `FetchRow()`, or
+- disable block prefetch for the connection with `SqlConnection::SetDefaultPrefetchDepth(1)`.
+
+`char` is handled the same way: its binder reads the column as text, which the block buffer does not do for
+a numeric column, so `GetColumn<char>()` on a block-prefetched result set throws `HY000` too, while a bound
+`char` keeps the per-row path. Reading a built-in type from a column of another kind (for example a `REAL`
+column as `std::string`) follows the rules in "Reading a column as another type under prefetch" in
+[usage.md](usage.md#reading-a-column-as-another-type-under-prefetch).
+
 ## Inspect()
 
 The `Inspect()` function is used to provide a human-readable representation of the custom type.
 
 This function should be used purely for debugging purposes.
+
+## `SqlGuid` and `SqlTime`: what a read returns
+
+- **`SqlGuid` on SQLite.** SQLite stores a GUID as text. Reading a column whose text is not a GUID (see
+  `SqlGuid::TryParse()`) as a `SqlGuid` fails with a `SqlException`, SQLSTATE `22018` (invalid character
+  value for cast specification), through `GetColumn()` and a bound output column (the fetch fails). It used
+  to read as the all-zero GUID. A `SqlVariant` read does not fail: the SQLite driver reports the column as
+  text, so the variant holds a `SqlGuid` where the text is one, and the text as a `std::string` otherwise.
+  A variant reads through the `SqlGuid` binder, and so fails with `22018`, only where the driver reports
+  the column as `SQL_GUID`.
+- **`SqlTime` carries whole seconds.** It is bound as `SQL_C_TYPE_TIME`, whose structure has no fraction,
+  so after a read the fraction is always 0, on every database and path; a fraction set before writing is
+  not stored.
 
 ## `SqlNumeric<Precision, Scale>` precision limits
 

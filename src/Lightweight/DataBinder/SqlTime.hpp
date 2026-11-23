@@ -168,12 +168,16 @@ struct SqlDataBinder<SqlTime>
     static LIGHTWEIGHT_FORCE_INLINE SQLRETURN OutputColumn(
         SQLHSTMT stmt, SQLUSMALLINT column, SqlTime* result, SQLLEN* indicator, SqlDataBinderCallback& /*cb*/) noexcept
     {
+        // SQL_C_TYPE_TIME carries no fraction of a second: the driver writes hour, minute and second only,
+        // so the fraction is zeroed once here rather than left holding what the variable held before.
+        result->sqlValue.fraction = 0;
         return SQLBindCol(stmt, column, SQL_C_TYPE_TIME, &result->sqlValue, sizeof(result->sqlValue), indicator);
     }
 
     static LIGHTWEIGHT_FORCE_INLINE SQLRETURN GetColumn(
         SQLHSTMT stmt, SQLUSMALLINT column, SqlTime* result, SQLLEN* indicator, SqlDataBinderCallback const& /*cb*/) noexcept
     {
+        result->sqlValue.fraction = 0; // not transferred by SQL_C_TYPE_TIME, see OutputColumn()
         return SQLGetData(stmt, column, SQL_C_TYPE_TIME, &result->sqlValue, sizeof(result->sqlValue), indicator);
     }
 

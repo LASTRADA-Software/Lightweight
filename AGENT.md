@@ -129,6 +129,12 @@ cmake --build --preset clangcl-debug
 
 `PEDANTIC_COMPILER_WERROR=ON` is the default for Windows presets — warnings break the build, fix them at the source.
 
+Compiles go through a compiler-cache launcher when one is found (`cmake/CompileCache.cmake`; `-DUSE_COMPILER_CACHE=OFF`
+disables it). With clang-cl and ccache, header dependencies are tracked through `/showIncludes`, because ccache does
+not restore clang-cl's `-clang:-MF` depfile on a cache hit — that left objects with no recorded header dependencies
+(`ninja -t deps <obj>` showed `#deps 0`), so later header edits silently skipped them. If an incremental Windows build
+ever looks stale, `ninja -t deps <obj>` in the build directory is the first thing to check.
+
 ## Testing
 
 ### ODBC driver prerequisite (one-time setup)

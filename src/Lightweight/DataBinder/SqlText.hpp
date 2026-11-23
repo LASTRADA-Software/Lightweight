@@ -42,6 +42,11 @@ struct SqlBasicStringOperations<SqlText>
     static LIGHTWEIGHT_FORCE_INLINE void Clear(SqlText* str) noexcept { Traits::Clear(&str->value); }
     static LIGHTWEIGHT_FORCE_INLINE void Reserve(SqlText* str, size_t capacity) noexcept { Traits::Reserve(&str->value, capacity); }
     static LIGHTWEIGHT_FORCE_INLINE void Resize(SqlText* str, SQLLEN indicator) noexcept { Traits::Resize(&str->value, indicator); }
+    /// Resizes without initializing the gained characters (see the std::basic_string traits).
+    static LIGHTWEIGHT_FORCE_INLINE void ResizeForOverwrite(SqlText* str, std::size_t size)
+    {
+        Traits::ResizeForOverwrite(&str->value, size);
+    }
     // clang-format on
 };
 

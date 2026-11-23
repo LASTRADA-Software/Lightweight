@@ -11,16 +11,21 @@
 #include <array>
 #include <cctype>
 #include <chrono>
+#include <cstdint>
 #include <filesystem>
 #include <format>
+#include <functional>
 #include <optional>
+#include <ranges>
 #include <string>
 #include <string_view>
 #include <system_error>
 #include <tuple>
 #include <utility>
+#include <vector>
 
 using namespace Lightweight;
+using namespace std::string_view_literals;
 
 // ================================================================================================
 // SqlConnection introspection getters (DB-dependent)
@@ -611,9 +616,14 @@ TEST_CASE_METHOD(SqlTestFixture,
     };
     auto const _ = ScopedSqlNullLogger {};
 
-    // While connecting, the failure fails the connect rather than leaving the journal mode unapplied.
+    // While connecting, the failure fails the connect rather than leaving the journal mode unapplied. It
+    // reports its own error, not the one an earlier failed connect left behind.
     auto connection = SqlConnection { std::nullopt, impatientWal };
+    CHECK_FALSE(connection.Connect(SqlConnectionString { "DRIVER={Lightweight No Such Driver}" }));
+    auto const earlierError = connection.LastError();
+    REQUIRE(earlierError.sqlState != SqlErrorInfo {}.sqlState);
     CHECK_FALSE(connection.Connect(WithSqliteDatabaseFile(path)));
+    CHECK(connection.LastError().sqlState != earlierError.sqlState);
 
     // On an open connection, the setter reports it.
     auto open = SqlConnection { WithSqliteDatabaseFile(path), SqliteConnectionSettings { .busyTimeout = {} } };
@@ -723,7 +733,9 @@ TEST_CASE_METHOD(SqlTestFixture,
 
     auto const connectionString =
         WithDriverSpelling(WithSqliteDatabaseFile(path), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-    auto acceptsWideText = true;
+    // Only the non-Windows checks below depend on it: the Windows driver manager supplies the wide
+    // entry points itself, so the narrowed file name never comes into play there.
+    [[maybe_unused]] auto acceptsWideText = true;
     auto connectDiagnostics = CountingDiagnosticSource {};
     {
         auto connection = [&] {
@@ -857,5 +869,421 @@ TEST_CASE_METHOD(SqlTestFixture,
         CHECK(ConnectReportingSqlState(unseenSpelling(upperCaseMask), sqlState));
         CHECK(std::filesystem::exists(path));
         RemoveSqliteDatabaseFiles(path);
+    }
+}
+TEST_CASE_METHOD(SqlTestFixture, "SqlConnection: Connect on a connected connection", "[SqlConnection]")
+{
+    auto conn = SqlConnection {};
+    REQUIRE(conn.IsAlive());
+
+    SECTION("No statement allocated")
+    {
+        auto const sessionBefore = conn.SessionId();
+        REQUIRE(conn.Connect(SqlConnection::DefaultConnectionString()));
+        CHECK(conn.SessionId() != sessionBefore);
+        CHECK(SqlStatement { conn }.ExecuteDirectScalar<int>("SELECT 42") == std::optional { 42 });
+    }
+
+    SECTION("A statement still allocated")
+    {
+        // On SQLite the attempt names another database file, so a refused one shows which target the
+        // connection reports afterwards.
+        auto const isSqlite = conn.ServerType() == SqlServerType::SQLITE;
+        auto const path = ScratchSqliteDatabasePath("connect-refused");
+        auto const cleanup = detail::Finally([&] {
+            if (isSqlite)
+                RemoveSqliteDatabaseFiles(path);
+        });
+        auto const target = isSqlite ? WithSqliteDatabaseFile(path) : SqlConnection::DefaultConnectionString();
+        auto const connectionStringBefore = conn.ConnectionString();
+
+        auto stmt = SqlStatement { conn };
+        stmt.Prepare("SELECT 42");
+        auto const sessionBefore = conn.SessionId();
+        if (conn.Connect(target))
+        {
+            // The session ended; the statement gets a fresh handle on its next use.
+            CHECK(conn.SessionId() != sessionBefore);
+            CHECK(conn.ConnectionString().value == target.value);
+        }
+        else
+        {
+            // The driver refused to end the session while a statement is allocated (the SQLite ODBC
+            // driver does): the refusal is reported and the session goes on untouched, connection
+            // string included.
+            CHECK(conn.LastError().sqlState == "25000");
+            CHECK(conn.SessionId() == sessionBefore);
+            CHECK(conn.ConnectionString().value == connectionStringBefore.value);
+        }
+        CHECK(stmt.ExecuteDirectScalar<int>("SELECT 42") == std::optional { 42 });
+    }
+}
+
+namespace
+{
+
+/// Records the SQLSTATE of every error reported to the logger while it is installed.
+class ErrorCapturingLogger: public SqlLogger::Null
+{
+  public:
+    ErrorCapturingLogger()
+    {
+        SqlLogger::SetLogger(*this);
+    }
+
+    ErrorCapturingLogger(ErrorCapturingLogger const&) = delete;
+    ErrorCapturingLogger(ErrorCapturingLogger&&) = delete;
+    ErrorCapturingLogger& operator=(ErrorCapturingLogger const&) = delete;
+    ErrorCapturingLogger& operator=(ErrorCapturingLogger&&) = delete;
+
+    ~ErrorCapturingLogger() override
+    {
+        SqlLogger::SetLogger(m_previousLogger);
+    }
+
+    void OnError(SqlErrorInfo const& errorInfo, std::source_location /*sourceLocation*/) override
+    {
+        m_sqlStates.push_back(errorInfo.sqlState);
+    }
+
+    /// @return The SQLSTATE of every error reported so far, in order.
+    [[nodiscard]] std::vector<std::string> const& SqlStates() const noexcept
+    {
+        return m_sqlStates;
+    }
+
+  private:
+    SqlLogger& m_previousLogger = SqlLogger::GetLogger();
+    std::vector<std::string> m_sqlStates;
+};
+
+} // namespace
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlConnection: Close with a prepared statement alive", "[SqlConnection]")
+{
+    // On SQLite a scratch database file shows that Close() really closes the database: an open SQLite file
+    // cannot be renamed on Windows.
+    auto const isSqlite = SqlConnection {}.ServerType() == SqlServerType::SQLITE;
+    auto const path = ScratchSqliteDatabasePath("close-with-statement");
+    auto const renamed = std::filesystem::path { path }.concat(".closed");
+    auto const cleanup = detail::Finally([&] {
+        if (!isSqlite)
+            return;
+        RemoveSqliteDatabaseFiles(path);
+        RemoveSqliteDatabaseFiles(renamed);
+    });
+    if (isSqlite)
+        RemoveSqliteDatabaseFiles(path);
+
+    auto conn = isSqlite ? SqlConnection { WithSqliteDatabaseFile(path) } : SqlConnection {};
+    REQUIRE(conn.IsAlive());
+    {
+        auto stmt = SqlStatement { conn };
+        stmt.Prepare("SELECT 42");
+        {
+            auto cursor = stmt.Execute();
+            REQUIRE(cursor.FetchRow());
+            CHECK(cursor.GetColumn<int>(1) == 42);
+        }
+
+        {
+            // Close() reports a refused disconnect (the SQLite ODBC driver's 25000 while a statement is
+            // allocated) to the logger: it must report nothing. This holds on every platform, where the
+            // file rename below proves the database closed only on Windows.
+            auto const logger = ErrorCapturingLogger {};
+            conn.Close();
+            CHECK(logger.SqlStates().empty());
+        }
+        CHECK_FALSE(conn.IsAlive());
+        if (isSqlite)
+        {
+            auto error = std::error_code {};
+            std::filesystem::rename(path, renamed, error);
+            CHECK_FALSE(error);
+        }
+
+        // The statement's handle went with the session: using it again is an error, not a crash.
+        CHECK_THROWS_AS(stmt.Prepare("SELECT 43"), SqlException);
+    } // and its destructor frees nothing twice
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlStatement: executing after its session ended is a clean error", "[SqlConnection]")
+{
+    auto conn = SqlConnection {};
+    auto stmt = SqlStatement { conn };
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("session_end").RequiredColumn("Value", SqlColumnTypeDefinitions::Integer {});
+    });
+    auto const insert = R"(INSERT INTO "session_end" ("Value") VALUES (?))"sv;
+    auto const sqlStateOf = [](auto&& action) -> std::string {
+        try
+        {
+            action();
+            return "no error";
+        }
+        catch (SqlException const& error)
+        {
+            return error.info().sqlState;
+        }
+    };
+    auto const endSession = [&] {
+        conn.Close();
+        REQUIRE(conn.Connect(SqlConnection::DefaultConnectionString()));
+    };
+
+    stmt.Prepare(insert);
+    (void) stmt.Execute(1);
+    endSession();
+    CHECK(sqlStateOf([&] { (void) stmt.Execute(2); }) == "08003");
+    // And again: the statement keeps reporting it until it is prepared on the live session.
+    CHECK(sqlStateOf([&] { (void) stmt.Execute(2); }) == "08003");
+
+    // Prepared again in the new session, it works.
+    stmt.Prepare(insert);
+    (void) stmt.Execute(3);
+    endSession();
+    CHECK(sqlStateOf([&] { (void) stmt.ExecuteBatch(std::array { 4, 5 }); }) == "08003");
+
+    stmt.Prepare(insert);
+    (void) stmt.ExecuteBatch(std::array { 6, 7 });
+    CHECK(SqlStatement { conn }.ExecuteDirectScalar<int>(R"(SELECT COUNT(*) FROM "session_end")") == std::optional { 4 });
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlResultCursor: destroyed after its connection closed", "[SqlConnection]")
+{
+    // The cursor's teardown must not pass the handle its connection's Close() freed to the driver. Under
+    // a sanitizer that would be a use after free; without one it shows when the freed address is reused
+    // by a statement of the next session, whose cursor the stale teardown would close.
+    auto conn = SqlConnection {};
+    SqlStatement { conn }.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("cursor_close").RequiredColumn("Value", SqlColumnTypeDefinitions::Integer {});
+    });
+    {
+        auto stmt = SqlStatement { conn };
+        stmt.Prepare(R"(INSERT INTO "cursor_close" ("Value") VALUES (?))");
+        for (auto const value: std::views::iota(1, 4))
+            (void) stmt.Execute(value);
+    }
+    auto const query = R"(SELECT "Value" FROM "cursor_close" ORDER BY "Value")"sv;
+
+    for (auto const depth: { PrefetchDepthDefault, std::size_t { 1 } })
+    {
+        INFO("prefetch depth " << depth);
+        conn.SetDefaultPrefetchDepth(depth);
+        {
+            auto stmt = SqlStatement { conn };
+            auto cursor = stmt.ExecuteDirect(query);
+            REQUIRE(cursor.FetchRow());
+            conn.Close();
+        } // cursor and statement destroyed after Close()
+        REQUIRE(conn.Connect(SqlConnection::DefaultConnectionString()));
+        conn.SetDefaultPrefetchDepth(depth);
+
+        auto stale = SqlStatement { conn };
+        auto staleCursor = std::optional<SqlResultCursor> { stale.ExecuteDirect(query) };
+        REQUIRE(staleCursor->FetchRow());
+        conn.Close();
+        REQUIRE(conn.Connect(SqlConnection::DefaultConnectionString()));
+        conn.SetDefaultPrefetchDepth(depth);
+
+        // A statement of the new session reads while the stale cursor goes.
+        auto fresh = SqlStatement { conn };
+        auto freshCursor = fresh.ExecuteDirect(query);
+        REQUIRE(freshCursor.FetchRow());
+        staleCursor.reset();
+        auto values = std::vector<int> { freshCursor.GetColumn<int>(1) };
+        while (freshCursor.FetchRow())
+            values.push_back(freshCursor.GetColumn<int>(1));
+        CHECK(values == std::vector { 1, 2, 3 });
+    }
+}
+
+namespace
+{
+
+/// The query every ended-session test reads: three rows of "cursor_fetch_closed".
+constexpr auto CursorFetchClosedQuery = R"(SELECT "Value" FROM "cursor_fetch_closed" ORDER BY "Value")"sv;
+
+/// Creates "cursor_fetch_closed" holding the values 1, 2 and 3.
+void CreateCursorFetchClosedTable(SqlConnection& conn)
+{
+    SqlStatement { conn }.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("cursor_fetch_closed").RequiredColumn("Value", SqlColumnTypeDefinitions::Integer {});
+    });
+    auto stmt = SqlStatement { conn };
+    stmt.Prepare(R"(INSERT INTO "cursor_fetch_closed" ("Value") VALUES (?))");
+    for (auto const value: std::views::iota(1, 4))
+        (void) stmt.Execute(value);
+}
+
+/// Connects @p conn again if an earlier step closed it.
+void RequireConnected(SqlConnection& conn)
+{
+    if (!conn.IsAlive())
+        REQUIRE(conn.Connect(SqlConnection::DefaultConnectionString()));
+}
+
+/// Ends @p conn's session: Close(), and with @p reconnect Connect() again.
+void EndSession(SqlConnection& conn, bool reconnect)
+{
+    conn.Close();
+    if (reconnect)
+        REQUIRE(conn.Connect(SqlConnection::DefaultConnectionString()));
+}
+
+/// The SQLSTATE @p action throws, or "no error".
+std::string SqlStateOfAction(std::function<void()> const& action)
+{
+    try
+    {
+        action();
+        return "no error";
+    }
+    catch (SqlException const& error)
+    {
+        return error.info().sqlState;
+    }
+}
+
+/// Checks that @p action fails with 08003, and again when repeated: the statement keeps reporting it.
+void CheckEndedSessionTwice(std::function<void()> const& action)
+{
+    CHECK(SqlStateOfAction(action) == "08003");
+    CHECK(SqlStateOfAction(action) == "08003");
+}
+
+/// A cursor that fetched a row, its session ended: the next fetch fails with 08003.
+void CheckFetchAfterSessionEnd(SqlConnection& conn, bool reconnect, std::size_t prefetchDepth)
+{
+    RequireConnected(conn);
+    conn.SetDefaultPrefetchDepth(prefetchDepth);
+    auto stmt = SqlStatement { conn };
+    auto cursor = stmt.ExecuteDirect(CursorFetchClosedQuery);
+    REQUIRE(cursor.FetchRow());
+    EndSession(conn, reconnect);
+    CheckEndedSessionTwice([&] { (void) cursor.FetchRow(); });
+}
+
+/// A row-array fetch that fetched a block, its session ended: the next block fails with 08003.
+void CheckFetchArrayAfterSessionEnd(SqlConnection& conn, bool reconnect)
+{
+    RequireConnected(conn);
+    auto stmt = SqlStatement { conn };
+    auto cursor = stmt.ExecuteBatchFetch(CursorFetchClosedQuery, 2);
+    REQUIRE(cursor.FetchArray() == 2);
+    EndSession(conn, reconnect);
+    CheckEndedSessionTwice([&] { (void) cursor.FetchArray(); });
+}
+
+/// A cursor kept across its session's end: @p action on it fails with 08003.
+void CheckCursorActionAfterSessionEnd(SqlConnection& conn,
+                                      bool reconnect,
+                                      std::function<void(SqlResultCursor&)> const& action)
+{
+    RequireConnected(conn);
+    conn.SetDefaultPrefetchDepth(1); // bindings reach the driver at once
+    auto stmt = SqlStatement { conn };
+    auto cursor = stmt.ExecuteDirect(CursorFetchClosedQuery);
+    EndSession(conn, reconnect);
+    CheckEndedSessionTwice([&] { action(cursor); });
+}
+
+/// A statement prepared before its session ended: @p action on it fails with 08003.
+void CheckStatementActionAfterSessionEnd(SqlConnection& conn,
+                                         bool reconnect,
+                                         std::function<void(SqlStatement&)> const& action)
+{
+    RequireConnected(conn);
+    auto stmt = SqlStatement { conn };
+    stmt.Prepare(R"(SELECT "Value" FROM "cursor_fetch_closed" WHERE "Value" > ?)");
+    EndSession(conn, reconnect);
+    CheckEndedSessionTwice([&] { action(stmt); });
+}
+
+} // namespace
+
+/// A record of one integer column, for the record-binding entry points. At namespace scope, not in an
+/// anonymous namespace: MSVC cannot reflect a type with internal linkage.
+struct EndedSessionValueRecord
+{
+    std::int64_t value {};
+};
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlResultCursor: fetching after its connection closed fails with 08003", "[SqlConnection]")
+{
+    auto conn = SqlConnection {};
+    CreateCursorFetchClosedTable(conn);
+
+    // Closed, and closed then connected again; with the rest of a prefetched block in memory, and per row;
+    // and a row-array fetch.
+    for (auto const reconnect: { false, true })
+    {
+        for (auto const depth: { PrefetchDepthDefault, std::size_t { 1 } })
+        {
+            INFO("reconnect " << reconnect << ", prefetch depth " << depth);
+            CheckFetchAfterSessionEnd(conn, reconnect, depth);
+        }
+        INFO("reconnect " << reconnect << ", FetchArray");
+        CheckFetchArrayAfterSessionEnd(conn, reconnect);
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "SqlResultCursor: every entry point after its connection closed fails with 08003",
+                 "[SqlConnection]")
+{
+    // Every other entry that reaches the driver with the cursor's handle reports the same, instead of
+    // handing the freed handle to the driver.
+    auto conn = SqlConnection {};
+    CreateCursorFetchClosedTable(conn);
+    auto value = std::int64_t {};
+    auto record = EndedSessionValueRecord {};
+    auto records = std::vector<EndedSessionValueRecord> {};
+    auto const cursorActions = std::array<std::pair<std::string_view, std::function<void(SqlResultCursor&)>>, 7> { {
+        { "ConsumePendingResults", [](SqlResultCursor& cursor) { cursor.ConsumePendingResults(); } },
+        { "FetchAllRowWise",
+          [&](SqlResultCursor& cursor) {
+              cursor.FetchAllRowWise(records, 4, [](EndedSessionValueRecord& row) -> std::int64_t& { return row.value; });
+          } },
+        { "NumRowsAffected", [](SqlResultCursor& cursor) { (void) cursor.NumRowsAffected(); } },
+        { "NumColumnsAffected", [](SqlResultCursor& cursor) { (void) cursor.NumColumnsAffected(); } },
+        { "BindOutputColumns", [&](SqlResultCursor& cursor) { cursor.BindOutputColumns(&value); } },
+        { "BindOutputColumnsToRecord", [&](SqlResultCursor& cursor) { cursor.BindOutputColumnsToRecord(&record); } },
+        { "BindOutputColumn", [&](SqlResultCursor& cursor) { cursor.BindOutputColumn(1, &value); } },
+    } };
+    for (auto const reconnect: { false, true })
+    {
+        for (auto const& [name, action]: cursorActions)
+        {
+            INFO("reconnect " << reconnect << ", " << name);
+            CheckCursorActionAfterSessionEnd(conn, reconnect, action);
+        }
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "SqlStatement: a prepared statement's entry points after its connection closed fail with 08003",
+                 "[SqlConnection]")
+{
+    // A prepared statement kept across Close(): binding its parameters and its attributes, and its diagnostics.
+    auto conn = SqlConnection {};
+    CreateCursorFetchClosedTable(conn);
+    auto const statementActions = std::array<std::pair<std::string_view, std::function<void(SqlStatement&)>>, 4> { {
+        { "BindInputParameter",
+          [](SqlStatement& stmt) {
+              auto const parameter = 2;
+              stmt.BindInputParameter(1, parameter);
+          } },
+        { "SetQueryTimeout", [](SqlStatement& stmt) { stmt.SetQueryTimeout(std::chrono::seconds { 5 }); } },
+        { "QueryTimeout", [](SqlStatement& stmt) { (void) stmt.QueryTimeout(); } },
+        { "LastError", [](SqlStatement& stmt) { throw SqlException(stmt.LastError()); } },
+    } };
+    for (auto const reconnect: { false, true })
+    {
+        for (auto const& [name, action]: statementActions)
+        {
+            INFO("reconnect " << reconnect << ", " << name);
+            CheckStatementActionAfterSessionEnd(conn, reconnect, action);
+        }
     }
 }

@@ -4,6 +4,7 @@
 
 // See SqlOdbcPrelude.hpp's header comment for why this replaces a direct <Windows.h> include.
 #include "../Api.hpp"
+#include "../SqlError.hpp"
 #include "../SqlOdbcPrelude.hpp"
 #include "../SqlServerType.hpp"
 
@@ -11,9 +12,12 @@
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
+#include <format>
 #include <functional>
 #include <memory>
 #include <optional>
+#include <string_view>
+#include <utility>
 
 #include <sql.h>
 #include <sqlext.h>
@@ -25,6 +29,43 @@ namespace Lightweight
 /// @defgroup DataTypes Data Types
 ///
 /// @brief Special purpose data types for SQL data binding.
+
+/// @brief A step a binder plans to run before every fetch into the output column it binds.
+///
+/// Plain data rather than a type-erased callable, so planning one never allocates, not even when a
+/// column is bound anew for every row. @ref run receives the step itself (so it can update
+/// @ref boundData and @ref boundSize) and the statement handle the column is bound on.
+struct SqlOutputColumnPreFetch
+{
+    /// Runs the step. Returns @c SQL_SUCCESS, or the failing ODBC return code (the fetch then fails with it).
+    SQLRETURN (*run)(SqlOutputColumnPreFetch& step, SQLHSTMT stmt) = nullptr;
+    /// The bound object the step works on.
+    void* target = nullptr;
+    /// The column's length/indicator buffer.
+    SQLLEN* indicator = nullptr;
+    /// The storage the column is currently bound to.
+    void const* boundData = nullptr;
+    /// The element count the column is currently bound with.
+    std::size_t boundSize = 0;
+    /// The 1-based column index.
+    SQLUSMALLINT column = 0;
+    /// The C type the column is bound as.
+    SQLSMALLINT cType = 0;
+};
+
+/// @brief Which declared length of a result column sizes a buffer bound to it.
+enum class SqlOutputColumnLength : std::uint8_t
+{
+    Octets,     //!< @c SQL_DESC_OCTET_LENGTH: for a buffer of bytes (narrow text, binary)
+    Characters, //!< @c SQL_DESC_LENGTH: for a buffer of characters (UTF-16 text)
+};
+
+namespace detail
+{
+    /// @brief Elements a growable container is bound with at least, where the driver can read a bound
+    /// column again (see @ref SqlDataBinderCallback::MinimumOutputColumnSize).
+    inline constexpr std::size_t DefaultBoundColumnSize = 255;
+} // namespace detail
 
 /// Callback interface for SqlDataBinder to allow post-processing of output columns.
 ///
@@ -52,10 +93,43 @@ class LIGHTWEIGHT_API SqlDataBinderCallback
     /// @see SqlDataBinder::PostExecute()
     virtual void PlanPostExecuteCallback(std::function<void()>&&) = 0;
 
-    /// Plans a callback to be called after a column has been processed.
+    /// Plans a callback to be called after every row fetched into the output column being bound.
+    ///
+    /// The callback stays registered as long as the column binding: it runs after each fetch until the
+    /// column is bound again or its binding is dropped (a new query is prepared or executed directly).
     ///
     /// @see SqlDataBinder::PostProcessOutputColumn()
     virtual void PlanPostProcessOutputColumn(std::function<void()>&&) = 0;
+
+    /// Plans a step to run before every row is fetched into the output column being bound.
+    ///
+    /// A binder that binds straight into a growable container uses this to restore the bound buffer
+    /// that the previous row's post-processing shrank to that row's length, and to re-bind the column
+    /// should the container's storage have moved. Steps of one column run in reverse order of
+    /// planning, so a wrapping binder (e.g. @c std::optional) prepares its storage before the binder
+    /// it wraps. Same lifetime as @ref PlanPostProcessOutputColumn.
+    ///
+    /// @param step The step; its @c run function reports a failure through its return code, which
+    ///             then fails the fetch.
+    virtual void PlanPreFetchOutputColumn(SqlOutputColumnPreFetch const& step) = 0;
+
+    /// The size a growable container bound to output column @p column has at least, without terminator.
+    ///
+    /// A value longer than the bound buffer is read again with @c SQLGetData. Where the driver can do
+    /// that for a bound column (@c SQL_GD_BOUND) this is @c detail::DefaultBoundColumnSize. Where it
+    /// cannot (MS SQL Server), it is the column's declared length, so every value the column can hold
+    /// fits, asked of the driver once per result set and column; a column too long for that (a MAX
+    /// column) gets @c detail::DefaultBoundColumnSize, and a longer value fails the fetch.
+    ///
+    /// @param column The 1-based column index.
+    /// @param length Which declared length counts the container's elements.
+    /// @return The minimum number of elements to bind.
+    [[nodiscard]] virtual std::size_t MinimumOutputColumnSize(SQLUSMALLINT column, SqlOutputColumnLength length)
+    {
+        (void) column;
+        (void) length;
+        return detail::DefaultBoundColumnSize;
+    }
 
     /// Provides a pointer to a single indicator for a single input parameter.
     ///
@@ -151,6 +225,262 @@ namespace detail
     /// headers can use it without reaching up to the higher-level Utils.hpp.
     template <typename T, typename... Us>
     concept IsAnyOf = (std::same_as<T, Us> || ...);
+
+    /// @brief Buffer operations of a contiguous container exposing @c data(), @c size() and
+    /// @c resize() (e.g. @c SqlBinary), shaped like the @c SqlBasicStringOperations traits.
+    struct ContainerBufferOperations
+    {
+        /// @return The container's storage.
+        template <typename Container>
+        static auto* Data(Container* container) noexcept
+        {
+            return container->data();
+        }
+
+        /// @return The container's element count.
+        template <typename Container>
+        static std::size_t Size(Container const* container) noexcept
+        {
+            return container->size();
+        }
+
+        /// Resizes the container to @p size elements.
+        template <typename Container>
+        static void Resize(Container* container, SQLLEN size)
+        {
+            container->resize(static_cast<std::size_t>(size));
+        }
+    };
+
+    /// @brief The pre-fetch step of @ref PlanBoundBufferRestore: grows the container back to the bound size
+    /// and re-binds the column if its storage moved.
+    /// @tparam Ops @c SqlBasicStringOperations-shaped buffer operations of @p Container.
+    /// @tparam UnitBytes Bytes per element of the bound buffer.
+    /// @tparam TerminatorUnits Elements the bound buffer has beyond its size for the driver's terminator.
+    /// @param step The planned step.
+    /// @param stmt The statement handle the column is bound on.
+    /// @return @c SQL_SUCCESS, or the result of re-binding the column.
+    /// @throws std::bad_alloc When growing the container back allocates (its storage was moved out); the
+    ///         fetch reports that as HY001.
+    template <typename Ops, typename Container, std::size_t UnitBytes, std::size_t TerminatorUnits>
+    SQLRETURN RestoreBoundBuffer(SqlOutputColumnPreFetch& step, SQLHSTMT stmt)
+    {
+        auto* const result = static_cast<Container*>(step.target);
+        auto const size = static_cast<std::size_t>(Ops::Size(result));
+        if (static_cast<void const*>(Ops::Data(result)) != step.boundData)
+            step.boundSize = (std::max) (step.boundSize, size);
+        if (size != step.boundSize)
+        {
+            // The driver overwrites the regrown part, so where the container can skip initializing it
+            // (std::basic_string), it does: a long value grows the bound size, and every later row would
+            // otherwise zero-fill up to it. A vector (binary) zero-fills up to the bound size.
+            if constexpr (requires { Ops::ResizeForOverwrite(result, step.boundSize); })
+                Ops::ResizeForOverwrite(result, step.boundSize);
+            else
+                Ops::Resize(result, static_cast<SQLLEN>(step.boundSize));
+        }
+        auto* const data = Ops::Data(result);
+        if (static_cast<void const*>(data) == step.boundData)
+            return SQL_SUCCESS;
+        auto const rc = SQLBindCol(stmt,
+                                   step.column,
+                                   step.cType,
+                                   static_cast<SQLPOINTER>(data),
+                                   static_cast<SQLLEN>((step.boundSize + TerminatorUnits) * UnitBytes),
+                                   step.indicator);
+        // Recorded only once bound: after a failed bind the next fetch must try again, not fetch through the
+        // binding of the storage that moved away.
+        if (SQL_SUCCEEDED(rc))
+            step.boundData = data;
+        return rc;
+    }
+
+    /// @brief The largest declared column length a growable container is grown to when bound: SQL
+    /// Server's largest VARCHAR / VARBINARY short of MAX. A longer or MAX column starts at
+    /// @ref DefaultBoundColumnSize.
+    inline constexpr std::size_t MaxDeclaredBoundColumnSize = 8000;
+
+    /// @brief The declared length of output column @p column as a bound buffer size: between
+    /// @ref DefaultBoundColumnSize and @ref MaxDeclaredBoundColumnSize, and @ref DefaultBoundColumnSize
+    /// for a length the driver does not report or one above the maximum (a MAX or LONG column). One
+    /// @c SQLColAttribute call.
+    ///
+    /// @param stmt The statement holding the result set.
+    /// @param column The 1-based column index.
+    /// @param length Which declared length to ask for.
+    /// @return The number of elements to bind, without a terminator.
+    inline std::size_t DeclaredBoundColumnSize(SQLHSTMT stmt, SQLUSMALLINT column, SqlOutputColumnLength length) noexcept
+    {
+        auto const field =
+            static_cast<SQLUSMALLINT>(length == SqlOutputColumnLength::Octets ? SQL_DESC_OCTET_LENGTH : SQL_DESC_LENGTH);
+        SQLLEN declared {};
+        if (!SQL_SUCCEEDED(SQLColAttribute(stmt, column, field, nullptr, 0, nullptr, &declared)) || declared <= 0
+            || std::cmp_greater(declared, MaxDeclaredBoundColumnSize))
+            return DefaultBoundColumnSize;
+        return (std::max) (DefaultBoundColumnSize, static_cast<std::size_t>(declared));
+    }
+
+    /// @brief Fails the fetch of a bound value longer than its buffer that the driver cannot read again.
+    ///
+    /// The binders' post-processing reads such a value with @c SQLGetData; a driver without
+    /// @c SQL_GD_BOUND (MS SQL Server) refuses that for a bound column. Rather than return the value
+    /// truncated to the buffer, the fetch fails with this error (SQLSTATE 22001).
+    ///
+    /// @param stmt The statement the column is bound on (its diagnostic names the driver's reason).
+    /// @param column The 1-based column index.
+    /// @param totalLength The value's length as the driver reported it, in bytes, or @c SQL_NO_TOTAL.
+    [[noreturn]] inline void ThrowBoundValueNotReadable(SQLHSTMT stmt, SQLUSMALLINT column, SQLLEN totalLength)
+    {
+        auto info = SqlErrorInfo::FromStatementHandle(stmt);
+        // 22001 (string data, right truncation) names what happened to the value; the driver's own
+        // state for the refused re-read (e.g. 07009 on SQL Server) only says why it could not be avoided.
+        info.sqlState = "22001";
+        info.nativeErrorCode = 0;
+        auto const length =
+            totalLength == SQL_NO_TOTAL ? std::string { "length unknown" } : std::format("{} bytes", totalLength);
+        info.message = std::format("Column {}: the value ({}) is longer than its bound buffer, and the driver cannot "
+                                   "read a bound column again (no SQL_GD_BOUND). Read the column with GetColumn(), or "
+                                   "size the bound variable to the longest value before binding it. ({})",
+                                   column,
+                                   length,
+                                   info.message);
+        throw SqlException(std::move(info));
+    }
+
+    /// @brief Fails the fetch of a bound value whose re-read the driver reported inconsistently, or that grew
+    /// beyond @ref MaxUnknownLengthValueBytes.
+    ///
+    /// @param column The 1-based column index.
+    /// @param sqlState 22001 for a value too long to read, HY000 for a driver report that contradicts itself.
+    /// @param reason What went wrong, for the message.
+    [[noreturn]] inline void ThrowBoundValueMisread(SQLUSMALLINT column, std::string_view sqlState, std::string_view reason)
+    {
+        throw SqlException(SqlErrorInfo {
+            .nativeErrorCode = 0,
+            .sqlState = std::string { sqlState },
+            .message = std::format("Column {}: the bound value could not be read in full: {}", column, reason),
+        });
+    }
+
+    /// @brief The most bytes a bound value of unknown length (@c SQL_NO_TOTAL) is grown to while it is read
+    /// again; a longer value fails the fetch with 22001 instead of exhausting memory.
+    inline constexpr std::size_t MaxUnknownLengthValueBytes = std::size_t { 1 } << 30;
+
+    /// @brief Reads a bound value again in full that the driver reported longer than its buffer without
+    /// saying how long (@c SQL_NO_TOTAL), in chunks through @p getData, doubling @p result as it goes.
+    ///
+    /// Only a row whose value overflowed its bound buffer gets here. The container keeps its grown size, so
+    /// the caller decides what the value's length means for it, and re-binds the column if the container's
+    /// storage moved (see @ref PlanBoundBufferRestore), also when this throws.
+    ///
+    /// @tparam Ops @c SqlBasicStringOperations-shaped buffer operations of @p Container.
+    /// @tparam UnitBytes Bytes per element of the buffer.
+    /// @tparam TerminatorUnits Elements the bound buffer has beyond its size for the driver's terminator.
+    /// @param stmt The statement the column is bound on (for the driver's diagnostic).
+    /// @param column The 1-based column index.
+    /// @param cType The C data type the column is bound as; a character type takes one element of each
+    ///              chunk for its terminator.
+    /// @param result The bound container.
+    /// @param indicator The column's length/indicator buffer; set to the value's length in bytes.
+    /// @param getData Reads the next chunk: @c SQLGetData of the column as @p cType, given the target, its
+    ///                length in bytes and the indicator.
+    /// @param maxBytes The most bytes the container grows to.
+    /// @return The value's length in elements.
+    /// @throws SqlException 22001 when the driver cannot read the bound column again (see
+    ///         @ref ThrowBoundValueNotReadable) or the value exceeds @p maxBytes; HY000 when the driver reports
+    ///         a length that contradicts the call.
+    template <typename Ops, std::size_t UnitBytes, std::size_t TerminatorUnits, typename Container, typename GetData>
+    std::size_t ReadBoundValueOfUnknownLength(SQLHSTMT stmt,
+                                              SQLUSMALLINT column,
+                                              SQLSMALLINT cType,
+                                              Container* result,
+                                              SQLLEN* indicator,
+                                              GetData const& getData,
+                                              std::size_t maxBytes = MaxUnknownLengthValueBytes)
+    {
+        auto const terminatorUnits = std::size_t { cType == SQL_C_BINARY ? 0U : 1U };
+        if (Ops::Size(result) < DefaultBoundColumnSize)
+            Ops::Resize(result, static_cast<SQLLEN>(DefaultBoundColumnSize));
+        auto read = std::size_t { 0 };
+        auto first = true;
+        while (true)
+        {
+            auto const units = Ops::Size(result) - read + TerminatorUnits;
+            auto const rv = getData(
+                static_cast<SQLPOINTER>(Ops::Data(result) + read), static_cast<SQLLEN>(units * UnitBytes), indicator);
+            if (rv == SQL_NO_DATA)
+            {
+                // All of it was delivered by the previous chunk. On the first call nothing was: the driver
+                // does not read the bound column again.
+                if (first)
+                    ThrowBoundValueNotReadable(stmt, column, SQL_NO_TOTAL);
+                break;
+            }
+            if (!SQL_SUCCEEDED(rv))
+                ThrowBoundValueNotReadable(stmt, column, SQL_NO_TOTAL);
+            first = false;
+            if (rv == SQL_SUCCESS)
+            {
+                // The last chunk: its indicator is its length, which fits what was offered.
+                if (*indicator < 0 || std::cmp_greater(*indicator, (units - terminatorUnits) * UnitBytes))
+                    ThrowBoundValueMisread(column, "HY000", std::format("the driver reported {} bytes", *indicator));
+                read += static_cast<std::size_t>(*indicator) / UnitBytes;
+                break;
+            }
+            read += units - terminatorUnits; // a full chunk: there is more
+            if (Ops::Size(result) * 2 * UnitBytes > maxBytes)
+                ThrowBoundValueMisread(column, "22001", std::format("it is longer than {} bytes", maxBytes));
+            Ops::Resize(result, static_cast<SQLLEN>(Ops::Size(result) * 2));
+        }
+        *indicator = static_cast<SQLLEN>(read * UnitBytes);
+        return read;
+    }
+
+    /// @brief @ref ReadBoundValueOfUnknownLength reading through @c SQLGetData.
+    /// @return The value's length in elements.
+    template <typename Ops, std::size_t UnitBytes, std::size_t TerminatorUnits, typename Container>
+    std::size_t ReadBoundValueOfUnknownLength(
+        SQLHSTMT stmt, SQLUSMALLINT column, SQLSMALLINT cType, Container* result, SQLLEN* indicator)
+    {
+        return ReadBoundValueOfUnknownLength<Ops, UnitBytes, TerminatorUnits>(
+            stmt, column, cType, result, indicator, [&](SQLPOINTER target, SQLLEN length, SQLLEN* lengthIndicator) {
+                return SQLGetData(stmt, column, cType, target, length, lengthIndicator);
+            });
+    }
+
+    /// @brief Keeps an output column that is bound straight into a growable container bound for every
+    /// fetch of the result set.
+    ///
+    /// The binder's post-processing shrinks the container to each row's length, so before the next
+    /// fetch it is grown back to the bound size. When its storage moved — a truncation re-fetch grew it,
+    /// or the caller moved the value out — the column is re-bound to the new storage, at the larger of
+    /// the old bound size and the container's current size. Per row this is a size compare and a pointer
+    /// compare when nothing changed; growing back within the retained capacity allocates nothing, and
+    /// planning the step allocates nothing either (see @ref SqlOutputColumnPreFetch).
+    ///
+    /// @tparam Ops @c SqlBasicStringOperations-shaped buffer operations of @p Container.
+    /// @tparam UnitBytes Bytes per element of the bound buffer.
+    /// @tparam TerminatorUnits Elements the bound buffer has beyond its size for the driver's terminator.
+    /// @param column The 1-based column index.
+    /// @param cType The C data type the column is bound as.
+    /// @param result The bound container.
+    /// @param indicator The column's length/indicator buffer.
+    /// @param cb The binder callback the step is planned on.
+    template <typename Ops, std::size_t UnitBytes, std::size_t TerminatorUnits, typename Container>
+    void PlanBoundBufferRestore(
+        SQLUSMALLINT column, SQLSMALLINT cType, Container* result, SQLLEN* indicator, SqlDataBinderCallback& cb)
+    {
+        auto step = SqlOutputColumnPreFetch {
+            .run = &RestoreBoundBuffer<Ops, Container, UnitBytes, TerminatorUnits>,
+            .target = result,
+            .boundData = static_cast<void const*>(Ops::Data(result)),
+            .boundSize = static_cast<std::size_t>(Ops::Size(result)),
+            .column = column,
+            .cType = cType,
+        };
+        step.indicator = indicator; // the driver writes through it: the step re-binds the column with it
+        cb.PlanPreFetchOutputColumn(step);
+    }
 
     /// @brief Byte offset of the contained value within a @c std::optional<T>.
     ///

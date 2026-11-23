@@ -13,6 +13,7 @@
 #include <cstdlib>
 #include <filesystem>
 #include <format>
+#include <utility>
 
 using namespace Lightweight::Zip;
 
@@ -48,6 +49,37 @@ class TempFile
   private:
     std::filesystem::path m_path;
 };
+
+/// Both sides of a move construction. The destination is move-constructed from the source member, so
+/// the moved-from source is inspected as a member rather than as a moved-from local.
+struct MoveConstructedArchives
+{
+    ZipArchive source;
+    ZipArchive destination { std::move(source) };
+};
+
+/// Both sides of a move assignment, see MoveAssigned().
+struct MoveAssignedArchives
+{
+    ZipArchive source;
+    ZipArchive destination;
+};
+
+/// Move-constructs a new archive from @p source.
+/// @return The moved-from source and the archive constructed from it.
+MoveConstructedArchives MoveConstructed(ZipArchive source)
+{
+    return MoveConstructedArchives { .source = std::move(source) };
+}
+
+/// Move-assigns @p source onto @p destination.
+/// @return The moved-from source and the assigned-to destination.
+MoveAssignedArchives MoveAssigned(ZipArchive source, ZipArchive destination)
+{
+    auto archives = MoveAssignedArchives { .source = std::move(source), .destination = std::move(destination) };
+    archives.destination = std::move(archives.source);
+    return archives;
+}
 
 } // namespace
 
@@ -581,17 +613,17 @@ TEST_CASE("ZipArchive move semantics", "[Zip]")
     REQUIRE(result.has_value());
 
     // Move construct
-    ZipArchive archive2 = std::move(*result);
-    CHECK(archive2.IsOpen());
-    CHECK(!result->IsOpen()); // NOLINT(bugprone-use-after-move)
+    auto constructed = MoveConstructed(std::move(result).value());
+    CHECK(constructed.destination.IsOpen());
+    CHECK(!constructed.source.IsOpen());
 
     // Move assign
-    ZipArchive archive3 = ZipArchive::CreateOrTruncate((temp.Path().string() + ".2")).value();
-    archive3 = std::move(archive2);
-    CHECK(archive3.IsOpen());
-    CHECK(!archive2.IsOpen()); // NOLINT(bugprone-use-after-move)
+    auto assigned = MoveAssigned(std::move(constructed.destination),
+                                 ZipArchive::CreateOrTruncate((temp.Path().string() + ".2")).value());
+    CHECK(assigned.destination.IsOpen());
+    CHECK(!assigned.source.IsOpen());
 
-    archive3.Discard();
+    assigned.destination.Discard();
 }
 
 TEST_CASE("ZipArchive.NativeHandle returns underlying handle", "[Zip]")

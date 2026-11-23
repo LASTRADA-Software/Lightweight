@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
+#include "../SqlError.hpp"
 #include "BasicStringBinder.hpp"
 #include "SqlGuid.hpp"
 #include "StdString.hpp"
@@ -18,9 +19,11 @@
     #include <uuid/uuid.h>
 #endif
 
+#include <format>
 #include <memory>
 #include <random>
 #include <ranges>
+#include <string_view>
 
 namespace Lightweight
 {
@@ -129,6 +132,25 @@ SQLRETURN SqlDataBinder<SqlGuid>::InputParameter(SQLHSTMT stmt,
     std::unreachable();
 }
 
+namespace
+{
+    /// Parses the text a SQLite GUID column holds, failing with SQLSTATE 22018 (invalid character value for
+    /// cast) on text that is not a GUID rather than reading it as the all-zero GUID.
+    SqlGuid ParseGuidColumnText(std::string_view text, SQLUSMALLINT column)
+    {
+        if (auto const guid = SqlGuid::TryParse(text))
+            return *guid;
+        constexpr auto ShownCharacters = std::size_t { 64 };
+        throw SqlException(SqlErrorInfo {
+            .nativeErrorCode = 0,
+            .sqlState = "22018",
+            .message = std::format("Column {} holds text that is not a GUID (8-4-4-4-12 hex digits): \"{}\"",
+                                   column,
+                                   text.substr(0, ShownCharacters)),
+        });
+    }
+} // namespace
+
 SQLRETURN SqlDataBinder<SqlGuid>::OutputColumn(
     SQLHSTMT stmt, SQLUSMALLINT column, SqlGuid* result, SQLLEN* indicator, SqlDataBinderCallback& cb) noexcept
 {
@@ -139,8 +161,10 @@ SQLRETURN SqlDataBinder<SqlGuid>::OutputColumn(
             auto text = std::make_shared<std::string>();
             auto rv = SqlDataBinder<std::string>::OutputColumn(stmt, column, text.get(), indicator, cb);
             if (SQL_SUCCEEDED(rv))
-                cb.PlanPostProcessOutputColumn(
-                    [text = std::move(text), result] { *result = SqlGuid::TryParse(*text).value_or(SqlGuid {}); });
+                cb.PlanPostProcessOutputColumn([text = std::move(text), result, indicator, column] {
+                    if (*indicator != SQL_NULL_DATA)
+                        *result = ParseGuidColumnText(*text, column);
+                });
             return rv;
         }
         case SqlServerType::MYSQL: // TODO
@@ -156,7 +180,7 @@ SQLRETURN SqlDataBinder<SqlGuid>::OutputColumn(
 }
 
 SQLRETURN SqlDataBinder<SqlGuid>::GetColumn(
-    SQLHSTMT stmt, SQLUSMALLINT column, SqlGuid* result, SQLLEN* indicator, SqlDataBinderCallback const& cb) noexcept
+    SQLHSTMT stmt, SQLUSMALLINT column, SqlGuid* result, SQLLEN* indicator, SqlDataBinderCallback const& cb)
 {
     switch (cb.ServerType())
     {
@@ -164,8 +188,8 @@ SQLRETURN SqlDataBinder<SqlGuid>::GetColumn(
             // For SQlITE, we'll implement GUIDs as text
             std::string text;
             auto rv = SqlDataBinder<std::string>::GetColumn(stmt, column, &text, indicator, cb);
-            if (SQL_SUCCEEDED(rv))
-                *result = SqlGuid::TryParse(text).value_or(SqlGuid {});
+            if (SQL_SUCCEEDED(rv) && *indicator != SQL_NULL_DATA)
+                *result = ParseGuidColumnText(text, column);
             return rv;
         }
         case SqlServerType::MYSQL: // TODO

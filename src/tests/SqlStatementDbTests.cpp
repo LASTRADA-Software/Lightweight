@@ -9,9 +9,13 @@
 
 #include <algorithm>
 #include <array>
+#include <concepts>
+#include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <format>
 #include <optional>
+#include <ranges>
 #include <span>
 #include <stdexcept>
 #include <string>
@@ -852,4 +856,1080 @@ TEST_CASE_METHOD(SqlTestFixture, "raw ExecuteBatch reports per-row status", "[Sq
     CHECK_NOTHROW((void) stmt.ExecuteBatch(columns, ids.size()));
     CHECK(SqlStatement {}.ExecuteDirectScalar<int64_t>(R"(SELECT COUNT(*) FROM "raw_batch_status" WHERE "ID" >= 10)")
           == std::optional<int64_t> { 2 });
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "ExecuteBatchNative column-wise leaves the statement ready for a single Execute",
+                 "[SqlStatement]")
+{
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("native_batch_then_single")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Integer {})
+            .RequiredColumn("Value", SqlColumnTypeDefinitions::Integer {});
+    });
+    stmt.Prepare(R"(INSERT INTO "native_batch_then_single" ("Id", "Value") VALUES (?, ?))");
+
+    auto const ids = std::array { 1, 2, 3, 4, 5, 6, 7, 8 };
+    auto const values = std::array { 10, 20, 30, 40, 50, 60, 70, 80 };
+    (void) stmt.ExecuteBatchNative(ids, values);
+
+    // Same prepared statement, no re-Prepare: one parameter set, read from the values bound now.
+    (void) stmt.Execute(100, 1000);
+
+    CHECK(SqlStatement {}.ExecuteDirectScalar<int64_t>(R"(SELECT COUNT(*) FROM "native_batch_then_single")")
+          == std::optional<int64_t> { 9 });
+    CHECK(SqlStatement {}.ExecuteDirectScalar<int64_t>(R"(SELECT "Value" FROM "native_batch_then_single" WHERE "Id" = 100)")
+          == std::optional<int64_t> { 1000 });
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "ExecuteBatch column-wise of SqlTime round-trips every row", "[SqlStatement]")
+{
+    using namespace std::chrono_literals;
+
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("batch_time")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Integer {})
+            .RequiredColumn("Value", SqlColumnTypeDefinitions::Time {});
+    });
+    stmt.Prepare(R"(INSERT INTO "batch_time" ("Id", "Value") VALUES (?, ?))");
+
+    auto const ids = std::array { 1, 2, 3, 4, 5, 6, 7, 8 };
+    auto const times = std::array { SqlTime { 0h, 0min, 1s },    SqlTime { 1h, 2min, 3s },    SqlTime { 4h, 5min, 6s },
+                                    SqlTime { 7h, 8min, 9s },    SqlTime { 10h, 11min, 12s }, SqlTime { 13h, 14min, 15s },
+                                    SqlTime { 16h, 17min, 18s }, SqlTime { 23h, 59min, 59s } };
+    (void) stmt.ExecuteBatch(ids, times);
+
+    auto cursor = stmt.ExecuteDirect(R"(SELECT "Value" FROM "batch_time" ORDER BY "Id")"sv);
+    auto actual = std::vector<SqlTime> {};
+    while (cursor.FetchRow())
+        actual.push_back(cursor.GetColumn<SqlTime>(1));
+    CHECK(actual == std::vector<SqlTime>(times.begin(), times.end()));
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "ExecuteBatch column-wise of a UTF-16 fixed string round-trips", "[SqlStatement]")
+{
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("batch_wide_fixed")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Integer {})
+            .RequiredColumn("Value", SqlColumnTypeDefinitions::NVarchar { .size = 16 });
+    });
+    stmt.Prepare(R"(INSERT INTO "batch_wide_fixed" ("Id", "Value") VALUES (?, ?))");
+
+    using WideFixed = SqlFixedString<16, char16_t>;
+    auto const ids = std::array { 1, 2, 3 };
+    auto const values = std::array { WideFixed { u"one" }, WideFixed { u"Grüße" }, WideFixed { u"three" } };
+    (void) stmt.ExecuteBatch(ids, values);
+
+    auto cursor = stmt.ExecuteDirect(R"(SELECT "Value" FROM "batch_wide_fixed" ORDER BY "Id")"sv);
+    auto actual = std::vector<std::u16string> {};
+    while (cursor.FetchRow())
+        actual.push_back(cursor.GetColumn<std::u16string>(1));
+    CHECK(actual == std::vector<std::u16string> { u"one", u"Grüße", u"three" });
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "ExecuteDirectScalar of an empty result set", "[SqlStatement]")
+{
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("scalar_empty")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Integer {})
+            .RequiredColumn("Value", SqlColumnTypeDefinitions::Integer {});
+    });
+    auto const query = R"(SELECT "Value" FROM "scalar_empty")"sv;
+
+    // No row means no scalar: the optional overload says so ...
+    CHECK(stmt.ExecuteDirectScalar<int>(query) == std::nullopt);
+    // ... and the SqlVariant overload, which reports a NULL value as SqlNullValue, reports it as an error.
+    CHECK_THROWS_AS(stmt.ExecuteDirectScalar<SqlVariant>(query), SqlException);
+
+    // The statement stays usable, and non-empty results are unaffected.
+    CHECK(stmt.ExecuteDirectScalar<int64_t>(R"(SELECT COUNT(*) FROM "scalar_empty")") == std::optional<int64_t> { 0 });
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "Narrow string output at the bound buffer's size", "[SqlStatement]")
+{
+    // A TEXT column has no declared length short enough to size the buffer by, so a std::string is bound
+    // with the default length plus the NUL the driver appends. A value exactly as long as that buffer fills
+    // it but for its last character: it must be recognised as truncated and read in full. The lengths
+    // straddle that boundary.
+    constexpr auto BoundSize = detail::DefaultBoundColumnSize + 1;
+    auto const lengths = std::array { BoundSize, BoundSize - 1, BoundSize + 1, BoundSize, BoundSize - 2 };
+    auto const textOfLength = [](std::size_t length) {
+        auto text = std::string {};
+        for (auto const i: std::views::iota(std::size_t { 0 }, length))
+            text.push_back(static_cast<char>('a' + (i % 26)));
+        return text;
+    };
+
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("boundary_text")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Integer {})
+            .RequiredColumn("Value", SqlColumnTypeDefinitions::Text {});
+    });
+    stmt.Prepare(R"(INSERT INTO "boundary_text" ("Id", "Value") VALUES (?, ?))");
+    for (auto const index: std::views::iota(std::size_t { 0 }, lengths.size()))
+        (void) stmt.Execute(static_cast<int>(index), textOfLength(lengths.at(index)));
+
+    auto const expected = [&] {
+        auto texts = std::vector<std::string> {};
+        for (auto const length: lengths)
+            texts.push_back(textOfLength(length));
+        return texts;
+    }();
+    auto const query = R"(SELECT "Value" FROM "boundary_text" ORDER BY "Id")"sv;
+    {
+        // Where the driver cannot read a bound column again, the buffer would be the column's declared
+        // length: the boundary above holds there only if the driver reports no usable one for TEXT.
+        auto cursor = stmt.ExecuteDirect(query);
+        REQUIRE(detail::DeclaredBoundColumnSize(stmt.NativeHandle(), 1, SqlOutputColumnLength::Octets) + 1 == BoundSize);
+    }
+
+    // Reading the rest of a truncated bound column needs SQLGetData on a bound column, which the MS SQL
+    // Server driver does not support (no SQL_GD_BOUND). There the first value of the bound size or longer
+    // fails the fetch with 22001 rather than coming back truncated.
+    auto const readsBoundColumnsAgain = stmt.Connection().ReadsBoundColumnsAgain();
+    auto const expectedBeforeFailure = [&] {
+        auto texts = std::vector<std::string> {};
+        for (auto const& text: expected)
+        {
+            if (!readsBoundColumnsAgain && text.size() >= BoundSize)
+                break;
+            texts.push_back(text);
+        }
+        return texts;
+    }();
+    auto const fetchAll = [&](SqlResultCursor& cursor, auto&& bindAndFetch) {
+        auto actual = std::vector<std::string> {};
+        auto failure = std::string {};
+        try
+        {
+            while (auto value = bindAndFetch(cursor))
+                actual.push_back(std::move(*value));
+        }
+        catch (SqlException const& error)
+        {
+            failure = error.info().sqlState;
+        }
+        CHECK(actual == expectedBeforeFailure);
+        CHECK(failure == (readsBoundColumnsAgain ? "" : "22001"));
+    };
+
+    SECTION("Bound output column")
+    {
+        auto value = std::string {};
+        auto cursor = stmt.ExecuteDirect(query);
+        cursor.BindOutputColumns(&value);
+        fetchAll(cursor, [&](SqlResultCursor& c) { return c.FetchRow() ? std::optional { value } : std::nullopt; });
+    }
+
+    SECTION("Bound output column, a fresh variable per row")
+    {
+        auto value = std::string {};
+        auto cursor = stmt.ExecuteDirect(query);
+        fetchAll(cursor, [&](SqlResultCursor& c) {
+            value = std::string {};
+            c.BindOutputColumns(&value);
+            return c.FetchRow() ? std::optional { value } : std::nullopt;
+        });
+    }
+
+    SECTION("GetColumn")
+    {
+        auto actual = std::vector<std::string> {};
+        auto cursor = stmt.ExecuteDirect(query);
+        while (cursor.FetchRow())
+            actual.push_back(cursor.GetColumn<std::string>(1));
+        CHECK(actual == expected);
+    }
+}
+
+// ================================================================================================
+// Output columns bound once (BindOutputColumns before the fetch loop) stay bound for every row
+// ================================================================================================
+
+namespace
+{
+
+constexpr int BoundOnceRowCount = 60;
+
+/// Row @p i's text: lengths vary up and down (0..40 code units), row 3 is empty, every fifth row starts
+/// with non-ASCII text.
+template <typename Char>
+std::basic_string<Char> BoundOnceText(int i)
+{
+    if (i == 3)
+        return {};
+    auto text = std::basic_string<Char>(static_cast<std::size_t>((i * 7) % 41), static_cast<Char>('a' + (i % 26)));
+    if (i % 5 == 0)
+    {
+        if constexpr (std::same_as<Char, char16_t>)
+            text.insert(0, u"Gr\u00FC\u00DFe-");
+        else
+        {
+            auto const prefix = std::u8string_view { u8"Gr\u00FC\u00DFe-" };
+            text.insert(0, reinterpret_cast<Char const*>(prefix.data()), prefix.size());
+        }
+    }
+    return text;
+}
+
+/// Row @p i's nullable text: NULL on every fourth row, otherwise the next row's text.
+template <typename Char>
+std::optional<std::basic_string<Char>> BoundOnceMaybeText(int i)
+{
+    if (i % 4 == 1)
+        return std::nullopt;
+    return BoundOnceText<Char>(i + 1);
+}
+
+/// Row @p i's fixed-capacity text (1..17 bytes, some non-ASCII).
+SqlAnsiString<20> BoundOnceFixed(int i)
+{
+    auto const prefix = i % 6 == 0 ? std::string { "\xC3\xBC" } : std::string {};
+    return SqlAnsiString<20> { std::format("{}f{}", prefix, std::string(static_cast<std::size_t>((i * 3) % 15), 'z')) };
+}
+
+/// Row @p i's nullable blob: NULL on every fourth row, otherwise 0..29 bytes.
+std::optional<SqlBinary> BoundOnceBlob(int i)
+{
+    if (i % 4 == 2)
+        return std::nullopt;
+    auto blob = SqlBinary {};
+    for (auto const k: std::views::iota(0, (i * 5) % 30))
+        blob.push_back(static_cast<std::uint8_t>((i + k) % 251));
+    return blob;
+}
+
+void CreateBoundOnceTable(SqlStatement& stmt)
+{
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("BoundOnce")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Integer {})
+            .RequiredColumn("Text", SqlColumnTypeDefinitions::NVarchar { .size = 64 })
+            .Column("MaybeText", SqlColumnTypeDefinitions::NVarchar { .size = 64 })
+            .RequiredColumn("WideText", SqlColumnTypeDefinitions::NVarchar { .size = 64 })
+            .Column("MaybeWideText", SqlColumnTypeDefinitions::NVarchar { .size = 64 })
+            .RequiredColumn("Fixed", SqlColumnTypeDefinitions::Varchar { .size = 20 })
+            .Column("Blob", SqlColumnTypeDefinitions::VarBinary { .size = 64 });
+    });
+    // Narrow text is written (and read back) narrow, wide text wide: how narrow input lands in a Unicode
+    // column is the driver's business (MS SQL Server takes it as the client codepage), not this test's.
+    stmt.Prepare(
+        R"(INSERT INTO "BoundOnce" ("Id", "Text", "MaybeText", "WideText", "MaybeWideText", "Fixed", "Blob") VALUES (?, ?, ?, ?, ?, ?, ?))");
+    for (auto const i: std::views::iota(0, BoundOnceRowCount))
+        (void) stmt.Execute(i,
+                            BoundOnceText<char>(i),
+                            BoundOnceMaybeText<char>(i),
+                            BoundOnceText<char16_t>(i),
+                            BoundOnceMaybeText<char16_t>(i),
+                            BoundOnceFixed(i),
+                            BoundOnceBlob(i));
+}
+
+/// The two ways a bound-column loop is served: per-row SQLFetch with the binds issued right away
+/// (prefetch off), and with the binds deferred to the first fetch (prefetch on, declined for text).
+constexpr auto BoundOncePrefetchDepths = std::array { std::size_t { 1 }, PrefetchDepthDefault };
+
+} // namespace
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "BindOutputColumns once: narrow and fixed and optional and binary columns",
+                 "[SqlStatement][BindOnce]")
+{
+    auto stmt = SqlStatement {};
+    CreateBoundOnceTable(stmt);
+
+    for (auto const depth: BoundOncePrefetchDepths)
+    {
+        INFO("prefetch depth " << depth);
+        stmt.Connection().SetDefaultPrefetchDepth(depth);
+
+        auto id = 0;
+        auto text = std::string {};
+        auto maybeText = std::optional<std::string> {};
+        auto fixed = SqlAnsiString<20> {};
+        auto blob = std::optional<SqlBinary> {};
+
+        auto cursor =
+            stmt.ExecuteDirect(R"(SELECT "Id", "Text", "MaybeText", "Fixed", "Blob" FROM "BoundOnce" ORDER BY "Id")"sv);
+        cursor.BindOutputColumns(&id, &text, &maybeText, &fixed, &blob);
+        auto rows = 0;
+        while (cursor.FetchRow())
+        {
+            INFO("row " << rows);
+            CHECK(id == rows);
+            CHECK(text == BoundOnceText<char>(rows));
+            CHECK(maybeText == BoundOnceMaybeText<char>(rows));
+            CHECK(fixed == BoundOnceFixed(rows));
+            CHECK((blob == BoundOnceBlob(rows))); // no printer for SqlBinary
+            ++rows;
+        }
+        CHECK(rows == BoundOnceRowCount);
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "BindOutputColumns once: UTF-16 and UTF-8 columns", "[SqlStatement][BindOnce]")
+{
+    auto stmt = SqlStatement {};
+    CreateBoundOnceTable(stmt);
+
+    for (auto const depth: BoundOncePrefetchDepths)
+    {
+        INFO("prefetch depth " << depth);
+        stmt.Connection().SetDefaultPrefetchDepth(depth);
+
+        auto wide = std::u16string {};
+        auto maybeWide = std::optional<std::u16string> {};
+        auto utf8 = std::u8string {};
+        auto maybeUtf8 = std::optional<std::u8string> {};
+
+        auto cursor = stmt.ExecuteDirect(
+            R"(SELECT "WideText", "MaybeWideText", "WideText", "MaybeWideText" FROM "BoundOnce" ORDER BY "Id")"sv);
+        cursor.BindOutputColumns(&wide, &maybeWide, &utf8, &maybeUtf8);
+        auto rows = 0;
+        while (cursor.FetchRow())
+        {
+            INFO("row " << rows);
+            CHECK(wide == BoundOnceText<char16_t>(rows));
+            CHECK(maybeWide == BoundOnceMaybeText<char16_t>(rows));
+            CHECK(utf8 == BoundOnceText<char8_t>(rows));
+            CHECK((maybeUtf8 == BoundOnceMaybeText<char8_t>(rows))); // no printer for optional<u8string>
+            ++rows;
+        }
+        CHECK(rows == BoundOnceRowCount);
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "BindOutputColumns once: values taken out of the bound variables",
+                 "[SqlStatement][BindOnce]")
+{
+    auto stmt = SqlStatement {};
+    CreateBoundOnceTable(stmt);
+
+    for (auto const depth: BoundOncePrefetchDepths)
+    {
+        INFO("prefetch depth " << depth);
+        stmt.Connection().SetDefaultPrefetchDepth(depth);
+
+        // Taking each value out leaves the bound variables with fresh storage the column must follow.
+        auto text = std::string {};
+        auto wide = std::u16string {};
+        auto texts = std::vector<std::string> {};
+        auto wides = std::vector<std::u16string> {};
+
+        auto cursor = stmt.ExecuteDirect(R"(SELECT "Text", "WideText" FROM "BoundOnce" ORDER BY "Id")"sv);
+        cursor.BindOutputColumns(&text, &wide);
+        while (cursor.FetchRow())
+        {
+            texts.emplace_back(std::exchange(text, std::string {}));
+            wides.emplace_back(std::exchange(wide, std::u16string {}));
+        }
+
+        REQUIRE(std::cmp_equal(texts.size(), BoundOnceRowCount));
+        REQUIRE(std::cmp_equal(wides.size(), BoundOnceRowCount));
+        for (auto const i: std::views::iota(0, BoundOnceRowCount))
+        {
+            INFO("row " << i);
+            CHECK(texts[static_cast<std::size_t>(i)] == BoundOnceText<char>(i));
+            CHECK(wides[static_cast<std::size_t>(i)] == BoundOnceText<char16_t>(i));
+        }
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "BindOutputColumns once: a prepared statement executed twice", "[SqlStatement][BindOnce]")
+{
+    auto stmt = SqlStatement {};
+    CreateBoundOnceTable(stmt);
+
+    // The column bindings outlive the cursor: closing it (SQLCloseCursor, at the end of the result set
+    // or when the cursor goes) does not unbind, so the second execution fetches into them again.
+    auto const fetchBoth = [&](auto&& bind, auto&& checkRow) {
+        auto rows = 0;
+        {
+            auto cursor = stmt.Execute(0, BoundOnceRowCount / 2);
+            bind(cursor);
+            while (cursor.FetchRow())
+            {
+                INFO("first execution, row " << rows);
+                checkRow(rows);
+                ++rows;
+            }
+        }
+        {
+            auto cursor = stmt.Execute(BoundOnceRowCount / 2, BoundOnceRowCount);
+            while (cursor.FetchRow())
+            {
+                INFO("second execution, row " << rows);
+                checkRow(rows);
+                ++rows;
+            }
+        }
+        CHECK(rows == BoundOnceRowCount);
+    };
+
+    for (auto const depth: BoundOncePrefetchDepths)
+    {
+        INFO("prefetch depth " << depth);
+        stmt.Connection().SetDefaultPrefetchDepth(depth);
+
+        // Text columns: the per-row path, with UTF-16 staging buffers for the UTF-8 strings.
+        stmt.Prepare(
+            R"(SELECT "Id", "Text", "WideText", "MaybeWideText" FROM "BoundOnce" WHERE "Id" >= ? AND "Id" < ? ORDER BY "Id")");
+        auto id = 0;
+        auto text = std::string {};
+        auto utf8 = std::u8string {};
+        auto maybeUtf8 = std::optional<std::u8string> {};
+        fetchBoth([&](SqlResultCursor& cursor) { cursor.BindOutputColumns(&id, &text, &utf8, &maybeUtf8); },
+                  [&](int row) {
+                      CHECK(id == row);
+                      CHECK(text == BoundOnceText<char>(row));
+                      CHECK(utf8 == BoundOnceText<char8_t>(row));
+                      CHECK((maybeUtf8 == BoundOnceMaybeText<char8_t>(row))); // no printer for optional<u8string>
+                  });
+
+        // An integer column only: served from the block buffer where the driver can.
+        stmt.Prepare(R"(SELECT "Id" FROM "BoundOnce" WHERE "Id" >= ? AND "Id" < ? ORDER BY "Id")");
+        auto onlyId = -1;
+        fetchBoth([&](SqlResultCursor& cursor) { cursor.BindOutputColumns(&onlyId); },
+                  [&](int row) { CHECK(onlyId == row); });
+    }
+}
+
+namespace
+{
+
+/// An output column type whose binder plans a post-process callback and then fails, as a binder whose
+/// SQLBindCol fails after it planned its callbacks does.
+struct FailingOutputColumn
+{
+    int postProcessed = 0;
+};
+
+} // namespace
+
+template <>
+struct Lightweight::SqlDataBinder<FailingOutputColumn>
+{
+    static SQLRETURN OutputColumn(SQLHSTMT /*stmt*/,
+                                  SQLUSMALLINT /*column*/,
+                                  FailingOutputColumn* result,
+                                  SQLLEN* /*indicator*/,
+                                  SqlDataBinderCallback& cb) noexcept
+    {
+        cb.PlanPostProcessOutputColumn([result] { ++result->postProcessed; });
+        return SQL_ERROR;
+    }
+};
+
+TEST_CASE_METHOD(SqlTestFixture, "A failed output column binding plans no callbacks", "[SqlStatement][BindOnce]")
+{
+    auto stmt = SqlStatement {};
+    CreateBoundOnceTable(stmt);
+    stmt.Connection().SetDefaultPrefetchDepth(1); // binds right away, so the binder's failure throws here
+
+    auto failing = FailingOutputColumn {};
+    auto id = -1;
+    auto cursor = stmt.ExecuteDirect(R"(SELECT "Id", "Fixed" FROM "BoundOnce" ORDER BY "Id")"sv);
+    CHECK_THROWS_AS(cursor.BindOutputColumn(2, &failing), SqlException);
+    cursor.BindOutputColumn(1, &id); // column 2 stays unbound
+    REQUIRE(cursor.FetchRow());
+    CHECK(id == 0);
+    CHECK(failing.postProcessed == 0);
+}
+
+namespace
+{
+
+constexpr std::size_t BoundLongColumnSize = 1000;
+
+/// Text lengths around the 255 units an unsized buffer used to get, and up to the column's declared
+/// size, between short ones.
+constexpr auto BoundLongLengths =
+    std::array<std::size_t, 13> { 5, 255, 3, 300, 0, 254, 256, 600, 10, 255, BoundLongColumnSize, 1, 999 };
+
+std::string BoundLongText(std::size_t row)
+{
+    auto text = std::string(BoundLongLengths[row], static_cast<char>('a' + (row % 26)));
+    return text;
+}
+
+std::u16string BoundLongWideText(std::size_t row)
+{
+    auto text = std::u16string(BoundLongLengths[row], static_cast<char16_t>('A' + (row % 26)));
+    if (!text.empty())
+        text.front() = u'ü';
+    return text;
+}
+
+std::u8string BoundLongUtf8Text(std::size_t row)
+{
+    auto const wide = BoundLongWideText(row);
+    return ToUtf8(std::u16string_view { wide });
+}
+
+SqlBinary BoundLongBlob(std::size_t row)
+{
+    auto blob = SqlBinary {};
+    for (auto const k: std::views::iota(std::size_t { 0 }, BoundLongLengths[row]))
+        blob.push_back(static_cast<std::uint8_t>((row + k) % 251));
+    return blob;
+}
+
+/// NULL on every third row, otherwise up to the full 40 characters.
+std::optional<SqlAnsiString<40>> BoundLongMaybeFixed(std::size_t row)
+{
+    if (row % 3 == 2)
+        return std::nullopt;
+    return SqlAnsiString<40> { std::string((row * 11) % 41, 'q') };
+}
+
+} // namespace
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "BindOutputColumns once: values longer than 255 between short ones",
+                 "[SqlStatement][BindOnce]")
+{
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("BoundLong")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Integer {})
+            .RequiredColumn("Text", SqlColumnTypeDefinitions::Varchar { .size = BoundLongColumnSize })
+            .RequiredColumn("WideText", SqlColumnTypeDefinitions::NVarchar { .size = BoundLongColumnSize })
+            .Column("Blob", SqlColumnTypeDefinitions::VarBinary { .size = BoundLongColumnSize })
+            .Column("MaybeFixed", SqlColumnTypeDefinitions::Varchar { .size = 40 });
+    });
+    stmt.Prepare(R"(INSERT INTO "BoundLong" ("Id", "Text", "WideText", "Blob", "MaybeFixed") VALUES (?, ?, ?, ?, ?))");
+    for (auto const row: std::views::iota(std::size_t { 0 }, BoundLongLengths.size()))
+        (void) stmt.Execute(
+            static_cast<int>(row), BoundLongText(row), BoundLongWideText(row), BoundLongBlob(row), BoundLongMaybeFixed(row));
+
+    for (auto const depth: BoundOncePrefetchDepths)
+    {
+        INFO("prefetch depth " << depth);
+        stmt.Connection().SetDefaultPrefetchDepth(depth);
+
+        auto id = -1;
+        auto text = std::string {};
+        auto wide = std::u16string {};
+        auto utf8 = std::u8string {};
+        auto blob = std::optional<SqlBinary> {};
+        auto maybeFixed = std::optional<SqlAnsiString<40>> {};
+
+        auto cursor = stmt.ExecuteDirect(
+            R"(SELECT "Id", "Text", "WideText", "WideText", "Blob", "MaybeFixed" FROM "BoundLong" ORDER BY "Id")"sv);
+        cursor.BindOutputColumns(&id, &text, &wide, &utf8, &blob, &maybeFixed);
+        auto rows = std::size_t { 0 };
+        while (cursor.FetchRow())
+        {
+            INFO("row " << rows << ", length " << BoundLongLengths[rows]);
+            CHECK(std::cmp_equal(id, rows));
+            CHECK(text == BoundLongText(rows));
+            CHECK(wide == BoundLongWideText(rows));
+            CHECK((utf8 == BoundLongUtf8Text(rows))); // no printer for u8string
+            // An empty VARBINARY may come back as NULL.
+            CHECK((blob.value_or(SqlBinary {}) == BoundLongBlob(rows))); // no printer for SqlBinary
+            CHECK((maybeFixed == BoundLongMaybeFixed(rows)));            // no printer for optional<SqlAnsiString<N>>
+            ++rows;
+        }
+        CHECK(rows == BoundLongLengths.size());
+    }
+}
+
+namespace
+{
+
+/// Lengths of 300, 5000 and 70000 characters between short ones; a negative length is a NULL row.
+constexpr auto BoundHugeLengths = std::array<int, 11> { 5, 300, -1, 5000, 2, 70000, 0, 300, -1, 70000, 7 };
+
+/// Row @p row's text: "Grüße-" on odd rows (non-ASCII, in every client code page the tests run with), then
+/// ASCII letters up to the row's length in code points.
+template <typename Char>
+std::optional<std::basic_string<Char>> BoundHugeText(std::size_t row)
+{
+    auto const length = BoundHugeLengths[row];
+    if (length < 0)
+        return std::nullopt;
+    auto text = std::u16string {};
+    if (row % 2 == 1)
+        text = u"Grüße-";
+    text.resize((std::max) (text.size(), static_cast<std::size_t>(length)), static_cast<char16_t>('a' + (row % 26)));
+    if constexpr (std::same_as<Char, char16_t>)
+        return text;
+    else
+    {
+        auto const utf8 = ToUtf8(std::u16string_view { text });
+        return std::basic_string<Char>(reinterpret_cast<Char const*>(utf8.data()), utf8.size());
+    }
+}
+
+} // namespace
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "BindOutputColumns once: values of 5000 and 70000 characters between short ones",
+                 "[SqlStatement][BindOnce]")
+{
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("BoundHuge")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Integer {})
+            .Column("Text", SqlColumnTypeDefinitions::Text {})
+            .Column("WideText", SqlColumnTypeDefinitions::NVarchar { .size = 0 });
+    });
+    stmt.Prepare(R"(INSERT INTO "BoundHuge" ("Id", "Text", "WideText") VALUES (?, ?, ?))");
+    for (auto const row: std::views::iota(std::size_t { 0 }, BoundHugeLengths.size()))
+        (void) stmt.Execute(static_cast<int>(row), BoundHugeText<char>(row), BoundHugeText<char16_t>(row));
+
+    // A driver that cannot read a bound column again (MS SQL Server) cannot serve a value longer than
+    // the bound buffer, which for a MAX column has the default size: the fetch must fail, never return
+    // the value truncated.
+    auto const readsBoundColumnsAgain = stmt.Connection().ReadsBoundColumnsAgain();
+    auto const firstTooLong = static_cast<std::size_t>(std::ranges::distance(
+        BoundHugeLengths.begin(), std::ranges::find_if(BoundHugeLengths, [](int length) { return length > 255; })));
+
+    for (auto const depth: BoundOncePrefetchDepths)
+    {
+        INFO("prefetch depth " << depth);
+        stmt.Connection().SetDefaultPrefetchDepth(depth);
+
+        auto text = std::optional<std::string> {};
+        auto wide = std::optional<std::u16string> {};
+        auto utf8 = std::optional<std::u8string> {};
+        auto cursor = stmt.ExecuteDirect(R"(SELECT "Text", "WideText", "WideText" FROM "BoundHuge" ORDER BY "Id")"sv);
+        cursor.BindOutputColumns(&text, &wide, &utf8);
+        auto rows = std::size_t { 0 };
+        while (readsBoundColumnsAgain || rows < firstTooLong)
+        {
+            if (!cursor.FetchRow())
+                break;
+            INFO("row " << rows << ", length " << BoundHugeLengths[rows]);
+            CHECK(text == BoundHugeText<char>(rows));
+            CHECK(wide == BoundHugeText<char16_t>(rows));
+            CHECK((utf8 == BoundHugeText<char8_t>(rows))); // no printer for optional<u8string>
+            ++rows;
+        }
+        if (readsBoundColumnsAgain)
+            CHECK(rows == BoundHugeLengths.size());
+        else
+            CHECK_THROWS_AS(cursor.FetchRow(), SqlException);
+    }
+}
+
+namespace
+{
+
+/// A row for the row-major batch of SqlTime.
+struct TimeFractionRow
+{
+    int id {};
+    SqlTime time;
+};
+
+} // namespace
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlTime: reading leaves no stale fraction", "[SqlTime]")
+{
+    using namespace std::chrono_literals;
+
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("time_fraction")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Integer {})
+            .RequiredColumn("Value", SqlColumnTypeDefinitions::Time {});
+    });
+    auto const written = SqlTime { 13h, 59min, 26s, 123456us };
+
+    // Single execute, column-major batch, row-major batch.
+    stmt.Prepare(R"(INSERT INTO "time_fraction" ("Id", "Value") VALUES (?, ?))");
+    (void) stmt.Execute(1, written);
+    (void) stmt.ExecuteBatch(std::array { 2 }, std::array { written });
+    auto const rows = std::array { TimeFractionRow { .id = 3, .time = written } };
+    (void) stmt.ExecuteBatch(
+        std::span { rows },
+        [](TimeFractionRow const& row) -> int const& { return row.id; },
+        [](TimeFractionRow const& row) -> SqlTime const& { return row.time; });
+
+    // The binders transfer SQL_C_TYPE_TIME, which carries no fraction of a second: the time of day
+    // round-trips, the fraction reads back as 0 rather than as whatever the target held before.
+    auto const checkRead = [&](SqlTime const& read) {
+        CHECK(read.sqlValue.hour == written.sqlValue.hour);
+        CHECK(read.sqlValue.minute == written.sqlValue.minute);
+        CHECK(read.sqlValue.second == written.sqlValue.second);
+        CHECK(read.sqlValue.fraction == 0);
+    };
+    constexpr auto StaleFraction = SQLUINTEGER { 999'999 };
+    auto const query = R"(SELECT "Id", "Value" FROM "time_fraction" ORDER BY "Id")"sv;
+    for (auto const depth: { PrefetchDepthDefault, std::size_t { 1 } })
+    {
+        INFO("prefetch depth " << depth);
+        stmt.Connection().SetDefaultPrefetchDepth(depth);
+        {
+            // A column is read once per row: drivers other than SQLite refuse a second SQLGetData.
+            auto cursor = stmt.ExecuteDirect(query);
+            auto rowCount = 0;
+            while (cursor.FetchRow())
+            {
+                INFO("row " << ++rowCount);
+                checkRead(cursor.GetColumn<SqlTime>(2));
+            }
+            CHECK(rowCount == 3);
+        }
+        {
+            auto cursor = stmt.ExecuteDirect(query);
+            auto rowCount = 0;
+            while (cursor.FetchRow())
+            {
+                INFO("row " << ++rowCount);
+                auto target = SqlTime {};
+                target.sqlValue.fraction = StaleFraction;
+                CHECK(cursor.GetColumn(2, &target));
+                checkRead(target);
+            }
+            CHECK(rowCount == 3);
+        }
+        {
+            auto id = 0;
+            auto bound = SqlTime {};
+            bound.sqlValue.fraction = StaleFraction;
+            auto cursor = stmt.ExecuteDirect(query);
+            cursor.BindOutputColumns(&id, &bound);
+            while (cursor.FetchRow())
+            {
+                INFO("bound row " << id);
+                checkRead(bound);
+            }
+        }
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "BindOutputColumns once: a long value into a UTF-16 staged or direct string alone",
+                 "[SqlStatement][BindOnce]")
+{
+    // Each type is bound on its own, so no other column's failure hides its outcome: std::u8string,
+    // std::u32string (and std::wstring where it is 32-bit) read through a UTF-16 staging buffer,
+    // std::u16string (and a 16-bit std::wstring) straight into the string.
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("BoundLongAlone")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Integer {})
+            .Column("Value", SqlColumnTypeDefinitions::NVarchar { .size = 0 });
+    });
+    auto const lengths = std::array { std::size_t { 300 }, std::size_t { 70000 } };
+    auto const textOf = [](std::size_t length) {
+        auto text = std::u16string(u"ü-");
+        text.resize(length, u'w');
+        return text;
+    };
+    stmt.Prepare(R"(INSERT INTO "BoundLongAlone" ("Id", "Value") VALUES (?, ?))");
+    for (auto const index: std::views::iota(std::size_t { 0 }, lengths.size()))
+        (void) stmt.Execute(static_cast<int>(index), textOf(lengths.at(index)));
+
+    // Where the driver can read a bound column again the whole value arrives; where it cannot (MS SQL
+    // Server) the fetch fails with 22001. Never a truncated value, never an abort.
+    auto const readsBoundColumnsAgain = stmt.Connection().ReadsBoundColumnsAgain();
+    auto const readAlone = [&]<typename T>(std::size_t index, auto const& convert) {
+        INFO(std::format("row {} ({} characters)", index, lengths[index]));
+        auto value = T {};
+        auto failure = std::string {};
+        try
+        {
+            auto cursor = stmt.ExecuteDirect(std::format(R"(SELECT "Value" FROM "BoundLongAlone" WHERE "Id" = {})", index));
+            cursor.BindOutputColumns(&value);
+            if (!cursor.FetchRow())
+                failure = "no row";
+        }
+        catch (SqlException const& error)
+        {
+            failure = error.info().sqlState;
+        }
+        if (readsBoundColumnsAgain)
+        {
+            CHECK(failure.empty());
+            CHECK((convert(value) == textOf(lengths.at(index)))); // no printer for the string types
+        }
+        else
+            CHECK(failure == "22001");
+    };
+    auto const fromU8 = [](std::u8string const& text) {
+        return ToUtf16(std::u8string_view { text });
+    };
+    auto const fromU32 = [](std::u32string const& text) {
+        return ToUtf16(std::u32string_view { text });
+    };
+    auto const fromOptionalU8 = [](std::optional<std::u8string> const& text) {
+        return text ? ToUtf16(std::u8string_view { *text }) : std::u16string {};
+    };
+    auto const fromU16 = [](std::u16string const& text) {
+        return text;
+    };
+    auto const fromWide = [](std::wstring const& text) {
+        if constexpr (sizeof(wchar_t) == 2)
+            return std::u16string(reinterpret_cast<char16_t const*>(text.data()), text.size());
+        else
+            return ToUtf16(std::u32string_view(reinterpret_cast<char32_t const*>(text.data()), text.size()));
+    };
+    for (auto const index: std::views::iota(std::size_t { 0 }, lengths.size()))
+    {
+        readAlone.operator()<std::u8string>(index, fromU8);
+        readAlone.operator()<std::optional<std::u8string>>(index, fromOptionalU8);
+        readAlone.operator()<std::u16string>(index, fromU16);
+        readAlone.operator()<std::u32string>(index, fromU32);
+        readAlone.operator()<std::wstring>(index, fromWide);
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "Bound column: a value longer than its buffer of unknown length is read in full",
+                 "[SqlStatement][BindOnce]")
+{
+    // A driver may report a value longer than the bound buffer as SQL_NO_TOTAL instead of its length. The
+    // binders' post-processing then reads it again in full; this drives that step directly with the
+    // indicator such a driver leaves, on a fetched row whose columns are not bound.
+    constexpr auto ValueLength = std::size_t { 700 };
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("BoundNoTotal")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Integer {})
+            .RequiredColumn("Text", SqlColumnTypeDefinitions::Varchar { .size = 1000 })
+            .RequiredColumn("WideText", SqlColumnTypeDefinitions::NVarchar { .size = 1000 })
+            .RequiredColumn("Blob", SqlColumnTypeDefinitions::VarBinary { .size = 1000 });
+    });
+    auto text = std::string(ValueLength, 'x');
+    for (auto const index: std::views::iota(std::size_t { 0 }, text.size()))
+        text[index] = static_cast<char>('a' + (index % 26));
+    auto wide = std::u16string(ValueLength, u'y');
+    wide.replace(0, 6, u"Grüße-");
+    auto blob = SqlBinary(ValueLength, std::uint8_t { 0 });
+    for (auto const index: std::views::iota(std::size_t { 0 }, blob.size()))
+        blob[index] = static_cast<std::uint8_t>(index % 251);
+    stmt.Prepare(R"(INSERT INTO "BoundNoTotal" ("Id", "Text", "WideText", "Blob") VALUES (?, ?, ?, ?))");
+    (void) stmt.Execute(1, text, wide, blob);
+
+    auto cursor = stmt.ExecuteDirect(R"(SELECT "Text", "WideText", "WideText", "Blob" FROM "BoundNoTotal")"sv);
+    REQUIRE(cursor.FetchRow());
+    auto* const hStmt = stmt.NativeHandle();
+
+    // Each read starts from what a bound buffer of the default size holds; the columns are read in order.
+    auto narrow = std::string(detail::DefaultBoundColumnSize, '\0');
+    auto indicator = SQLLEN { SQL_NO_TOTAL };
+    SqlDataBinder<std::string>::PostProcessOutputColumn(hStmt, 1, &narrow, &indicator);
+    CHECK(narrow == text);
+    CHECK(std::cmp_equal(indicator, text.size()));
+
+    auto staging = std::u16string(detail::DefaultBoundColumnSize + 1, u'\0');
+    indicator = SQL_NO_TOTAL;
+    CHECK(detail::ReadBoundUtf16Staging(hStmt, 2, staging, &indicator) == wide);
+
+    auto direct = std::u16string(detail::DefaultBoundColumnSize, u'\0');
+    indicator = SQL_NO_TOTAL;
+    auto const directLength =
+        detail::ReadBoundValueOfUnknownLength<SqlBasicStringOperations<std::u16string>, sizeof(char16_t), 1>(
+            hStmt, 3, SQL_C_WCHAR, &direct, &indicator);
+    direct.resize(directLength);
+    CHECK(direct == wide);
+
+    auto binary = SqlBinary(detail::DefaultBoundColumnSize, std::uint8_t { 0 });
+    indicator = SQL_NO_TOTAL;
+    binary.resize(detail::ReadBoundValueOfUnknownLength<detail::ContainerBufferOperations, 1, 0>(
+        hStmt, 4, SQL_C_BINARY, &binary, &indicator));
+    CHECK((binary == blob)); // no printer for SqlBinary
+
+    // A value the driver cannot read again fails the fetch rather than come back truncated.
+    auto unreadable = std::string(detail::DefaultBoundColumnSize, '\0');
+    indicator = SQL_NO_TOTAL;
+    try
+    {
+        SqlDataBinder<std::string>::PostProcessOutputColumn(hStmt, 9, &unreadable, &indicator);
+        FAIL("the read of a column that does not exist succeeded");
+    }
+    catch (SqlException const& error)
+    {
+        CHECK(error.info().sqlState == "22001");
+    }
+}
+
+namespace
+{
+
+/// One scripted SQLGetData answer: its return code, the indicator it reports, and whether it fills the target.
+struct ScriptedChunk
+{
+    SQLRETURN returnCode;
+    SQLLEN indicator;
+};
+
+/// A getData callable for ReadBoundValueOfUnknownLength that answers from @p script, in order, and fills
+/// each target it is given with 'x'.
+auto ScriptedGetData(std::vector<ScriptedChunk> const& script, std::size_t& calls)
+{
+    return [&script, &calls](SQLPOINTER target, SQLLEN length, SQLLEN* indicator) -> SQLRETURN {
+        auto const& chunk = script.at(std::min(calls, script.size() - 1));
+        ++calls;
+        std::memset(target, 'x', static_cast<std::size_t>(length));
+        *indicator = chunk.indicator;
+        return chunk.returnCode;
+    };
+}
+
+/// The SQLSTATE @p read throws, or "none".
+template <typename Read>
+std::string SqlStateOf(Read const& read)
+{
+    try
+    {
+        read();
+        return "none";
+    }
+    catch (SqlException const& error)
+    {
+        return error.info().sqlState;
+    }
+}
+
+} // namespace
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "Bound column: the read of a value of unknown length checks what the driver reports",
+                 "[SqlStatement][BindOnce]")
+{
+    auto stmt = SqlStatement {};
+    auto* const hStmt = stmt.NativeHandle();
+    using Ops = detail::ContainerBufferOperations;
+    auto const read = [&](std::vector<ScriptedChunk> const& script,
+                          std::size_t maxBytes = detail::MaxUnknownLengthValueBytes) {
+        auto calls = std::size_t { 0 };
+        auto buffer = std::vector<std::uint8_t>(detail::DefaultBoundColumnSize);
+        auto indicator = SQLLEN { SQL_NO_TOTAL };
+        auto const length = detail::ReadBoundValueOfUnknownLength<Ops, 1, 0>(
+            hStmt, 1, SQL_C_BINARY, &buffer, &indicator, ScriptedGetData(script, calls), maxBytes);
+        CHECK(std::cmp_equal(indicator, length));
+        return length;
+    };
+    constexpr auto Full = SQLLEN { SQL_NO_TOTAL };
+
+    // Exactly one buffer's worth.
+    CHECK(read({ { SQL_SUCCESS, 255 } }) == 255);
+    // Two full chunks of unknown length (the buffer doubles after each), then the rest.
+    CHECK(read({ { SQL_SUCCESS_WITH_INFO, Full }, { SQL_SUCCESS_WITH_INFO, Full }, { SQL_SUCCESS, 10 } }) == 255 + 255 + 10);
+    // All of it in full chunks, the end reported by SQL_NO_DATA.
+    CHECK(read({ { SQL_SUCCESS_WITH_INFO, Full }, { SQL_NO_DATA, 0 } }) == 255);
+
+    // A failure half-way, nothing to read at all, a negative or an impossible length, endless growth.
+    CHECK(SqlStateOf([&] { (void) read({ { SQL_SUCCESS_WITH_INFO, Full }, { SQL_ERROR, 0 } }); }) == "22001");
+    CHECK(SqlStateOf([&] { (void) read({ { SQL_NO_DATA, 0 } }); }) == "22001");
+    CHECK(SqlStateOf([&] { (void) read({ { SQL_SUCCESS, -5 } }); }) == "HY000");
+    CHECK(SqlStateOf([&] { (void) read({ { SQL_SUCCESS, 256 } }); }) == "HY000");
+    CHECK(SqlStateOf([&] { (void) read({ { SQL_SUCCESS_WITH_INFO, Full } }, 4096); }) == "22001");
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "Bound column: a failed read of a staged value of unknown length leaves the column bound to live storage",
+                 "[SqlStatement][BindOnce]")
+{
+    auto stmt = SqlStatement {};
+    auto cursor = stmt.ExecuteDirect(
+        R"(SELECT "v" FROM (SELECT 1 AS "k", 'first' AS "v" UNION ALL SELECT 2, 'second') "t" ORDER BY "k")"sv);
+    REQUIRE(cursor.FetchRow());
+    auto* const hStmt = stmt.NativeHandle();
+
+    // The read grows the staging buffer (moving it), then fails.
+    auto const script = std::vector<ScriptedChunk> { { .returnCode = SQL_SUCCESS_WITH_INFO, .indicator = SQL_NO_TOTAL },
+                                                     { .returnCode = SQL_ERROR, .indicator = 0 } };
+    auto calls = std::size_t { 0 };
+    auto staging = std::u16string(detail::DefaultBoundColumnSize + 1, u'\0');
+    auto const* const before = staging.data();
+    auto indicator = SQLLEN { SQL_NO_TOTAL };
+    CHECK(SqlStateOf(
+              [&] { (void) detail::ReadBoundUtf16Staging(hStmt, 1, staging, &indicator, ScriptedGetData(script, calls)); })
+          == "22001");
+    CHECK(staging.data() != before);
+
+    // The next row lands where the staging buffer is now, not in the storage it left.
+    REQUIRE(cursor.FetchRow());
+    REQUIRE(indicator >= 0);
+    CHECK(std::u16string_view { staging.data(), static_cast<std::size_t>(indicator) / sizeof(char16_t) } == u"second");
+    REQUIRE(SQL_SUCCEEDED(SQLFreeStmt(hStmt, SQL_UNBIND))); // the staging buffer goes before the statement
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "Bound column: a staging buffer the driver refuses to bind again is unbound, and the read fails",
+                 "[SqlStatement][BindOnce]")
+{
+    auto stmt = SqlStatement {};
+    auto cursor = stmt.ExecuteDirect(
+        R"(SELECT "v" FROM (SELECT 1 AS "k", 'first' AS "v" UNION ALL SELECT 2, 'second') "t" ORDER BY "k")"sv);
+    REQUIRE(cursor.FetchRow());
+    auto* const hStmt = stmt.NativeHandle();
+
+    // Column 0 is the bookmark column, and bookmarks are off: every driver refuses to bind it, so the read
+    // of the value succeeds and binding the staging buffer to that column again fails.
+    constexpr auto RefusedColumn = SQLUSMALLINT { 0 };
+    auto calls = std::size_t { 0 };
+    auto staging = std::u16string(detail::DefaultBoundColumnSize + 1, u'\0');
+
+    SECTION("unknown length")
+    {
+        auto const script = std::vector<ScriptedChunk> { { .returnCode = SQL_SUCCESS, .indicator = 10 } };
+        auto indicator = SQLLEN { SQL_NO_TOTAL };
+        CHECK(SqlStateOf([&] {
+                  (void) detail::ReadBoundUtf16Staging(
+                      hStmt, RefusedColumn, staging, &indicator, ScriptedGetData(script, calls));
+              })
+              != "none");
+        CHECK(indicator == SQL_NO_TOTAL); // the next row is read again, and bound again
+    }
+
+    SECTION("known length")
+    {
+        auto const totalBytes = static_cast<SQLLEN>((staging.size() + 10) * sizeof(char16_t));
+        auto const script = std::vector<ScriptedChunk> { { .returnCode = SQL_SUCCESS, .indicator = totalBytes } };
+        auto indicator = totalBytes;
+        CHECK(SqlStateOf([&] {
+                  (void) detail::ReadBoundUtf16Staging(
+                      hStmt, RefusedColumn, staging, &indicator, ScriptedGetData(script, calls));
+              })
+              != "none");
+        CHECK(indicator == SQL_NO_TOTAL);
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "Bound column: a re-bind of moved storage that fails is tried again on the next fetch",
+                 "[SqlStatement][BindOnce]")
+{
+    auto stmt = SqlStatement {};
+    auto cursor = stmt.ExecuteDirect(R"(SELECT 'first')"sv);
+    auto* const hStmt = stmt.NativeHandle();
+    using Ops = SqlBasicStringOperations<std::string>;
+
+    // The container's storage moved since the column was bound (boundData is elsewhere): the pre-fetch step
+    // binds it again. The first bind fails (column 0, the bookmark column, with bookmarks off).
+    auto value = std::string(16, '\0');
+    auto indicator = SQLLEN {};
+    auto const elsewhere = std::string(16, '\0');
+    auto step = SqlOutputColumnPreFetch {
+        .run = nullptr,
+        .target = &value,
+        .indicator = &indicator,
+        .boundData = elsewhere.data(),
+        .boundSize = value.size(),
+        .column = 0,
+        .cType = SQL_C_CHAR,
+    };
+    CHECK_FALSE(SQL_SUCCEEDED((detail::RestoreBoundBuffer<Ops, std::string, 1, 1>(step, hStmt))));
+    CHECK(step.boundData == elsewhere.data()); // not recorded as bound
+
+    // The next fetch's step binds it again (here to the real column) instead of trusting the failed bind.
+    step.column = 1;
+    REQUIRE(SQL_SUCCEEDED((detail::RestoreBoundBuffer<Ops, std::string, 1, 1>(step, hStmt))));
+    CHECK(step.boundData == value.data());
+    REQUIRE(SQL_SUCCEEDED(SQLFetch(hStmt)));
+    REQUIRE(indicator == 5);
+    CHECK(std::string_view { value.data(), 5 } == "first");
+    REQUIRE(SQL_SUCCEEDED(SQLFreeStmt(hStmt, SQL_UNBIND))); // the value goes before the statement
 }

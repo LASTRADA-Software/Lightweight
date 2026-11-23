@@ -7,9 +7,13 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <algorithm>
+#include <array>
+#include <chrono>
 #include <cstdint>
 #include <format>
 #include <optional>
+#include <ostream>
 #include <ranges>
 #include <string>
 #include <tuple>
@@ -945,4 +949,396 @@ TEST_CASE_METHOD(SqlTestFixture, "Per-row fallback: a GUID column reads into std
     auto const text = cursor.GetColumn<std::string>(1);
     // The textual form differs in case between drivers; the value must not.
     CHECK(SqlGuid::TryParse(text) == guid);
+}
+
+// ------------------------------------------------------------------------------------------------
+// A user type whose binder composes a built-in binder cannot be rebuilt from the block buffer
+// ------------------------------------------------------------------------------------------------
+
+namespace PrefetchTests
+{
+
+/// A user type with its own binder, stored as a DOUBLE.
+struct Celsius
+{
+    double degrees {};
+
+    constexpr auto operator<=>(Celsius const&) const noexcept = default;
+};
+
+std::ostream& operator<<(std::ostream& os, Celsius const& value)
+{
+    return os << std::format("Celsius({})", value.degrees);
+}
+
+} // namespace PrefetchTests
+
+template <>
+struct Lightweight::SqlDataBinder<PrefetchTests::Celsius>
+{
+    using Celsius = PrefetchTests::Celsius;
+
+    static constexpr auto ColumnType = SqlDataBinder<double>::ColumnType;
+
+    static SQLRETURN InputParameter(SQLHSTMT stmt,
+                                    SQLUSMALLINT column,
+                                    Celsius const& value,
+                                    SqlDataBinderCallback& cb) noexcept
+    {
+        return SqlDataBinder<double>::InputParameter(stmt, column, value.degrees, cb);
+    }
+
+    static SQLRETURN OutputColumn(
+        SQLHSTMT stmt, SQLUSMALLINT column, Celsius* result, SQLLEN* indicator, SqlDataBinderCallback& cb) noexcept
+    {
+        return SqlDataBinder<double>::OutputColumn(stmt, column, &result->degrees, indicator, cb);
+    }
+
+    static SQLRETURN GetColumn(
+        SQLHSTMT stmt, SQLUSMALLINT column, Celsius* result, SQLLEN* indicator, SqlDataBinderCallback const& cb) noexcept
+    {
+        return SqlDataBinder<double>::GetColumn(stmt, column, &result->degrees, indicator, cb);
+    }
+
+    static std::string Inspect(Celsius const& value) noexcept
+    {
+        return std::format("{}C", value.degrees);
+    }
+};
+
+namespace
+{
+
+using PrefetchTests::Celsius;
+
+constexpr auto CelsiusValues = std::array { Celsius { 20.5 }, Celsius { -3.25 }, Celsius { 100.0 } };
+
+void CreateCelsiusTable(SqlStatement& stmt)
+{
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("PrefetchCelsius")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Integer {})
+            .RequiredColumn("Degrees", SqlColumnTypeDefinitions::Real {});
+    });
+    stmt.Prepare(R"(INSERT INTO "PrefetchCelsius" ("Id", "Degrees") VALUES (?, ?))");
+    for (auto const index: std::views::iota(std::size_t { 0 }, CelsiusValues.size()))
+        (void) stmt.Execute(static_cast<int>(index), CelsiusValues.at(index));
+}
+
+} // namespace
+
+TEST_CASE_METHOD(SqlTestFixture, "Prefetch: ExecuteDirectScalar of a custom-binder type", "[prefetch]")
+{
+    auto stmt = SqlStatement {};
+    stmt.Connection().SetDefaultPrefetchDepth(PrefetchDepthDefault);
+    CreateCelsiusTable(stmt);
+
+    CHECK(stmt.ExecuteDirectScalar<Celsius>(R"(SELECT "Degrees" FROM "PrefetchCelsius" WHERE "Id" = 0)")
+          == std::optional { CelsiusValues[0] });
+    CHECK(stmt.ExecuteDirectScalar<Celsius>(R"(SELECT "Degrees" FROM "PrefetchCelsius" ORDER BY "Id" DESC)")
+          == std::optional { CelsiusValues[2] });
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "Prefetch: GetColumn of a custom-binder type", "[prefetch]")
+{
+    auto stmt = SqlStatement {};
+    stmt.Connection().SetDefaultPrefetchDepth(PrefetchDepthDefault);
+    CreateCelsiusTable(stmt);
+
+    auto const query = R"(SELECT "Degrees" FROM "PrefetchCelsius" ORDER BY "Id")"sv;
+
+    SECTION("Read per row while the result set is block-prefetched")
+    {
+        auto cursor = stmt.ExecuteDirect(query);
+        REQUIRE(cursor.FetchRow());
+        if (stmt.Connection().SupportsNativeRowArrayFetch())
+            // The block buffer cannot rebuild the value; it must say so rather than hand back Celsius {}.
+            CHECK_THROWS_AS(cursor.GetColumn<Celsius>(1), SqlException);
+        else
+            CHECK(cursor.GetColumn<Celsius>(1) == CelsiusValues[0]);
+    }
+
+    SECTION("Bound output column")
+    {
+        auto celsius = Celsius {};
+        auto cursor = stmt.ExecuteDirect(query);
+        cursor.BindOutputColumns(&celsius);
+        auto rows = std::vector<Celsius> {};
+        while (cursor.FetchRow())
+            rows.push_back(celsius);
+        CHECK(rows == std::vector<Celsius>(CelsiusValues.begin(), CelsiusValues.end()));
+    }
+
+    SECTION("Prefetch disabled")
+    {
+        stmt.Connection().SetDefaultPrefetchDepth(1);
+        auto cursor = stmt.ExecuteDirect(query);
+        auto rows = std::vector<Celsius> {};
+        while (cursor.FetchRow())
+            rows.push_back(cursor.GetColumn<Celsius>(1));
+        CHECK(rows == std::vector<Celsius>(CelsiusValues.begin(), CelsiusValues.end()));
+    }
+}
+TEST_CASE_METHOD(SqlTestFixture,
+                 "Prefetch: cross-type GetColumn converts or fails but never returns a default",
+                 "[prefetch]")
+{
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("PrefetchCross")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Integer {})
+            .RequiredColumn("Number", SqlColumnTypeDefinitions::Bigint {})
+            .RequiredColumn("Day", SqlColumnTypeDefinitions::Date {})
+            .RequiredColumn("Moment", SqlColumnTypeDefinitions::DateTime {});
+    });
+    using namespace std::chrono;
+    auto const theDay = SqlDate { year { 2024 }, month { 1 }, day { 2 } };
+    auto const moment = SqlDateTime { year { 2024 }, month { 1 }, day { 2 }, hours { 3 }, minutes { 4 }, seconds { 5 } };
+    stmt.Prepare(R"(INSERT INTO "PrefetchCross" ("Id", "Number", "Day", "Moment") VALUES (?, ?, ?, ?))");
+    (void) stmt.Execute(1, std::int64_t { 20240102 }, theDay, moment);
+
+    stmt.Connection().SetDefaultPrefetchDepth(TestPrefetchDepth);
+    auto const read = [&]<typename T>(std::string_view column) {
+        auto cursor = stmt.ExecuteDirect(std::format(R"(SELECT "{}" FROM "PrefetchCross")", column));
+        REQUIRE(cursor.FetchRow());
+        return cursor.GetColumn<T>(1);
+    };
+
+    // Conversions the ODBC rules define: the same value the per-row path reads on every backend.
+    CHECK(read.operator()<SqlDate>("Moment") == theDay);
+    CHECK(read.operator()<SqlDateTime>("Day")
+          == SqlDateTime { year { 2024 }, month { 1 }, day { 2 }, hours { 0 }, minutes { 0 }, seconds { 0 } });
+    CHECK(read.operator()<double>("Number") == 20240102.0);
+
+    // Conversions they do not define. The per-row path is driver-specific here (MS SQL Server raises
+    // 07006, others convert or report NULL); a block-prefetched read raises 07006 instead of inventing a value.
+    if (stmt.Connection().SupportsNativeRowArrayFetch())
+    {
+        auto const restricted = [&]<typename T>(std::string_view column) {
+            try
+            {
+                (void) read.operator()<T>(column);
+                return std::string { "no error" };
+            }
+            catch (SqlException const& error)
+            {
+                return error.info().sqlState;
+            }
+        };
+        CHECK(restricted.operator()<double>("Day") == "07006");
+        CHECK(restricted.operator()<std::int64_t>("Moment") == "07006");
+        CHECK(restricted.operator()<SqlDate>("Number") == "07006");
+        CHECK(restricted.operator()<SqlDateTime>("Number") == "07006");
+        CHECK(restricted.operator()<SqlGuid>("Day") == "07006");
+    }
+
+    // A bound output column learns the column type before the first fetch, so a pairing whose per-row
+    // conversion is driver-specific keeps the per-row path and reads exactly what it reads there.
+    auto const boundOutcome = [&](std::size_t depth) -> std::string {
+        stmt.Connection().SetDefaultPrefetchDepth(depth);
+        try
+        {
+            auto value = std::optional<SqlDateTime> {};
+            auto cursor = stmt.ExecuteDirect(R"(SELECT "Number" FROM "PrefetchCross")"sv);
+            cursor.BindOutputColumns(&value);
+            if (!cursor.FetchRow())
+                return std::string { "no row" };
+            return value.has_value() ? std::format("{}", *value) : std::string { "NULL" };
+        }
+        catch (SqlException const& error)
+        {
+            return std::format("error {}", error.info().sqlState);
+        }
+    };
+    CHECK(boundOutcome(TestPrefetchDepth) == boundOutcome(1));
+}
+
+/// A record SqlRowIterator reads with GetColumn, one of whose members has a custom binder. At namespace
+/// scope, not in an anonymous namespace: MSVC cannot reflect a type with internal linkage.
+struct PrefetchCelsiusRecord
+{
+    static constexpr std::string_view TableName = "PrefetchCelsius";
+
+    Field<int> Id;
+    Field<Celsius> Degrees;
+};
+
+TEST_CASE_METHOD(SqlTestFixture, "Prefetch: SqlRowIterator of a record with a custom-binder member", "[prefetch]")
+{
+    auto stmt = SqlStatement {};
+    stmt.Connection().SetDefaultPrefetchDepth(PrefetchDepthDefault);
+    CreateCelsiusTable(stmt);
+
+    // The member types are known before the first fetch, so the result set keeps the per-row path
+    // rather than failing the read of a value the block buffer cannot rebuild.
+    auto degrees = std::vector<Celsius> {};
+    for (auto const& record: SqlRowIterator<PrefetchCelsiusRecord> { stmt.Connection() })
+        degrees.push_back(record.Degrees.Value());
+
+    auto expected = std::vector<Celsius>(CelsiusValues.begin(), CelsiusValues.end());
+    std::ranges::sort(degrees);
+    std::ranges::sort(expected);
+    CHECK(degrees == expected);
+}
+
+/// A record SqlRowIterator reads with GetColumn, whose members do not match their columns' SQL types:
+/// a timestamp over a BIGINT column and a string over a REAL column. At namespace scope, not in an
+/// anonymous namespace: MSVC cannot reflect a type with internal linkage.
+struct PrefetchMismatchRecord
+{
+    static constexpr std::string_view TableName = "PrefetchMismatch";
+
+    Field<int> Id;
+    Field<std::optional<SqlDateTime>> Number;
+    Field<std::string> Ratio;
+};
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "Prefetch: SqlRowIterator of a record whose members do not match their columns",
+                 "[prefetch]")
+{
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("PrefetchMismatch")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Integer {})
+            .RequiredColumn("Number", SqlColumnTypeDefinitions::Bigint {})
+            .RequiredColumn("Ratio", SqlColumnTypeDefinitions::Real {});
+    });
+    stmt.Prepare(R"(INSERT INTO "PrefetchMismatch" ("Id", "Number", "Ratio") VALUES (?, ?, ?))");
+    (void) stmt.Execute(1, std::int64_t { 20240102 }, 0.1F);
+
+    // The per-row path reads each member with the driver's own conversion (or its error); a block-prefetched
+    // result set must read the same, so the iterator keeps the per-row path for such a record.
+    auto const iterate = [&](std::size_t depth) -> std::string {
+        stmt.Connection().SetDefaultPrefetchDepth(depth);
+        try
+        {
+            auto outcome = std::string {};
+            for (auto const& record: SqlRowIterator<PrefetchMismatchRecord> { stmt.Connection() })
+            {
+                auto const& number = record.Number.Value();
+                outcome += std::format("{} {} {};",
+                                       record.Id.Value(),
+                                       number.has_value() ? std::format("{}", *number) : std::string { "NULL" },
+                                       record.Ratio.Value());
+            }
+            return outcome;
+        }
+        catch (SqlException const& error)
+        {
+            return std::format("error {}", error.info().sqlState);
+        }
+    };
+    CHECK(iterate(TestPrefetchDepth) == iterate(1));
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "Prefetch: a REAL column bound to a string and an INTEGER column bound to a char",
+                 "[prefetch]")
+{
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("PrefetchTextTargets")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Integer {})
+            .RequiredColumn("Ratio", SqlColumnTypeDefinitions::Real {})
+            .RequiredColumn("Digit", SqlColumnTypeDefinitions::Integer {});
+    });
+    stmt.Prepare(R"(INSERT INTO "PrefetchTextTargets" ("Id", "Ratio", "Digit") VALUES (?, ?, ?))");
+    (void) stmt.Execute(1, 0.1F, 7);
+
+    // Both pairings read through the column binder on the per-row path: the driver renders the REAL as
+    // text, and SqlDataBinder<char> reads the INTEGER as text. Block prefetch must read the same.
+    auto const boundRead = [&]<typename T>(std::size_t depth, std::string_view column) -> std::string {
+        stmt.Connection().SetDefaultPrefetchDepth(depth);
+        try
+        {
+            auto value = T {};
+            auto cursor = stmt.ExecuteDirect(std::format(R"(SELECT "Id", "{}" FROM "PrefetchTextTargets")", column));
+            auto id = 0;
+            cursor.BindOutputColumns(&id, &value);
+            if (!cursor.FetchRow())
+                return "no row";
+            if constexpr (std::same_as<T, char>)
+                return std::format("char {}", static_cast<int>(value));
+            else
+                return value;
+        }
+        catch (SqlException const& error)
+        {
+            return std::format("error {}", error.info().sqlState);
+        }
+    };
+    CHECK(boundRead.operator()<std::string>(TestPrefetchDepth, "Ratio") == boundRead.operator()<std::string>(1, "Ratio"));
+    CHECK(boundRead.operator()<char>(TestPrefetchDepth, "Digit") == boundRead.operator()<char>(1, "Digit"));
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "Prefetch: GetColumn into a pointer reads a NULL cell as the per-row path", "[prefetch]")
+{
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("PrefetchNullPointer")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Integer {})
+            .Column("Number", SqlColumnTypeDefinitions::Integer {});
+    });
+    (void) stmt.ExecuteDirect(R"(INSERT INTO "PrefetchNullPointer" ("Id", "Number") VALUES (1, NULL))");
+
+    // Reads the NULL cell into a target that holds a value already; reports whether the overload said
+    // "not NULL" and what the target holds afterwards.
+    auto const readNull = [&]<typename T>(std::size_t depth, T preset) -> std::string {
+        stmt.Connection().SetDefaultPrefetchDepth(depth);
+        auto cursor = stmt.ExecuteDirect(R"(SELECT "Id", "Number" FROM "PrefetchNullPointer")");
+        REQUIRE(cursor.FetchRow());
+        auto target = std::move(preset);
+        auto const notNull = cursor.GetColumn(2, &target);
+        return std::format("{} {}", notNull, SqlDataBinder<T>::Inspect(target));
+    };
+    auto const bothPaths = [&]<typename T>(T const& preset) {
+        INFO(SqlDataBinder<T>::Inspect(preset));
+        CHECK(readNull(PrefetchDepthDefault, preset) == readNull(std::size_t { 1 }, preset));
+        CHECK(readNull(std::size_t { 1 }, preset) == std::format("false {}", SqlDataBinder<T>::Inspect(T {})));
+    };
+    bothPaths(std::optional<int> { 5 });
+    bothPaths(std::optional<std::string> { "x" });
+    bothPaths(SqlVariant { 5 });
+    bothPaths(5);
+    bothPaths(std::string { "x" });
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "Prefetch: a DATETIME column read as std::chrono::system_clock::time_point", "[prefetch]")
+{
+    // time_point has a read-only binder (GetColumn only), so it cannot be a DataMapper Field: the record
+    // path does not exist for it. GetColumn and ExecuteDirectScalar do.
+    using TimePoint = std::chrono::system_clock::time_point;
+    using namespace std::chrono_literals;
+
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("PrefetchTimePoint")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Integer {})
+            .RequiredColumn("Moment", SqlColumnTypeDefinitions::DateTime {});
+    });
+    auto const expected = TimePoint { std::chrono::sys_days { std::chrono::year { 2024 } / 5 / 6 } + 7h + 8min + 9s };
+    stmt.Prepare(R"(INSERT INTO "PrefetchTimePoint" ("Id", "Moment") VALUES (?, ?))");
+    (void) stmt.Execute(1, SqlDateTime { expected });
+
+    auto const query = R"(SELECT "Id", "Moment" FROM "PrefetchTimePoint")"sv;
+    for (auto const depth: { PrefetchDepthDefault, std::size_t { 1 } })
+    {
+        INFO("prefetch depth " << depth);
+        stmt.Connection().SetDefaultPrefetchDepth(depth);
+        {
+            auto cursor = stmt.ExecuteDirect(query);
+            REQUIRE(cursor.FetchRow());
+            CHECK(cursor.GetColumn<TimePoint>(2) == expected);
+        }
+        {
+            auto cursor = stmt.ExecuteDirect(query);
+            REQUIRE(cursor.FetchRow());
+            auto value = TimePoint {};
+            CHECK(cursor.GetColumn(2, &value));
+            CHECK(value == expected);
+        }
+        CHECK(stmt.ExecuteDirectScalar<TimePoint>(R"(SELECT "Moment" FROM "PrefetchTimePoint")")
+              == std::optional { expected });
+    }
 }

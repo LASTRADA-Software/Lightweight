@@ -23,12 +23,16 @@
 #include "TracyProfiler.hpp"
 #include "Utils.hpp"
 
+#include <reflection-cpp/reflection.hpp>
+
 #include <algorithm>
 #include <array>
 #include <chrono>
+#include <concepts>
 #include <cstdint>
 #include <cstring>
 #include <expected>
+#include <format>
 #include <functional>
 #include <optional>
 #include <ranges>
@@ -36,6 +40,7 @@
 #include <span>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <type_traits>
 #include <vector>
 
@@ -69,6 +74,8 @@ concept SqlNamedProjectionQueryObject = SqlQueryObject<QueryObject> && requires(
 class SqlResultCursor;
 class SqlVariantRowCursor;
 class RowArrayCursor;
+template <typename T>
+class SqlRowIterator;
 
 /// @brief High level API for (prepared) raw SQL statements
 ///
@@ -347,12 +354,18 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
 
     /// Executes the given query, assuming that only one result row and column is affected, that one will be
     /// returned.
+    ///
+    /// @return The first column of the first row, or @c std::nullopt when that value is NULL or the query
+    ///         returned no row.
     template <typename T>
         requires(!std::same_as<T, SqlVariant>)
     [[nodiscard]] std::optional<T> ExecuteDirectScalar(std::string_view const& query,
                                                        std::source_location location = std::source_location::current());
 
     /// Executes the given query and returns the single result as an SqlVariant.
+    ///
+    /// @return The first column of the first row; a NULL value as @c SqlNullValue.
+    /// @throws SqlException (SQLSTATE 02000) when the query returned no row.
     template <typename T>
         requires(std::same_as<T, SqlVariant>)
     [[nodiscard]] T ExecuteDirectScalar(std::string_view const& query,
@@ -360,12 +373,18 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
 
     /// Executes the given query, assuming that only one result row and column is affected, that one will be
     /// returned.
+    ///
+    /// @return The first column of the first row, or @c std::nullopt when that value is NULL or the query
+    ///         returned no row.
     template <typename T>
         requires(!std::same_as<T, SqlVariant>)
     [[nodiscard]] std::optional<T> ExecuteDirectScalar(SqlQueryObject auto const& query,
                                                        std::source_location location = std::source_location::current());
 
     /// Executes the given query object and returns the single result as an SqlVariant.
+    ///
+    /// @return The first column of the first row; a NULL value as @c SqlNullValue.
+    /// @throws SqlException (SQLSTATE 02000) when the query returned no row.
     template <typename T>
         requires(std::same_as<T, SqlVariant>)
     [[nodiscard]] T ExecuteDirectScalar(SqlQueryObject auto const& query,
@@ -389,6 +408,8 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
   private:
     friend class SqlResultCursor;
     friend class RowArrayCursor;
+    template <typename T>
+    friend class SqlRowIterator;
 
     [[nodiscard]] LIGHTWEIGHT_API size_t NumRowsAffected() const;
     [[nodiscard]] LIGHTWEIGHT_API size_t NumColumnsAffected() const;
@@ -398,6 +419,9 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     void CloseCursor() noexcept;
 
     /// @brief Binds the given output column variables to the result columns of this statement.
+    ///
+    /// The binding outlives the result set and the cursor: executing the prepared statement again
+    /// fetches into the same variables. Preparing or directly executing another query drops it.
     /// @tparam Args ODBC-bindable output column types.
     /// @param args Pointers to caller-owned storage for each result column, in order.
     template <SqlOutputColumnBinder... Args>
@@ -418,6 +442,11 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     template <SqlOutputColumnBinder T>
     void BindOutputColumn(SQLUSMALLINT columnIndex, T* arg);
 
+    /// @brief Reads column @p column of the current row into @p result.
+    /// @param column 1-based result column index.
+    /// @param result Receives the value; on NULL its empty value (@c std::nullopt, a NULL @c SqlVariant,
+    ///               @c T {}), on the per-row and the block-prefetched path alike.
+    /// @return @c false if the value is NULL.
     template <SqlGetColumnNativeType T>
     [[nodiscard]] bool GetColumn(SQLUSMALLINT column, T* result) const;
 
@@ -503,6 +532,30 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
                                         std::source_location sourceLocation = std::source_location::current()) const;
     LIGHTWEIGHT_API void PlanPostExecuteCallback(std::function<void()>&& cb) override;
     LIGHTWEIGHT_API void PlanPostProcessOutputColumn(std::function<void()>&& cb) override;
+    LIGHTWEIGHT_API void PlanPreFetchOutputColumn(SqlOutputColumnPreFetch const& step) override;
+    [[nodiscard]] LIGHTWEIGHT_API std::size_t MinimumOutputColumnSize(SQLUSMALLINT column,
+                                                                      SqlOutputColumnLength length) override;
+    /// @brief Starts binding output column @p column: drops the column's previously planned pre-fetch
+    /// and post-process callbacks and attributes the ones planned next to it, so re-binding a column
+    /// replaces its callbacks instead of accumulating them.
+    LIGHTWEIGHT_API void BeginOutputColumnBinding(SQLUSMALLINT column) noexcept;
+    /// @brief Binds @p arg as output column @p column with @c SqlDataBinder<T>::OutputColumn right away.
+    /// @tparam T The bound variable's type.
+    /// @param column The 1-based column index.
+    /// @param arg The variable the column is fetched into.
+    template <SqlOutputColumnBinder T>
+    void BindOutputColumnNow(SQLUSMALLINT column, T* arg);
+    /// @brief Drops the pre-fetch and post-process callbacks of every bound output column.
+    LIGHTWEIGHT_API void ResetOutputColumnCallbacks() noexcept;
+    /// @brief Drops the pre-fetch and post-process callbacks planned for output column @p column.
+    LIGHTWEIGHT_API void DropOutputColumnCallbacks(SQLUSMALLINT column) noexcept;
+    /// @brief Forgets every output column binding: the recorded prefetch bindings and the binders'
+    /// callbacks. Called right where the columns are unbound with @c SQL_UNBIND, and only there: closing
+    /// a cursor keeps the bindings for the next execution of the prepared statement.
+    LIGHTWEIGHT_API void DropOutputColumnBindings() noexcept;
+    /// @brief Notes that an output column was bound with @c SQLBindCol rather than recorded, so a
+    /// later result set of this binding keeps the per-row path that fills it.
+    LIGHTWEIGHT_API void NoteOutputColumnBoundDirectly() noexcept;
     [[nodiscard]] LIGHTWEIGHT_API SqlServerType ServerType() const noexcept override;
     [[nodiscard]] LIGHTWEIGHT_API std::string const& DriverName() const noexcept override;
     [[nodiscard]] LIGHTWEIGHT_API detail::NarrowTextBinding NarrowTextBindingMode() const noexcept override;
@@ -571,6 +624,12 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     [[nodiscard]] std::size_t EffectivePrefetchDepth() const noexcept;
     /// @brief Arms (or disables) block-prefetch on the first fetch of a result set; idempotent.
     void ArmPrefetchOnFirstFetch() noexcept;
+    /// @brief Issues the deferred SQLBindCol calls of a bound-column loop, once per per-row result set.
+    [[nodiscard]] std::expected<void, SqlErrorInfo> IssueDeferredBinds(std::source_location location) noexcept;
+    /// @brief Runs the binders' pre-fetch steps, which restore the bound buffers before the next fetch.
+    [[nodiscard]] std::expected<void, SqlErrorInfo> RunPreFetchSteps(std::source_location location) noexcept;
+    /// @brief Runs the binders' post-process callbacks on the row just fetched.
+    [[nodiscard]] std::expected<void, SqlErrorInfo> RunPostProcessCallbacks(std::source_location location) noexcept;
     /// @brief Fetches the next logical row from the block buffer, refilling the block and running the
     /// recorded bound-column scatters as needed. @return true if a row is available.
     [[nodiscard]] std::expected<bool, SqlErrorInfo> FetchRowPrefetched() noexcept;
@@ -588,17 +647,41 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     /// @brief Flags that a bound output column's target type cannot be served from the block buffer, so
     /// arming must decline prefetch for this result set and keep the per-row path.
     LIGHTWEIGHT_API void MarkPrefetchBindingUnsupported() noexcept;
+    /// @brief The class of C++ type a bound output column reads into. The block buffer serves a column
+    /// only when its SQL type is one this class reads the same way on the per-row path; for any other
+    /// pairing (e.g. an INTEGER column bound to a SqlDateTime) the per-row conversion is driver-specific,
+    /// so arming keeps the per-row path for the result set.
+    enum class PrefetchTarget : std::uint8_t
+    {
+        Any,      //!< SqlVariant: takes whatever the column holds
+        Numeric,  //!< arithmetic, enum and SqlNumeric targets: numeric columns
+        Temporal, //!< SqlDate and SqlDateTime: DATE and TIMESTAMP columns
+        Guid,     //!< SqlGuid: GUID columns
+        Text,     //!< string targets: numeric columns (temporal and GUID text is the driver's to format)
+    };
+    /// @return The PrefetchTarget class of the bound destination type @p T (an optional's value type).
+    template <typename T>
+    [[nodiscard]] static constexpr PrefetchTarget PrefetchTargetOf() noexcept;
     /// @brief Records, for one output column, the per-row scatter closure (copies the current block cell
     /// into the bound destination) and the real @c SQLBindCol thunk used if the result set turns out
     /// prefetch-ineligible. Indexed by @p column so re-binding the same column overwrites rather than
     /// appends — keeping the bound-column loop, the optional rebind idiom, and the DataMapper's per-row
     /// re-binding all bounded.
     /// @param column 1-based output column index.
+    /// @param target The class of the bound destination; arming declines prefetch when the column's SQL
+    ///               type is one the per-row path would read differently into it (see PrefetchTarget).
     /// @param scatter Copies the current block cell into the bound destination.
     /// @param deferredBind Issues the real @c SQLBindCol when the fast path is declined.
     LIGHTWEIGHT_API void RecordPrefetchColumn(SQLUSMALLINT column,
+                                              PrefetchTarget target,
                                               std::function<void()> scatter,
                                               std::function<void()> deferredBind);
+    /// @brief Records only the class of the destination an output column is read into, for a reader that
+    /// reads the columns with @c GetColumn instead of binding them (@ref SqlRowIterator): arming then keeps
+    /// the per-row path when the column's SQL type is one the per-row path reads differently into it.
+    /// @param column 1-based output column index.
+    /// @param target The class of the destination the column is read into.
+    LIGHTWEIGHT_API void RecordPrefetchColumnTarget(SQLUSMALLINT column, PrefetchTarget target);
     /// @brief Tears down all block-prefetch state, restoring the handle to single-row fetching.
     LIGHTWEIGHT_API void ResetPrefetchState() noexcept;
     /// @brief Builds an @c SqlVariant cell from the block buffer, mirroring @c SqlDataBinder<SqlVariant>.
@@ -657,9 +740,29 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     /// @return The SQLExecDirect return code.
     [[nodiscard]] SQLRETURN ExecDirectOnHandle(std::string_view query);
 
-    /// @brief Records a freshly allocated handle of a connection to an ANSI-only driver, so that its
+    /// @brief Records a freshly allocated handle: the connection session it belongs to, the handle with
+    /// the connection (which frees it on Close()) and, for a connection to an ANSI-only driver, that its
     /// diagnostics are read through the ANSI entry points (see detail::RegisterAnsiOnlyHandle()).
-    void RegisterHandleTextEntry() noexcept;
+    void RegisterHandleTextEntry();
+    /// @brief Fails with SQLSTATE 08003 when the statement's handle belongs to a connection session that has
+    /// ended (Close(), a re-connect): the handle is gone, and with it what was prepared on it. One session
+    /// compare per execution.
+    LIGHTWEIGHT_API void RequireCurrentSession();
+    /// @brief Fails with SQLSTATE 08003 like RequireCurrentSession(), without forgetting the handle of an
+    /// ended session: for the const queries of the current result, which must not hand that handle to the
+    /// driver either.
+    void RequireLiveHandle() const;
+    /// @brief Whether the statement's handle belongs to the connection's current session (always true for a
+    /// moved-from statement, which has nothing to check against).
+    [[nodiscard]] bool HasLiveHandle() const noexcept;
+
+    /// @brief Gives up the statement handle this statement holds: hands it back to the connection's
+    /// prepared-statement cache, or frees it. Used by the destructor and by move assignment.
+    void ReleaseHandle() noexcept;
+
+    /// @brief Forgets the statement handle when it died with an earlier session of the connection
+    /// (see SqlConnection::SessionId()), without freeing or pooling it.
+    LIGHTWEIGHT_API void ForgetHandleOfEndedSession() noexcept;
 
     /// @brief Describes every parameter of the prepared query.
     ///
@@ -692,8 +795,9 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     std::unique_ptr<Data, void (*)(Data*)> m_data; // The private data of the statement
     SqlConnection* m_connection {};                // Pointer to the connection object
     SQLHSTMT m_hStmt {};                           // The native oDBC statement handle
-    std::string m_preparedQuery;                   // The last prepared query
-    std::optional<SQLSMALLINT> m_numColumns;       // The number of columns in the result set, if known
+    uint64_t m_sessionId {};     // The connection session m_hStmt was allocated in (see SqlConnection::SessionId())
+    std::string m_preparedQuery; // The last prepared query
+    std::optional<SQLSMALLINT> m_numColumns; // The number of columns in the result set, if known
     // Column names of the last prepared/executed query object, in result-column order, for named
     // column access. Empty when the query carried no mapping (raw SQL, or a wildcard projection).
     std::vector<std::string> m_projectedFieldNames;
@@ -805,6 +909,12 @@ class [[nodiscard]] SqlResultCursor
     }
 
     /// Fetches the next row of the result set.
+    ///
+    /// A cursor does not outlive its connection's session: once the connection is closed (or connected
+    /// again), FetchRow() fails with SQLSTATE 08003, so the usual @c while (cursor.FetchRow()) loop stops
+    /// there. Reading a column of the current row after the connection was closed is not allowed.
+    /// @return @c true for a row, @c false at the end of the result set.
+    /// @throws SqlException 08003 when the connection's session ended; the driver's error otherwise.
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE bool FetchRow()
     {
         return m_stmt->FetchRow();
@@ -841,7 +951,11 @@ class [[nodiscard]] SqlResultCursor
 
     /// Retrieves the value of the column at the given index for the currently selected row.
     ///
-    /// Returns true if the value is not NULL, false otherwise.
+    /// @param column 1-based result column index.
+    /// @param result Receives the value. On NULL it receives its empty value instead (@c std::nullopt, a
+    ///               NULL @c SqlVariant, @c T {}), whatever it held before, on the per-row and the
+    ///               block-prefetched path alike.
+    /// @return @c true if the value is not NULL, @c false otherwise.
     template <SqlGetColumnNativeType T>
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE bool GetColumn(SQLUSMALLINT column, T* result) const
     {
@@ -1343,6 +1457,15 @@ class SqlRowIterator
         auto& stmt = it.Statement();
         stmt.Prepare(it.Statement().Query(RecordTableName<T>).Select().template Fields<T>().Build(_queryCustomizer).All());
         it.SetCursor(stmt.Execute());
+        // The rows are read with GetColumn, so the column types are known before the first fetch: a member
+        // type the block buffer cannot rebuild keeps the result set on the per-row path, as in
+        // ExecuteDirectScalar, instead of failing the read; so does a member whose column has an SQL type
+        // the per-row path reads differently into it (e.g. a SqlDateTime member over an INTEGER column),
+        // which arming checks against the recorded member classes.
+        if constexpr (ColumnsArePrefetchConvertible())
+            RecordColumnPrefetchTargets(stmt);
+        else
+            stmt.MarkPrefetchBindingUnsupported();
         ++it;
         return it;
     }
@@ -1354,6 +1477,14 @@ class SqlRowIterator
     }
 
   private:
+    /// @return Whether the block buffer can serve every column member of @c T to @c GetColumn.
+    static constexpr bool ColumnsArePrefetchConvertible() noexcept;
+
+    /// Records the class of each column member of @c T on @p stmt, so arming the block prefetch can check
+    /// each column's SQL type against the member it is read into.
+    /// @param stmt The statement the rows are read from, executed and not yet fetched.
+    static void RecordColumnPrefetchTargets(SqlStatement& stmt);
+
     SqlConnection* _connection;
     QueryCustomizer _queryCustomizer = [](SqlSelectQueryBuilder& /*query*/) {
     };
@@ -1378,11 +1509,6 @@ inline LIGHTWEIGHT_FORCE_INLINE SqlConnection& SqlStatement::Connection() noexce
 inline LIGHTWEIGHT_FORCE_INLINE SqlConnection const& SqlStatement::Connection() const noexcept
 {
     return *m_connection;
-}
-
-inline LIGHTWEIGHT_FORCE_INLINE SqlErrorInfo SqlStatement::LastError() const
-{
-    return SqlErrorInfo::FromStatementHandle(m_hStmt);
 }
 
 inline LIGHTWEIGHT_FORCE_INLINE SQLHSTMT SqlStatement::NativeHandle() const noexcept
@@ -1442,10 +1568,29 @@ inline LIGHTWEIGHT_FORCE_INLINE void SqlStatement::BindOutputColumns(Args*... ar
         return;
     }
 
+    RequireCurrentSession(); // one compare per bind call; 08003 once the session ended
     RequireIndicators();
+    NoteOutputColumnBoundDirectly();
 
     SQLUSMALLINT i = 0;
-    ((++i, RequireSuccess(SqlDataBinder<Args>::OutputColumn(m_hStmt, i, args, GetIndicatorForColumn(i), *this))), ...);
+    ((++i, BindOutputColumnNow<Args>(i, args)), ...);
+}
+
+/// @brief Out-of-line definition of `SqlStatement::BindOutputColumnNow`: binds @p arg as output column
+/// @p column with @c SqlDataBinder<T>::OutputColumn right away, replacing the column's planned callbacks.
+/// @tparam T The bound variable's type.
+/// @param column The 1-based column index.
+/// @param arg The variable the column is fetched into.
+template <SqlOutputColumnBinder T>
+inline LIGHTWEIGHT_FORCE_INLINE void SqlStatement::BindOutputColumnNow(SQLUSMALLINT column, T* arg)
+{
+    BeginOutputColumnBinding(column);
+    auto const sqlReturn = SqlDataBinder<T>::OutputColumn(m_hStmt, column, arg, GetIndicatorForColumn(column), *this);
+    // A binder can have planned callbacks before it failed; the column is not bound, so they must not
+    // run on the following fetches (the diagnostics stay on the handle for RequireSuccess).
+    if (!SQL_SUCCEEDED(sqlReturn))
+        DropOutputColumnCallbacks(column);
+    RequireSuccess(sqlReturn);
 }
 
 template <typename... Records>
@@ -1469,7 +1614,9 @@ void SqlStatement::BindOutputColumnsToRecord(Records*... records)
         return;
     }
 
+    RequireCurrentSession(); // one compare per bind call; 08003 once the session ended
     RequireIndicators();
+    NoteOutputColumnBoundDirectly();
 
     SQLUSMALLINT i = 0;
     ((EnumerateRecordMembers(*records,
@@ -1478,8 +1625,7 @@ void SqlStatement::BindOutputColumnsToRecord(Records*... records)
                                  if constexpr (RecordColumnMember<FieldType>)
                                  {
                                      ++i;
-                                     RequireSuccess(SqlDataBinder<FieldType>::OutputColumn(
-                                         m_hStmt, i, &value, GetIndicatorForColumn(i), *this));
+                                     this->BindOutputColumnNow<FieldType>(i, &value);
                                  }
                              })),
      ...);
@@ -1498,14 +1644,16 @@ inline LIGHTWEIGHT_FORCE_INLINE void SqlStatement::BindOutputColumn(SQLUSMALLINT
     }
 
     RequireIndicators();
+    NoteOutputColumnBoundDirectly();
 
-    RequireSuccess(SqlDataBinder<T>::OutputColumn(m_hStmt, columnIndex, arg, GetIndicatorForColumn(columnIndex), *this));
+    BindOutputColumnNow<T>(columnIndex, arg);
 }
 
 /// @copydoc SqlStatement::BindInputParameter(SQLSMALLINT, Arg const&)
 template <SqlInputParameterBinder Arg>
 inline LIGHTWEIGHT_FORCE_INLINE void SqlStatement::BindInputParameter(SQLSMALLINT columnIndex, Arg const& arg)
 {
+    RequireCurrentSession(); // one compare per bind call; 08003 once the session ended
     // tell Execute() that we don't know the expected count
     m_expectedParameterCount = (std::numeric_limits<decltype(m_expectedParameterCount)>::max)();
     RequireSuccess(SqlDataBinder<Arg>::InputParameter(m_hStmt, static_cast<SQLUSMALLINT>(columnIndex), arg, *this));
@@ -1530,6 +1678,7 @@ SqlResultCursor SqlStatement::Execute(Args const&... args)
 
     ZoneScopedN("SqlStatement::Execute");
     ZoneTextObject(m_preparedQuery);
+    RequireCurrentSession();
     SqlLogger::GetLogger().OnExecute(m_preparedQuery);
 
     if (!(m_expectedParameterCount == (std::numeric_limits<decltype(m_expectedParameterCount)>::max)()
@@ -1557,25 +1706,31 @@ SqlResultCursor SqlStatement::Execute(Args const&... args)
     return SqlResultCursor { *this };
 }
 
+// A column-wise parameter array strides a fixed-length C type by the C type's size, not by the element's,
+// so only types whose bound C type is exactly sizeof(T) qualify. SqlTime does not: it stores the 12-byte
+// TIME2 layout but binds SQL_C_TYPE_TIME (6 bytes), so its column-major batches take the soft path. (The
+// row-wise path strides by the row size and still binds SqlTime natively.) A type also needs a column-wise
+// SqlDataBinder<T>::BatchInputParameter; one without (wchar_t, the UTF-16 fixed strings) takes the soft path.
 // clang-format off
 template <typename T>
 concept SqlNativeContiguousValueConcept =
-       std::same_as<T, bool>
-    || std::same_as<T, char>
-    || std::same_as<T, unsigned char>
-    || std::same_as<T, wchar_t>
-    || std::same_as<T, std::int16_t>
-    || std::same_as<T, std::uint16_t>
-    || std::same_as<T, std::int32_t>
-    || std::same_as<T, std::uint32_t>
-    || std::same_as<T, std::int64_t>
-    || std::same_as<T, std::uint64_t>
-    || std::same_as<T, float>
-    || std::same_as<T, double>
-    || std::same_as<T, SqlDate>
-    || std::same_as<T, SqlTime>
-    || std::same_as<T, SqlDateTime>
-    || std::same_as<T, SqlFixedString<T::Capacity, typename T::value_type, T::PostRetrieveOperation>>;
+    (      std::same_as<T, bool>
+        || std::same_as<T, char>
+        || std::same_as<T, unsigned char>
+        || std::same_as<T, std::int16_t>
+        || std::same_as<T, std::uint16_t>
+        || std::same_as<T, std::int32_t>
+        || std::same_as<T, std::uint32_t>
+        || std::same_as<T, std::int64_t>
+        || std::same_as<T, std::uint64_t>
+        || std::same_as<T, float>
+        || std::same_as<T, double>
+        || std::same_as<T, SqlDate>
+        || std::same_as<T, SqlDateTime>
+        || std::same_as<T, SqlFixedString<T::Capacity, typename T::value_type, T::PostRetrieveOperation>>)
+    && requires(SQLHSTMT stmt, SQLUSMALLINT column, T const* values, std::size_t rowCount, SqlDataBinderCallback& cb) {
+        { SqlDataBinder<T>::BatchInputParameter(stmt, column, values, rowCount, cb) } -> std::same_as<SQLRETURN>;
+    };
 
 template <typename FirstColumnBatch, typename... MoreColumnBatches>
 concept SqlNativeBatchable =
@@ -1661,6 +1816,7 @@ SqlResultCursor SqlStatement::ExecuteBatchNative(FirstColumnBatch const& firstCo
 
     ZoneScopedN("SqlStatement::ExecuteBatchNative");
     ZoneTextObject(m_preparedQuery);
+    RequireCurrentSession();
 
     if (m_expectedParameterCount != 1 + sizeof...(moreColumnBatches))
         throw std::invalid_argument { "Invalid number of columns" };
@@ -1671,6 +1827,14 @@ SqlResultCursor SqlStatement::ExecuteBatchNative(FirstColumnBatch const& firstCo
         throw std::invalid_argument { "Uneven number of rows" };
 
     size_t rowStart = 0;
+
+    // Restore single-row parameter binding on every exit, as ExecuteBatchNativeRowWise does: the
+    // parameter-set size and the bind-offset pointer (to the local above) must not outlive this call,
+    // or a later Execute() without re-Prepare() re-runs N parameter sets through a dangling offset.
+    auto const restoreParameterBinding = detail::Finally([this] {
+        ResetParameterArrayBinding();
+        ClearBatchIndicators();
+    });
 
     // clang-format off
     // NOLINTNEXTLINE(performance-no-int-to-ptr)
@@ -1713,6 +1877,7 @@ SqlResultCursor SqlStatement::ExecuteBatchSoft(FirstColumnBatch const& firstColu
 {
     ZoneScopedN("SqlStatement::ExecuteBatchSoft");
     ZoneTextObject(m_preparedQuery);
+    RequireCurrentSession();
 
     if (m_expectedParameterCount != 1 + sizeof...(moreColumnBatches))
         throw std::invalid_argument { "Invalid number of columns" };
@@ -1751,6 +1916,7 @@ SqlResultCursor SqlStatement::ExecuteBatch(Rows const& rows, ColumnAccessors con
 {
     ZoneScopedN("SqlStatement::ExecuteBatch(row-major)");
     ZoneTextObject(m_preparedQuery);
+    RequireCurrentSession();
 
     using RowElem = std::ranges::range_value_t<Rows>;
 
@@ -1912,6 +2078,7 @@ void SqlStatement::BindRowWiseValue(SQLUSMALLINT column, void* base0, SQLLEN* in
     {
         // Fixed-width value (primitive, date/time/datetime, numeric): a plain, callback-free SQLBindCol
         // straight into the record field; the driver strides by rowStride.
+        BeginOutputColumnBinding(column);
         RequireSuccess(SqlDataBinder<Value>::OutputColumn(m_hStmt, column, static_cast<Value*>(base0), indicators, *this));
     }
 }
@@ -1993,6 +2160,7 @@ void SqlStatement::FetchAllRowWise(std::vector<Record>& out, std::size_t arrayDe
 {
     ZoneScopedN("SqlStatement::FetchAllRowWise");
     ZoneTextObject(m_preparedQuery);
+    RequireCurrentSession(); // before the guard below touches the handle: 08003 once the session ended
 
     static_assert(sizeof...(ColumnAccessors) >= 1, "FetchAllRowWise requires at least one column accessor");
     constexpr std::size_t columnCount = sizeof...(ColumnAccessors);
@@ -2023,6 +2191,7 @@ void SqlStatement::FetchAllRowWise(std::vector<Record>& out, std::size_t arrayDe
         SQLSetStmtAttr(m_hStmt, SQL_ATTR_ROW_STATUS_PTR, nullptr, 0);
         SQLSetStmtAttr(m_hStmt, SQL_ATTR_ROWS_FETCHED_PTR, nullptr, 0);
         // clang-format on
+        DropOutputColumnBindings();
         ClearBatchIndicators();
     });
 
@@ -2089,13 +2258,25 @@ inline bool SqlStatement::GetColumn(SQLUSMALLINT column, T* result) const
         auto const row = PrefetchRowInBlock();
         RequirePrefetchColumnInRange(cursor, column);
         if (cursor.IsCellNull(row, column))
+        {
+            // As on the per-row path below: a NULL leaves the target holding its empty value (nullopt,
+            // a NULL SqlVariant), whatever it held before.
+            if constexpr (std::default_initializable<T>)
+                *result = T {};
             return false;
+        }
         *result = ConvertCell<T>(cursor, row, column);
         return true;
     }
-    SQLLEN indicator {}; // TODO: Handle NULL values if we find out that we need them for our use-cases.
+    SQLLEN indicator {};
     RequireSuccess(SqlDataBinder<T>::GetColumn(m_hStmt, column, result, &indicator, *this));
-    return indicator != SQL_NULL_DATA;
+    if (indicator != SQL_NULL_DATA)
+        return true;
+    // The binders reset a nullable target on NULL; what a driver leaves in another one differs (SQLite
+    // zeroes an int, a string keeps the binder's initial buffer), so it is made the empty value here.
+    if constexpr (std::default_initializable<T>)
+        *result = T {};
+    return false;
 }
 
 namespace detail
@@ -2193,11 +2374,13 @@ namespace detail
 
     /// A scalar target type the block-prefetch reader can reconstruct faithfully (mirrors the non-throwing
     /// branches of @c SqlStatement::ConvertCell). Excludes types whose faithful reconstruction needs the
-    /// dedicated single-row binder (e.g. @c SqlNumeric, @c SqlTime, binary, user types).
+    /// dedicated single-row binder (e.g. @c SqlNumeric, @c SqlTime, binary, user types), and @c char, whose
+    /// binder reads the column as text although the type is integral.
     template <typename T>
     concept PrefetchConvertibleScalar =
         std::same_as<T, SqlVariant> || std::same_as<T, SqlDate> || std::same_as<T, SqlDateTime> || std::same_as<T, SqlGuid>
-        || StringLikeCell<T> || std::is_floating_point_v<T> || std::is_integral_v<T> || std::is_enum_v<T>;
+        || std::same_as<T, SqlDateTime::native_type> || StringLikeCell<T> || std::is_floating_point_v<T>
+        || (std::is_integral_v<T> && !std::same_as<T, char>) || std::is_enum_v<T>;
 
     template <typename T>
     struct PrefetchConvertibleOptional: std::false_type
@@ -2212,31 +2395,79 @@ namespace detail
     template <typename T>
     concept PrefetchConvertible = PrefetchConvertibleScalar<T> || PrefetchConvertibleOptional<T>::value;
 
-    /// @brief Reconstructs a temporal or GUID cell from the block buffer. Each target reads its matching
-    /// bound representation; a mismatched bound type (only reachable via a cross-type @c GetColumn) yields
-    /// a default, mirroring the lenient single-row path. A GUID stored as text (SQLite) is parsed back.
+    /// @brief Names a block-buffer representation for a diagnostic.
+    [[nodiscard]] constexpr std::string_view BoundTypeName(RowArrayCursor::BoundType boundType) noexcept
+    {
+        constexpr auto Names = std::array<std::string_view, 7> {
+            "BIGINT", "DOUBLE", "CHAR", "WCHAR", "DATE", "TIMESTAMP", "GUID",
+        };
+        return Names.at(static_cast<std::size_t>(boundType));
+    }
+
+    /// @brief Reports a cross-type read the ODBC conversion rules do not define (e.g. a DATE column read
+    /// as @c double), with SQLSTATE 07006 ("Restricted data type attribute violation"), the error the
+    /// per-row @c SQLGetData path raises for it on a driver that follows those rules.
+    template <typename T>
+    [[noreturn]] inline void ThrowRestrictedPrefetchConversion(RowArrayCursor const& cursor, SQLUSMALLINT column)
+    {
+        throw SqlException(SqlErrorInfo {
+            .nativeErrorCode = 0,
+            .sqlState = "07006",
+            .message = std::format("Restricted data type attribute violation: column {} ({}) cannot be read as {}",
+                                   column,
+                                   BoundTypeName(cursor.ColumnBoundType(column)),
+                                   Reflection::TypeNameOf<T>),
+        });
+    }
+
+    /// @brief Reconstructs a temporal or GUID cell from the block buffer, applying the conversions the
+    /// ODBC rules define between the bound representation and @p T: a TIMESTAMP read as a date keeps its
+    /// date part, a DATE read as a timestamp is midnight of that day, and a GUID stored as text (SQLite)
+    /// is parsed back. Any other cross-type read throws (see @ref ThrowRestrictedPrefetchConversion).
     template <typename T>
     [[nodiscard]] inline T ReadTemporalGuidCell(RowArrayCursor const& cursor, std::size_t row, SQLUSMALLINT column)
     {
         using BoundType = RowArrayCursor::BoundType;
         auto const boundType = cursor.ColumnBoundType(column);
         if constexpr (std::same_as<T, SqlDate>)
-            return boundType == BoundType::Date ? cursor.GetDate(row, column).value_or(SqlDate {}) : SqlDate {};
+        {
+            if (boundType == BoundType::Date)
+                return cursor.GetDate(row, column).value_or(SqlDate {});
+            if (boundType == BoundType::Timestamp)
+            {
+                auto const timestamp = cursor.GetTimestamp(row, column).value_or(SqlDateTime {}).sqlValue;
+                auto date = SqlDate {};
+                date.sqlValue = SQL_DATE_STRUCT { .year = timestamp.year, .month = timestamp.month, .day = timestamp.day };
+                return date;
+            }
+        }
         else if constexpr (std::same_as<T, SqlDateTime>)
-            return boundType == BoundType::Timestamp ? cursor.GetTimestamp(row, column).value_or(SqlDateTime {})
-                                                     : SqlDateTime {};
+        {
+            if (boundType == BoundType::Timestamp)
+                return cursor.GetTimestamp(row, column).value_or(SqlDateTime {});
+            if (boundType == BoundType::Date)
+            {
+                auto const date = cursor.GetDate(row, column).value_or(SqlDate {}).sqlValue;
+                auto timestamp = SqlDateTime {};
+                timestamp.sqlValue.year = date.year;
+                timestamp.sqlValue.month = date.month;
+                timestamp.sqlValue.day = date.day;
+                return timestamp;
+            }
+        }
         else // SqlGuid
         {
             if (boundType == BoundType::Guid)
                 return cursor.GetGuid(row, column).value_or(SqlGuid {});
             if (boundType == BoundType::Char || boundType == BoundType::WChar)
                 return SqlGuid::TryParse(cursor.GetString(row, column).value_or(std::string {})).value_or(SqlGuid {});
-            return SqlGuid {};
         }
+        ThrowRestrictedPrefetchConversion<T>(cursor, column);
     }
 
     /// @brief Reconstructs a @c SqlNumeric cell from the block buffer (driver-reported as a fixed-width
-    /// numeric, bound @c Int64 or @c Double). A non-numeric bound type yields a default.
+    /// numeric, bound @c Int64 or @c Double). Any other bound type throws (see
+    /// @ref ThrowRestrictedPrefetchConversion).
     template <typename T>
     [[nodiscard]] inline T ReadNumericCell(RowArrayCursor const& cursor, std::size_t row, SQLUSMALLINT column)
     {
@@ -2248,7 +2479,7 @@ namespace detail
             case BoundType::Int64:
                 return T { static_cast<double>(cursor.GetI64(row, column).value_or(0)) };
             default:
-                return T {};
+                ThrowRestrictedPrefetchConversion<T>(cursor, column);
         }
     }
 
@@ -2294,8 +2525,8 @@ namespace detail
     }
 
     /// @brief Reconstructs an arithmetic or enum cell from the block buffer, coercing whichever fixed-width
-    /// representation the column was bound as (@c Int64 or @c Double) to @p T. A non-arithmetic bound type
-    /// yields a default.
+    /// representation the column was bound as (@c Int64 or @c Double) to @p T. Any other bound type throws
+    /// (see @ref ThrowRestrictedPrefetchConversion).
     template <typename T>
     [[nodiscard]] inline T ReadArithmeticCell(RowArrayCursor const& cursor, std::size_t row, SQLUSMALLINT column)
     {
@@ -2307,18 +2538,50 @@ namespace detail
             case BoundType::Double:
                 return static_cast<T>(cursor.GetF64(row, column).value_or(0.0));
             default:
-                return T {};
+                ThrowRestrictedPrefetchConversion<T>(cursor, column);
         }
     }
 
 } // end namespace detail
 
 template <typename T>
+constexpr bool SqlRowIterator<T>::ColumnsArePrefetchConvertible() noexcept
+{
+    auto convertible = true;
+    EnumerateRecordMembers<T>([&convertible]<size_t I, typename FieldType>() {
+        if constexpr (RecordColumnMember<FieldType>)
+        {
+            if constexpr (FieldWithStorage<FieldType>)
+                convertible = convertible && detail::PrefetchConvertible<typename FieldType::ValueType>;
+            else
+                convertible = convertible && detail::PrefetchConvertible<FieldType>;
+        }
+    });
+    return convertible;
+}
+
+template <typename T>
+void SqlRowIterator<T>::RecordColumnPrefetchTargets(SqlStatement& stmt)
+{
+    SQLUSMALLINT column = 0;
+    EnumerateRecordMembers<T>([&stmt, &column]<size_t I, typename FieldType>() {
+        if constexpr (RecordColumnMember<FieldType>)
+        {
+            ++column;
+            if constexpr (FieldWithStorage<FieldType>)
+                stmt.RecordPrefetchColumnTarget(column, SqlStatement::PrefetchTargetOf<typename FieldType::ValueType>());
+            else
+                stmt.RecordPrefetchColumnTarget(column, SqlStatement::PrefetchTargetOf<FieldType>());
+        }
+    });
+}
+
+template <typename T>
 inline T SqlStatement::ConvertCell(RowArrayCursor const& cursor, std::size_t row, SQLUSMALLINT column) const
 {
     // Dispatch the target type to the matching reconstruction helper. The arming allowlist keeps the
-    // column's bound representation in step with the natural target type; each helper additionally guards
-    // on the bound type so a cross-type raw GetColumn read degrades to a default rather than throwing.
+    // column's bound representation in step with the natural target type; for a cross-type raw GetColumn
+    // read each helper applies the conversion the ODBC rules define, or throws where they define none.
     if constexpr (std::same_as<T, SqlVariant>)
         return MakePrefetchVariantCell(cursor, row, column);
     else if constexpr (IsSpecializationOf<std::optional, T>)
@@ -2329,17 +2592,29 @@ inline T SqlStatement::ConvertCell(RowArrayCursor const& cursor, std::size_t row
     }
     else if constexpr (std::same_as<T, SqlDate> || std::same_as<T, SqlDateTime> || std::same_as<T, SqlGuid>)
         return detail::ReadTemporalGuidCell<T>(cursor, row, column);
+    else if constexpr (std::same_as<T, SqlDateTime::native_type>)
+        // Its binder reads the timestamp struct and converts it; the block buffer holds that struct.
+        return detail::ReadTemporalGuidCell<SqlDateTime>(cursor, row, column).value();
     else if constexpr (detail::SqlNumericCell<T>)
         return detail::ReadNumericCell<T>(cursor, row, column);
     else if constexpr (detail::StringLikeCell<T>)
         return detail::ReadStringLikeCell<T>(cursor, row, column);
-    else if constexpr (std::is_floating_point_v<T> || std::is_integral_v<T> || std::is_enum_v<T>)
+    else if constexpr (std::is_floating_point_v<T> || (std::is_integral_v<T> && !std::same_as<T, char>) || std::is_enum_v<T>)
         return detail::ReadArithmeticCell<T>(cursor, row, column);
     else
         // A target type the block buffer cannot reconstruct (e.g. a user type with a custom binder). The
-        // bound path declines prefetch for such targets (see PrefetchConvertible); reaching here via a raw
-        // GetColumn returns a default rather than crashing.
-        return T {};
+        // bound path and ExecuteDirectScalar decline prefetch for such targets (see PrefetchConvertible);
+        // a raw GetColumn only learns the type once the block is fetched, too late to fall back.
+        throw SqlException(SqlErrorInfo {
+            .nativeErrorCode = 0,
+            .sqlState = "HY000",
+            .message =
+                std::format("Column {} cannot be read as {} from a block-prefetched result set: the type's binder needs the "
+                            "per-row fetch. Bind it with BindOutputColumns() before the first FetchRow(), or disable "
+                            "block prefetch with SqlConnection::SetDefaultPrefetchDepth(1).",
+                            column,
+                            Reflection::TypeNameOf<T>),
+        });
 }
 
 template <SqlOutputColumnBinder T>
@@ -2347,12 +2622,13 @@ inline void SqlStatement::RecordPrefetchOutputColumn(SQLUSMALLINT column, T* arg
 {
     auto deferredBind = [this, column, arg] {
         RequireIndicators();
-        RequireSuccess(SqlDataBinder<T>::OutputColumn(m_hStmt, column, arg, GetIndicatorForColumn(column), *this));
+        BindOutputColumnNow<T>(column, arg);
     };
     if constexpr (detail::PrefetchConvertible<T>)
     {
         RecordPrefetchColumn(
             column,
+            PrefetchTargetOf<T>(),
             [this, column, arg] { *arg = ConvertCell<T>(PrefetchCursorRef(), PrefetchRowInBlock(), column); },
             std::move(deferredBind));
     }
@@ -2360,9 +2636,26 @@ inline void SqlStatement::RecordPrefetchOutputColumn(SQLUSMALLINT column, T* arg
     {
         // The target type cannot be reconstructed from the block buffer; record only the real bind and
         // flag the set so arming declines prefetch and the deferred binds drive the per-row path.
-        RecordPrefetchColumn(column, {}, std::move(deferredBind));
+        RecordPrefetchColumn(column, PrefetchTarget::Any, {}, std::move(deferredBind));
         MarkPrefetchBindingUnsupported();
     }
+}
+
+template <typename T>
+constexpr SqlStatement::PrefetchTarget SqlStatement::PrefetchTargetOf() noexcept
+{
+    if constexpr (IsSpecializationOf<std::optional, T>)
+        return PrefetchTargetOf<typename T::value_type>();
+    else if constexpr (std::same_as<T, SqlVariant>)
+        return PrefetchTarget::Any;
+    else if constexpr (std::same_as<T, SqlDate> || std::same_as<T, SqlDateTime> || std::same_as<T, SqlDateTime::native_type>)
+        return PrefetchTarget::Temporal;
+    else if constexpr (std::same_as<T, SqlGuid>)
+        return PrefetchTarget::Guid;
+    else if constexpr (detail::StringLikeCell<T>)
+        return PrefetchTarget::Text;
+    else
+        return PrefetchTarget::Numeric;
 }
 
 template <SqlGetColumnNativeType T>
@@ -2477,7 +2770,12 @@ template <typename T>
 inline std::optional<T> SqlStatement::ExecuteDirectScalar(std::string_view const& query, std::source_location location)
 {
     auto cursor = ExecuteDirect(query, location);
-    RequireSuccess(FetchRow());
+    // The type is known before the first fetch: keep a type the block buffer cannot rebuild on the per-row path.
+    if constexpr (!detail::PrefetchConvertible<T>)
+        MarkPrefetchBindingUnsupported();
+    // FetchRow() throws on a failure; false means an empty result set, which has no scalar.
+    if (!FetchRow())
+        return std::nullopt;
     return GetNullableColumn<T>(1);
 }
 
@@ -2486,7 +2784,12 @@ template <typename T>
 inline T SqlStatement::ExecuteDirectScalar(std::string_view const& query, std::source_location location)
 {
     auto cursor = ExecuteDirect(query, location);
-    RequireSuccess(FetchRow());
+    // FetchRow() throws on a failure; false means an empty result set, which has no value to report.
+    if (!FetchRow())
+        throw SqlException(SqlErrorInfo { .nativeErrorCode = 0,
+                                          .sqlState = "02000",
+                                          .message = std::format("The scalar query returned no row: {}", query) },
+                           location);
     if (auto result = GetNullableColumn<T>(1); result.has_value())
         return *result;
     return SqlVariant { SqlNullValue };
@@ -2511,7 +2814,17 @@ inline LIGHTWEIGHT_FORCE_INLINE void SqlStatement::CloseCursor() noexcept
     // Tear down any block-prefetch first: the RowArrayCursor destructor unbinds the columns and
     // restores SQL_ATTR_ROW_ARRAY_SIZE so the SQLFreeStmt(SQL_CLOSE) below — and the next query on this
     // statement — start from a clean single-row state. Resets the prefetch lifecycle to Unarmed.
+    // The column bindings and their callbacks stay: SQLFreeStmt(SQL_CLOSE) does not unbind, and the next
+    // execution of the prepared statement fetches into them again.
+    // A cursor kept across its connection's Close() or re-connect holds a handle the driver freed: forget
+    // it (one session compare per cursor) and touch nothing.
+    ForgetHandleOfEndedSession();
     ResetPrefetchState();
+    if (m_hStmt == SQL_NULL_HSTMT)
+    {
+        SqlLogger::GetLogger().OnFetchEnd();
+        return;
+    }
 
     // SQL Server batches and DML/DDL row-count tokens produce multiple result
     // sets per SQLExecDirect. SQLFreeStmt(SQL_CLOSE) only discards the current

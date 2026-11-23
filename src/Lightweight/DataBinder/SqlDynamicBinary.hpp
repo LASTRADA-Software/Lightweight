@@ -254,16 +254,19 @@ struct SqlDataBinder<SqlDynamicBinary<N>>
     static LIGHTWEIGHT_FORCE_INLINE SQLRETURN OutputColumn(
         SQLHSTMT stmt, SQLUSMALLINT column, ValueType* result, SQLLEN* indicator, SqlDataBinderCallback& cb) noexcept
     {
-        if (result->empty())
-            result->resize(255);
+        // At least the column's declared length: the variable may still hold a shorter previous value.
+        if (auto const columnSize = (std::min) (cb.MinimumOutputColumnSize(column, SqlOutputColumnLength::Octets), N);
+            result->size() < columnSize)
+            result->resize(columnSize);
 
         cb.PlanPostProcessOutputColumn([stmt, column, result, indicator]() {
             if (*indicator == SQL_NULL_DATA)
                 // The data is NULL.
                 result->clear();
             else if (*indicator == SQL_NO_TOTAL)
-                // We have a truncation and the server does not know how much data is left.
-                result->resize(result->size() - 1);
+                // Longer than the buffer, length unknown: read it again in full.
+                result->resize(detail::ReadBoundValueOfUnknownLength<detail::ContainerBufferOperations, 1, 0>(
+                    stmt, column, SQL_C_BINARY, result, indicator));
             else if (*indicator <= static_cast<SQLLEN>(result->size()))
                 result->resize(static_cast<size_t>(*indicator));
             else
@@ -275,14 +278,21 @@ struct SqlDataBinder<SqlDynamicBinary<N>>
                 result->resize(static_cast<size_t>(totalCharsRequired + 1));
                 auto const sqlResult =
                     SQLGetData(stmt, column, SQL_C_BINARY, (SQLPOINTER) result->data(), totalCharsRequired + 1, indicator);
-                (void) sqlResult;
-                assert(SQL_SUCCEEDED(sqlResult));
+                if (!SQL_SUCCEEDED(sqlResult))
+                    detail::ThrowBoundValueNotReadable(stmt, column, totalCharsRequired);
                 assert(*indicator == totalCharsRequired);
                 result->resize(static_cast<size_t>(totalCharsRequired));
             }
         });
 
-        return SQLBindCol(stmt, column, SQL_C_BINARY, (SQLPOINTER) result->data(), 255, indicator);
+        // Bound straight into the container, which the post-process shrinks to each row's length:
+        // restore it before every further fetch of the result set.
+        detail::PlanBoundBufferRestore<detail::ContainerBufferOperations, 1, 0>(column, SQL_C_BINARY, result, indicator, cb);
+
+        // Bound with the buffer's own size: a buffer the caller sized differently than an empty one gets
+        // would otherwise be overrun (smaller) or only partly filled (larger).
+        return SQLBindCol(
+            stmt, column, SQL_C_BINARY, (SQLPOINTER) result->data(), static_cast<SQLLEN>(result->size()), indicator);
     }
 
     static LIGHTWEIGHT_FORCE_INLINE SQLRETURN GetColumn(SQLHSTMT stmt,

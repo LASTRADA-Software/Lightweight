@@ -206,6 +206,10 @@ while (stmt.FetchRow())
 }
 ```
 
+A NULL value: `GetColumn<T>(i)` of a non-nullable `T` throws, `GetNullableColumn<T>(i)` and
+`GetColumn<std::optional<T>>(i)` return `std::nullopt`, and `GetColumn(i, &value)` returns `false` and leaves
+`value` holding its empty value (`std::nullopt`, a NULL `SqlVariant`, or `T {}`), whatever it held before.
+
 ## Transparent block-prefetch (fewer network round-trips)
 
 Classic per-row fetch loops like the one above issue **one `SQLFetch` per row**, i.e. one network
@@ -215,8 +219,13 @@ wall-clock time of large result sets.
 Lightweight transparently reduces these round-trips: on the first `FetchRow()` of a result set it
 inspects the columns and, when eligible, fetches whole **blocks** of rows per `SQLFetchScroll`
 round-trip (ODBC row-array binding) and serves your `FetchRow()` / `GetColumn<T>()` calls from that
-buffer. **No code change is required** — the loops above, `SqlRowIterator<T>`, `SqlVariantRowCursor`
-and the `DataMapper` all benefit automatically.
+buffer. The loops above, `SqlRowIterator<T>`, `SqlVariantRowCursor` and the `DataMapper` benefit without
+a code change. One exception: the block buffer holds each value as a built-in type, so `GetColumn<T>()` of
+a type with a custom `SqlDataBinder` cannot be served from it. Where the type is known before the first
+fetch (a bound output column, `ExecuteDirectScalar<T>()`, the members of a `SqlRowIterator<T>` record) the
+result set keeps the per-row path; a raw `GetColumn<T>()` of such a type on a block-prefetched result set
+throws a `SqlException` — bind that column before the first `FetchRow()`, or disable prefetch (see
+[data-binder.md](data-binder.md#custom-types-and-block-prefetch)).
 
 The depth is a connection-level setting (default `Lightweight::PrefetchDepthDefault`, 1000 rows). A
 value `<= 1` disables prefetch and restores one `SQLFetch` per row:
@@ -237,6 +246,32 @@ dynamic typing reports text/`NUMERIC` columns with an unreliable, unenforced siz
 single-row binders handle them. Memory is bounded to a few MB per active cursor (the depth is auto-clamped
 to that budget), and prefetch reads ahead up to one block, so a loop that stops early over-reads at most
 one block.
+
+### Reading a column as another type under prefetch
+
+On the per-row path, reading a column into a C++ type of another kind (an `INTEGER` column into a
+`std::string`, a `TIMESTAMP` column into a `SqlDate`) is the driver's conversion, and where the ODBC rules
+define none, its error. The block buffer cannot call the driver, so Lightweight decides per reader:
+
+- **Bound output columns and `SqlRowIterator<T>` members.** The C++ type is known before the first fetch.
+  When a column's SQL type is one the per-row path would read differently into it — a `std::string` over a
+  floating-point, temporal or `GUID` column, a `SqlDate`/`SqlDateTime` over a non-temporal column, a
+  `SqlGuid` over a non-`GUID` column, a number over a temporal or `GUID` column — the result set keeps the
+  per-row path, so the value (or error) is exactly the driver's. `char` is read through its own binder (the
+  column as text) and keeps the per-row path too.
+- **Raw `GetColumn<T>()` on a block-prefetched result set.** The type is known only after the block was
+  fetched. Lightweight applies the conversions the ODBC rules define: a `TIMESTAMP` read as `SqlDate` keeps
+  its date, a `DATE` read as `SqlDateTime` is midnight of that day, a numeric column read as any arithmetic
+  type is converted, and any column read as a string is rendered as text — integers exactly as the driver
+  renders them, floating-point, temporal and `GUID` values through their `std::formatter` (so a `REAL` 0.1
+  reads as `"0.10000000149011612"` where the driver gives `"0.1"`). Any other pairing (e.g. a `DATE` column
+  read as `double`, a `BIGINT` read as `SqlDateTime`) throws a `SqlException` with SQLSTATE `07006`
+  ("Restricted data type attribute violation"), the error a driver that follows the ODBC rules raises on
+  the per-row path; some drivers convert such a pair or report NULL instead. `GetColumn<char>()` and a type
+  with a custom binder throw `HY000` (see [data-binder.md](data-binder.md#custom-types-and-block-prefetch)).
+
+To get the driver's own conversion for such a read, read the column as its natural type, bind it before
+the first `FetchRow()`, or disable prefetch with `SetDefaultPrefetchDepth(1)`.
 
 ## Prepared Statements
 

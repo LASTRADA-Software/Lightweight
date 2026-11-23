@@ -36,10 +36,25 @@ However, when not using the `DataMapper` API, you need to retrieve the result ma
 It is always highly recommended to pre-bind to avoid unnecessary memory allocations and copying.
 
 With this, it is sufficient to call `SqlStatement::BindOutputColumns()` once, and then you can reuse the result
-throughout many `SqlStatement::FetchRow()` calls.
+throughout many `SqlStatement::FetchRow()` calls of that result set. Every fetched row sets each bound variable to
+that row's value: strings and binaries get the row's own length, and a `std::optional<T>` is reset to `std::nullopt`
+on a NULL row and engaged again on the next non-NULL one. The bound variables must outlive the fetch loop; moving a
+value out of one between two fetches is fine, the column follows the variable's new storage.
 
-The pitfall here is that if you are using `std::optional<T>` column types, you **MUST** rebind the result columns before
-each fetch operation. If there are no nullable values, you do not have to.
+The binding lasts as long as the statement's query: it outlives the end of the result set and the closing of the
+cursor, so executing the prepared statement again fetches into the same variables, which must therefore stay alive
+as long as the statement may fetch into them. Preparing or directly executing another query on the statement drops
+the binding; bind again for it.
+
+A string or binary variable is bound with a buffer of at least 255 units, or its own size if that is larger. A
+value longer than the bound buffer is read again with `SQLGetData` and the buffer grows to it. MS SQL Server's
+driver cannot read a bound column again (it lacks `SQL_GD_BOUND`, see `SqlConnection::ReadsBoundColumnsAgain()`),
+so there the buffer is at least the column's declared length (up to 8000 units, asked once per result set), and a
+value that is still longer, such as one in a `MAX` column, fails `FetchRow()` with a `SqlException` instead of
+coming back truncated. On SQL Server, read a `MAX` column with `GetColumn()` or size the variable to the longest
+value before binding it. For this reason the `DataMapper` does not bind a record with a growable member (any string or
+binary type whose size is not fixed, `SqlText`, or a `std::optional` of one) on a driver that cannot read a bound
+column again: it reads that record per row with `GetColumn()`, which sizes every value to itself.
 
 ```cpp
 struct MixedNullRow
@@ -58,17 +73,11 @@ void ForEachData(SqlStatement& stmt, auto&& onRow)
 
     auto currentRow = MixedNullRow {};
 
-    // Bind output columns for the first time
+    // Bind the output columns once for the whole result set
     stmt.BindOutputColumns(&currentRow.id, &currentRow.name, &currentRow.age);
 
     while (stmt.FetchRow())
-    {
         onRow(currentRow);
-
-        // Bind output columns for the next fetch.
-        // (ONLY necessary when using std::optional<T> in the columns)
-        stmt.BindOutputColumns(&currentRow.id, &currentRow.name, &currentRow.age);
-    }
 }
 ```
 

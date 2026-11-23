@@ -23,7 +23,7 @@ namespace Lightweight
 /// @c SqlConnection::DefaultPrefetchDepth() accessor. A connection's depth can be overridden via
 /// @c SqlConnection::SetDefaultPrefetchDepth or @ref SqlConnectionDataSource::defaultPrefetchDepth;
 /// a value <= 1 disables prefetch.
-constexpr std::size_t PrefetchDepthDefault = 1000;
+inline constexpr std::size_t PrefetchDepthDefault = 1000;
 
 /// @brief Default capacity of a connection's prepared-statement cache: the number of already-prepared
 /// ODBC statement handles kept alive for reuse.

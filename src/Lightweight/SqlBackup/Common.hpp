@@ -34,7 +34,7 @@ namespace Lightweight::SqlBackup::detail
 /// Maximum declared buffer size for binary LOB columns during backup.
 /// The actual data can grow beyond this via automatic ODBC buffer resizing.
 /// Set to 16MB to handle typical BLOB/VARBINARY(MAX) columns.
-constexpr size_t MaxBinaryLobBufferSize = 16 * 1024 * 1024;
+inline constexpr size_t MaxBinaryLobBufferSize = 16 * 1024 * 1024;
 
 /// Metadata for a ZIP entry used during restore operations.
 struct ZipEntryInfo
