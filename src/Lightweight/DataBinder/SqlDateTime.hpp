@@ -419,8 +419,9 @@ namespace detail
     {
         constexpr auto NanosecondsPerMillisecond = SQLUINTEGER { 1'000'000 };
         auto const rowCount = (std::max) (layout.rowCount, std::size_t { 1 });
-        auto const staged =
-            std::make_shared<std::vector<std::byte>>(((rowCount - 1) * layout.rowStride) + sizeof(SQL_TIMESTAMP_STRUCT));
+        // A statement slot, reused by the next execute rather than allocated anew for each one.
+        auto* const staged =
+            cb.ProvideBatchStagingBuffer(((rowCount - 1) * layout.rowStride) + sizeof(SQL_TIMESTAMP_STRUCT));
         auto const* sourceBytes = reinterpret_cast<std::byte const*>(first);
         for (auto const row: std::views::iota(std::size_t { 0 }, rowCount))
         {
@@ -428,9 +429,8 @@ namespace detail
             auto value = SQL_TIMESTAMP_STRUCT {};
             std::memcpy(&value, sourceBytes + (row * layout.rowStride), sizeof(value));
             value.fraction -= value.fraction % NanosecondsPerMillisecond;
-            std::memcpy(staged->data() + (row * layout.rowStride), &value, sizeof(value));
+            std::memcpy(staged + (row * layout.rowStride), &value, sizeof(value));
         }
-        cb.PlanPostExecuteCallback([staged]() {});
 
         return SQLBindParameter(stmt,
                                 column,
@@ -439,7 +439,7 @@ namespace detail
                                 SQL_TYPE_TIMESTAMP,
                                 23,
                                 3,
-                                static_cast<SQLPOINTER>(staged->data()),
+                                static_cast<SQLPOINTER>(staged),
                                 sizeof(SQL_TIMESTAMP_STRUCT),
                                 indicators);
     }

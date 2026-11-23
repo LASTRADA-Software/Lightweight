@@ -31,12 +31,19 @@ namespace Lightweight
 
 struct SqlStatement::Data
 {
-    std::optional<SqlConnection> ownedConnection;    // The connection object (if owned)
-    std::vector<SQLLEN> indicators;                  // Holds the indicators for the bound output columns
-    std::deque<SQLLEN> inputIndicators;              // Holds the indicators for the bound input parameters
+    std::optional<SqlConnection> ownedConnection; // The connection object (if owned)
+    std::vector<SQLLEN> indicators;               // Holds the indicators for the bound output columns
+    // Holds the indicators for the bound input parameters. An execute that binds every parameter anew, and
+    // Prepare(), reuse the slots (see SqlStatement::ReuseParameterSlots()). Parameters bound by hand with
+    // BindInputParameter() take a new slot per bind until the next Prepare(), since a partial rebind must not
+    // take a slot another bound parameter still uses. A deque, so a slot never moves while the driver points at it.
+    std::deque<SQLLEN> inputIndicators;
     std::deque<std::vector<SQLLEN>> batchIndicators; // Holds the indicators for the bound batch input parameters
-    std::deque<std::vector<std::byte>>
-        batchStagingBuffers; // Holds temporary scratch buffers for batch input parameter binders
+    // Holds the scratch buffers of the input parameter binders, reused across executes like inputIndicators.
+    // A reused buffer grows only when its next user needs more bytes than it holds.
+    std::deque<std::vector<std::byte>> batchStagingBuffers;
+    // The row-strided indicators of a row-wise fetch's columns (see SqlStatement::ProvideRowWiseFetchIndicators()).
+    std::deque<std::vector<std::byte>> fetchIndicatorBuffers;
     std::vector<std::function<void()>> postExecuteCallbacks;
 
     /// @brief What the binders planned for one bound output column. Re-binding the column clears the
@@ -226,7 +233,16 @@ SQLLEN* SqlStatement::GetIndicatorForColumn(SQLUSMALLINT column) noexcept
 
 SQLLEN* SqlStatement::ProvideInputIndicator()
 {
-    return &m_data->inputIndicators.emplace_back(0);
+    auto& slots = m_data->inputIndicators;
+    if (m_inputIndicatorSlotsInUse < slots.size())
+    {
+        auto& slot = slots[m_inputIndicatorSlotsInUse++];
+        slot = 0;
+        return &slot;
+    }
+    auto& slot = slots.emplace_back(0);
+    m_inputIndicatorSlotsInUse = slots.size();
+    return &slot;
 }
 
 SQLLEN* SqlStatement::ProvideInputIndicators(size_t rowCount)
@@ -238,8 +254,19 @@ SQLLEN* SqlStatement::ProvideInputIndicators(size_t rowCount)
 std::byte* SqlStatement::ProvideBatchStagingBuffer(std::size_t byteCount)
 {
     // std::vector<std::byte> allocates via operator new, which yields max_align_t-aligned storage.
-    m_data->batchStagingBuffers.emplace_back(byteCount);
-    return m_data->batchStagingBuffers.back().data();
+    auto& slots = m_data->batchStagingBuffers;
+    if (m_stagingBufferSlotsInUse < slots.size())
+    {
+        // Growing moves the buffer. The previous execute's binding that pointed at it is replaced in this
+        // binding round, because ReuseParameterSlots() is only called where every parameter is bound again.
+        auto& slot = slots[m_stagingBufferSlotsInUse++];
+        if (slot.size() < byteCount)
+            slot.resize(byteCount);
+        return slot.data();
+    }
+    auto& slot = slots.emplace_back(byteCount);
+    m_stagingBufferSlotsInUse = slots.size();
+    return slot.data();
 }
 
 std::optional<SQLSMALLINT> SqlStatement::DescribeInputParameterType(SQLUSMALLINT column) noexcept
@@ -294,12 +321,24 @@ std::vector<SQLSMALLINT> SqlStatement::DescribeInputParameterTypes() noexcept
     }
 }
 
+std::byte* SqlStatement::ProvideRowWiseFetchIndicators(std::size_t byteCount)
+{
+    // std::vector<std::byte> allocates via operator new, which yields max_align_t-aligned storage.
+    return m_data->fetchIndicatorBuffers.emplace_back(byteCount).data();
+}
+
+void SqlStatement::ReleaseRowWiseFetchIndicators() noexcept
+{
+    m_data->fetchIndicatorBuffers.clear();
+}
+
 void SqlStatement::ClearBatchIndicators()
 {
     m_data->batchIndicators.clear();
     m_data->batchIndicators.shrink_to_fit();
     m_data->batchStagingBuffers.clear();
     m_data->batchStagingBuffers.shrink_to_fit();
+    m_stagingBufferSlotsInUse = 0;
 }
 
 namespace
@@ -434,6 +473,7 @@ SqlStatement::SqlStatement():
                  .inputIndicators = {},
                  .batchIndicators = {},
                  .batchStagingBuffers = {},
+                 .fetchIndicatorBuffers = {},
                  .postExecuteCallbacks = {},
                  .outputColumnCallbacks = {},
                  .columnsWithCallbacks = {},
@@ -478,6 +518,8 @@ SqlStatement::SqlStatement(SqlStatement&& other) noexcept:
     m_preparedQuery { std::move(other.m_preparedQuery) },
     m_projectedFieldNames { std::move(other.m_projectedFieldNames) },
     m_projectionHasWildcard { other.m_projectionHasWildcard },
+    m_inputIndicatorSlotsInUse { other.m_inputIndicatorSlotsInUse },
+    m_stagingBufferSlotsInUse { other.m_stagingBufferSlotsInUse },
     m_expectedParameterCount { other.m_expectedParameterCount },
     m_preparedParameterCount { other.m_preparedParameterCount },
     m_reusedPreparedQuery { other.m_reusedPreparedQuery },
@@ -507,6 +549,8 @@ SqlStatement& SqlStatement::operator=(SqlStatement&& other) noexcept
     m_reusedPreparedQuery = other.m_reusedPreparedQuery;
     m_projectedFieldNames = std::move(other.m_projectedFieldNames);
     m_projectionHasWildcard = other.m_projectionHasWildcard;
+    m_inputIndicatorSlotsInUse = other.m_inputIndicatorSlotsInUse;
+    m_stagingBufferSlotsInUse = other.m_stagingBufferSlotsInUse;
     m_preparedStatementCaching = other.m_preparedStatementCaching;
 
     other.m_data.reset();
@@ -859,9 +903,10 @@ void SqlStatement::Prepare(std::string_view query) &
         m_data->describedParameterTypes.reset();
 
     m_data->postExecuteCallbacks.clear();
-    m_data->inputIndicators.clear();
     m_data->batchIndicators.clear();
-    m_data->batchStagingBuffers.clear();
+    // The single-row parameter slots stay allocated for the next binding round, which binds every
+    // parameter of the new query, so re-preparing (as DataMapper's Create() does) reallocates nothing.
+    ReuseParameterSlots();
 
     // Reset parameter-array binding attributes that a preceding batch execution may have left on the
     // handle. SqlStatement handles are reused (e.g. by DataMapper) across single and batched executes;
@@ -1043,7 +1088,8 @@ SqlResultCursor SqlStatement::ExecuteDirect(std::string_view const& query, std::
     RequireSuccess(SQLFreeStmt(m_hStmt, SQL_UNBIND));
     DropOutputColumnBindings();
 
-    m_data->inputIndicators.clear();
+    // Parameters bound by hand before this call stay bound for the new query and keep pointing at their
+    // slots, so the slots stay theirs: they go back only at Prepare() or where every parameter is bound anew.
     m_data->batchIndicators.clear();
 
     SqlLogger::GetLogger().OnExecuteDirect(query);
@@ -1078,6 +1124,10 @@ SqlResultCursor SqlStatement::ExecuteWithVariants(std::vector<SqlVariant> const&
     if (!(m_expectedParameterCount == (std::numeric_limits<decltype(m_expectedParameterCount)>::max)() && args.empty())
         && !(static_cast<size_t>(m_expectedParameterCount) == args.size()))
         throw std::invalid_argument { "Invalid argument count" };
+
+    // Every parameter is bound below; without arguments, those bound by hand keep their slots.
+    if (!args.empty())
+        ReuseParameterSlots();
 
 #if !defined(__cpp_lib_ranges_enumerate)
     int i { -1 };
@@ -1213,7 +1263,8 @@ RowArrayCursor SqlStatement::ExecuteBatchFetch(std::string_view query, std::size
     RequireSuccess(SQLFreeStmt(m_hStmt, SQL_UNBIND));
     DropOutputColumnBindings();
 
-    m_data->inputIndicators.clear();
+    // Parameters bound by hand before this call stay bound for the new query and keep pointing at their
+    // slots, so the slots stay theirs: they go back only at Prepare() or where every parameter is bound anew.
     m_data->batchIndicators.clear();
 
     SqlLogger::GetLogger().OnExecuteDirect(query);

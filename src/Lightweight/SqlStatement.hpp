@@ -207,6 +207,11 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     /// The value is bound by address: the driver reads it only at the next @c Execute(), so @p arg
     /// must stay alive until then. Temporaries are therefore rejected at compile time.
     ///
+    /// The indicator and staging storage a bind takes stays allocated until the next @c Prepare(): binding
+    /// by hand and executing with @c Execute() in a loop grows it by one slot per bind, since a parameter
+    /// left bound from an earlier round may still use any earlier slot. @c Execute() with arguments binds
+    /// every parameter and reuses the slots, so prefer it (or @c Prepare() per round) for long loops.
+    ///
     /// @param columnIndex The 1-based parameter index.
     /// @param arg The value to bind; it must outlive the next @c Execute().
     template <SqlInputParameterBinder Arg>
@@ -581,6 +586,22 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     /// @param error The SQLSTATE and message to raise.
     LIGHTWEIGHT_API void ReportInputParameterError(SqlErrorInfo const& error) noexcept override;
     LIGHTWEIGHT_API void ClearBatchIndicators();
+    /// Provides the row-strided indicator storage of one column of a row-wise fetch, apart from the
+    /// parameter slots: parameters bound by hand stay bound across the fetch and must keep theirs.
+    /// @param byteCount The number of bytes to provide.
+    /// @return A pointer to the first byte, aligned to at least @c alignof(std::max_align_t).
+    LIGHTWEIGHT_API std::byte* ProvideRowWiseFetchIndicators(std::size_t byteCount);
+    /// Frees the storage of @ref ProvideRowWiseFetchIndicators, once the columns are unbound.
+    LIGHTWEIGHT_API void ReleaseRowWiseFetchIndicators() noexcept;
+    /// Hands the input indicator and staging buffer slots of the previous binding round to the next one,
+    /// keeping their storage, so repeated executes of one prepared statement allocate no new slots.
+    /// Only called where every parameter is bound again before the next execute: a slot the driver
+    /// still points at for a parameter that is not bound again must not go to another parameter.
+    void ReuseParameterSlots() noexcept
+    {
+        m_inputIndicatorSlotsInUse = 0;
+        m_stagingBufferSlotsInUse = 0;
+    }
     /// Sets up column-wise array binding of @p rowCount rows and binds @p columns as input parameters.
     /// @param columns The columns to bind.
     /// @param rowCount The number of rows (parameter sets).
@@ -823,6 +844,10 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     // column access. Empty when the query carried no mapping (raw SQL, or a wildcard projection).
     std::vector<std::string> m_projectedFieldNames;
     bool m_projectionHasWildcard = false;
+    // The input indicator and staging buffer slots handed out since the last ReuseParameterSlots(). The
+    // slots past these counts stay allocated, with their capacity, for the next binding round.
+    std::size_t m_inputIndicatorSlotsInUse {};
+    std::size_t m_stagingBufferSlotsInUse {};
     SQLSMALLINT m_expectedParameterCount {}; // The number of parameters expected by the query
     // The parameter count SQLNumParams() reported for m_preparedQuery. m_expectedParameterCount is
     // deliberately overwritten by BindInputParameter() (with SQLSMALLINT max, meaning "bound by hand"),
@@ -1710,6 +1735,10 @@ SqlResultCursor SqlStatement::Execute(Args const&... args)
         && !(m_expectedParameterCount == sizeof...(args)))
         throw std::invalid_argument { "Invalid argument count" };
 
+    // Every parameter is bound below; without arguments, those bound by hand keep their slots.
+    if constexpr (sizeof...(Args) > 0)
+        ReuseParameterSlots();
+
     SQLUSMALLINT i = 0;
     ((++i,
       SqlLogger::GetLogger().OnBindInputParameter({}, args),
@@ -1938,6 +1967,7 @@ SqlResultCursor SqlStatement::ExecuteBatchSoft(FirstColumnBatch const& firstColu
     {
         std::apply(
             [&]<SqlInputParameterBinder... ColumnValues>(ColumnValues const&... columnsInRow) {
+                ReuseParameterSlots();
                 SQLUSMALLINT column = 0;
                 ((++column,
                   RequireSuccess(SqlDataBinder<ColumnValues>::InputParameter(m_hStmt, column, columnsInRow, *this))),
@@ -2050,6 +2080,7 @@ SqlResultCursor SqlStatement::ExecuteBatchNativeRowWise(Rows const& rows, Column
     RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAMS_PROCESSED_PTR, &processedCount, 0));
     // clang-format on
 
+    ReuseParameterSlots();
     SQLUSMALLINT column = 0;
     auto const bindColumn = [&](auto const& accessor) {
         ++column;
@@ -2093,6 +2124,7 @@ SqlResultCursor SqlStatement::ExecuteBatchSoftRowMajor(Rows const& rows, ColumnA
     for (auto const rowIndex: std::views::iota(std::size_t { 0 }, rowCount))
     {
         auto const& row = rowData[rowIndex];
+        ReuseParameterSlots();
         SQLUSMALLINT column = 0;
         ((++column,
           RequireSuccess(SqlDataBinder<std::remove_cvref_t<decltype(accessors(row))>>::InputParameter(
@@ -2142,7 +2174,7 @@ SQLLEN* SqlStatement::BindRowWiseOutputColumn(SQLUSMALLINT column, void* base0, 
     // as the value pointer; there is no separate indicator stride. So the indicator array over-allocates
     // to rowStride per row (only sizeof(SQLLEN) of each slot is used) — intrinsic to ODBC row-wise
     // binding, identical to the write side (see SqlDataBinderCallback::ProvideBatchStagingBuffer).
-    auto* const indicatorBytes = ProvideBatchStagingBuffer(((depth - 1) * rowStride) + sizeof(SQLLEN));
+    auto* const indicatorBytes = ProvideRowWiseFetchIndicators(((depth - 1) * rowStride) + sizeof(SQLLEN));
     auto* const indicators = reinterpret_cast<SQLLEN*>(indicatorBytes);
 
     if constexpr (SqlIsStdOptional<ValueType>)
@@ -2244,7 +2276,7 @@ void SqlStatement::FetchAllRowWise(std::vector<Record>& out, std::size_t arrayDe
         SQLSetStmtAttr(m_hStmt, SQL_ATTR_ROWS_FETCHED_PTR, nullptr, 0);
         // clang-format on
         DropOutputColumnBindings();
-        ClearBatchIndicators();
+        ReleaseRowWiseFetchIndicators();
     });
 
     // clang-format off
@@ -2264,7 +2296,7 @@ void SqlStatement::FetchAllRowWise(std::vector<Record>& out, std::size_t arrayDe
 
         // Rebind each column into this block's records (the value pointer follows out's storage across a
         // reallocation) and refresh the per-column row-strided indicator buffers.
-        ClearBatchIndicators();
+        ReleaseRowWiseFetchIndicators();
         std::array<SQLLEN*, columnCount> indicators {};
         SQLUSMALLINT column = 0;
         std::size_t bindIndex = 0;

@@ -9,8 +9,11 @@
 
 #include <algorithm>
 #include <array>
+#include <charconv>
+#include <cstddef>
 #include <cstdint>
 #include <format>
+#include <limits>
 #include <optional>
 #include <span>
 #include <string>
@@ -290,22 +293,57 @@ struct SqlDynamicNumeric
         return static_cast<double>(unscaledValue) / detail::DoublePowersOfTen[scale];
     }
 
-    /// Renders the exact decimal representation, including the trailing zeros implied by @ref scale.
-    [[nodiscard]] std::string ToString() const
+    /// The longest literal @ref FormatTo() writes: a sign, a decimal point, and @ref scale + 1 digits
+    /// for the largest scale (or the 20 digits of the largest magnitude, which is fewer).
+    static constexpr std::size_t MaxLiteralLength = 1 + 1 + (std::numeric_limits<std::uint8_t>::max)() + 1;
+
+    /// Writes the exact decimal representation, including the trailing zeros implied by @ref scale,
+    /// without allocating.
+    /// @param out Receives the literal; it is not NUL-terminated.
+    /// @return The number of characters written.
+    [[nodiscard]] std::size_t FormatTo(std::span<char, MaxLiteralLength> out) const noexcept
     {
         auto const negative = unscaledValue < 0;
         // Negate in the unsigned domain so INT64_MIN does not overflow.
         auto const magnitude =
             negative ? 0ULL - static_cast<std::uint64_t>(unscaledValue) : static_cast<std::uint64_t>(unscaledValue);
 
-        auto digits = std::to_string(magnitude);
-        if (scale > 0)
+        auto digitBuffer = std::array<char, std::numeric_limits<std::uint64_t>::digits10 + 1> {};
+        char* const digitsEnd = std::to_chars(digitBuffer.data(), digitBuffer.data() + digitBuffer.size(), magnitude).ptr;
+        auto const digits = std::string_view { digitBuffer.data(), digitsEnd };
+
+        auto length = std::size_t { 0 };
+        auto const append = [&](std::string_view text) {
+            std::ranges::copy(text, out.begin() + static_cast<std::ptrdiff_t>(length));
+            length += text.size();
+        };
+        if (negative)
+            append("-");
+        if (scale == 0)
+            append(digits);
+        else if (digits.size() <= scale)
         {
-            if (digits.size() <= scale)
-                digits.insert(0, std::string(scale - digits.size() + 1, '0'));
-            digits.insert(digits.size() - scale, ".");
+            // Every digit is fractional: "0." and the zeros between the point and the first digit.
+            append("0.");
+            std::ranges::fill_n(
+                out.begin() + static_cast<std::ptrdiff_t>(length), static_cast<std::ptrdiff_t>(scale - digits.size()), '0');
+            length += scale - digits.size();
+            append(digits);
         }
-        return negative ? "-" + digits : digits;
+        else
+        {
+            append(digits.substr(0, digits.size() - scale));
+            append(".");
+            append(digits.substr(digits.size() - scale));
+        }
+        return length;
+    }
+
+    /// Renders the exact decimal representation, including the trailing zeros implied by @ref scale.
+    [[nodiscard]] std::string ToString() const
+    {
+        auto buffer = std::array<char, MaxLiteralLength> {};
+        return std::string { buffer.data(), FormatTo(buffer) };
     }
 
     /// Parses an exact decimal literal, scaling it to @p scale.
@@ -348,13 +386,14 @@ struct SqlDataBinder<SqlDynamicNumeric>
         // Stage the literal on the statement rather than in the value: the buffer only has to
         // outlive the execute, and carrying it inside the type would put ~130 bytes of ODBC scratch
         // into every SqlVariant — and so into every row of every prefetch block.
-        auto const literal = value.ToString();
-        auto* const buffer = reinterpret_cast<char*>(cb.ProvideBatchStagingBuffer(literal.size() + 1));
-        std::ranges::copy(literal, buffer);
-        buffer[literal.size()] = '\0';
+        // Rendered straight into the slot, which the next execute reuses: no allocation per execute.
+        auto* const buffer = reinterpret_cast<char*>(cb.ProvideBatchStagingBuffer(SqlDynamicNumeric::MaxLiteralLength + 1));
+        auto const literalLength = value.FormatTo(
+            std::span<char, SqlDynamicNumeric::MaxLiteralLength> { buffer, SqlDynamicNumeric::MaxLiteralLength });
+        buffer[literalLength] = '\0';
 
         auto* const indicator = cb.ProvideInputIndicator();
-        *indicator = static_cast<SQLLEN>(literal.size());
+        *indicator = static_cast<SQLLEN>(literalLength);
 
         auto const columnSize = static_cast<SQLULEN>(value.precision != 0 ? value.precision : SqlMaxDynamicNumericPrecision);
         return SQLBindParameter(stmt,
@@ -365,7 +404,7 @@ struct SqlDataBinder<SqlDynamicNumeric>
                                 columnSize,
                                 static_cast<SQLSMALLINT>(value.scale),
                                 (SQLPOINTER) buffer,
-                                static_cast<SQLLEN>(literal.size() + 1),
+                                static_cast<SQLLEN>(literalLength + 1),
                                 indicator);
     }
 

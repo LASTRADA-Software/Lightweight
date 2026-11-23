@@ -20,6 +20,7 @@
 #include <stdexcept>
 #include <string>
 #include <tuple>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -1932,4 +1933,262 @@ TEST_CASE_METHOD(SqlTestFixture,
     REQUIRE(indicator == 5);
     CHECK(std::string_view { value.data(), 5 } == "first");
     REQUIRE(SQL_SUCCEEDED(SQLFreeStmt(hStmt, SQL_UNBIND))); // the value goes before the statement
+}
+
+namespace
+{
+/// The distinct input indicator and staging buffer slots a SlotProbe parameter was handed.
+struct ParameterSlotRecorder
+{
+    std::vector<SQLLEN const*> indicators;
+    std::vector<std::byte const*> stagingBuffers;
+
+    void Record(SQLLEN const* indicator, std::byte const* stagingBuffer)
+    {
+        if (!std::ranges::contains(indicators, indicator))
+            indicators.push_back(indicator);
+        if (!std::ranges::contains(stagingBuffers, stagingBuffer))
+            stagingBuffers.push_back(stagingBuffer);
+    }
+};
+
+/// An integer parameter whose binder asks the statement for one indicator and one staging slot, and
+/// records which ones it got: a statement that hands out new slots per execute shows new addresses.
+struct SlotProbe
+{
+    int value {};
+    ParameterSlotRecorder* recorder {};
+};
+} // namespace
+
+template <>
+struct Lightweight::SqlDataBinder<SlotProbe>
+{
+    static SQLRETURN InputParameter(SQLHSTMT hStmt,
+                                    SQLUSMALLINT column,
+                                    SlotProbe const& value,
+                                    SqlDataBinderCallback& cb) noexcept
+    {
+        auto const* const indicator = cb.ProvideInputIndicator();
+        auto const* const stagingBuffer = cb.ProvideBatchStagingBuffer(sizeof(value.value));
+        value.recorder->Record(indicator, stagingBuffer);
+        return SqlDataBinder<int>::InputParameter(hStmt, column, value.value, cb);
+    }
+
+    static std::string Inspect(SlotProbe const& value) noexcept
+    {
+        return std::to_string(value.value);
+    }
+};
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "Repeated Execute of one prepared statement reuses its parameter slots",
+                 "[SqlStatement][ParameterSlots]")
+{
+    using namespace std::chrono_literals;
+
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("ParameterSlots")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Integer {})
+            .RequiredColumn("D", SqlColumnTypeDefinitions::Date {})
+            .RequiredColumn("DT", SqlColumnTypeDefinitions::DateTime {})
+            .RequiredColumn("G", SqlColumnTypeDefinitions::Guid {})
+            .RequiredColumn("N", SqlColumnTypeDefinitions::Decimal { .precision = 18, .scale = 4 })
+            .RequiredColumn("S", SqlColumnTypeDefinitions::Varchar { .size = 40 })
+            .RequiredColumn("U", SqlColumnTypeDefinitions::NVarchar { .size = 40 })
+            .RequiredColumn("P", SqlColumnTypeDefinitions::Integer {});
+    });
+
+    struct Row
+    {
+        int id;
+        SqlDate date;
+        SqlDateTime dateTime;
+        SqlGuid guid;
+        SqlDynamicNumeric number;
+        std::string text;
+        std::u16string wideText;
+    };
+    // Values that differ from row to row, so a parameter bound to another one's slot shows.
+    auto const rowFor = [](int id) {
+        auto guid = SqlGuid {};
+        std::ranges::fill(guid.data, static_cast<std::uint8_t>(id % 251));
+        guid.data[0] = static_cast<std::uint8_t>(id / 251);
+        auto const day = std::chrono::year_month_day { std::chrono::sys_days { std::chrono::year { 2026 } / 1 / 1 }
+                                                       + std::chrono::days { id % 365 } };
+        return Row {
+            .id = id,
+            .date = SqlDate { day },
+            .dateTime =
+                SqlDateTime { day,
+                              std::chrono::hh_mm_ss<SqlDateTime::duration_type> { std::chrono::seconds { id % 86'400 } } },
+            .guid = guid,
+            .number = SqlDynamicNumeric { .unscaledValue = (id * 12'345) - 6'000'000, .precision = 18, .scale = 4 },
+            .text = std::format("text {}", id),
+            .wideText = std::u16string(static_cast<std::size_t>(1 + (id % 30)), u'ä'),
+        };
+    };
+
+    constexpr auto SingleRowExecutes = 1000;
+    constexpr auto SoftBatchRows = 50;
+    auto recorder = ParameterSlotRecorder {};
+
+    stmt.Prepare(
+        R"(INSERT INTO "ParameterSlots" ("Id", "D", "DT", "G", "N", "S", "U", "P") VALUES (?, ?, ?, ?, ?, ?, ?, ?))");
+    for (auto const id: std::views::iota(1, SingleRowExecutes + 1))
+    {
+        auto const row = rowFor(id);
+        (void) stmt.Execute(row.id,
+                            row.date,
+                            row.dateTime,
+                            row.guid,
+                            row.number,
+                            row.text,
+                            row.wideText,
+                            SlotProbe { .value = id, .recorder = &recorder });
+    }
+    // Every execute after the first handed the probe the slots of the one before: one each, not 1000.
+    CHECK(recorder.indicators.size() == 1);
+    CHECK(recorder.stagingBuffers.size() == 1);
+
+    // The soft batch binds and executes row by row: its rows reuse the slots as well.
+    auto batch = std::vector<Row> {};
+    auto probes = std::vector<SlotProbe> {};
+    for (auto const id: std::views::iota(SingleRowExecutes + 1, SingleRowExecutes + SoftBatchRows + 1))
+    {
+        batch.push_back(rowFor(id));
+        probes.push_back(SlotProbe { .value = id, .recorder = &recorder });
+    }
+    auto const column = [&](auto member) {
+        auto values = std::vector<std::remove_cvref_t<decltype(batch.front().*member)>> {};
+        values.reserve(batch.size());
+        for (auto const& row: batch)
+            values.push_back(row.*member);
+        return values;
+    };
+    (void) stmt.ExecuteBatchSoft(column(&Row::id),
+                                 column(&Row::date),
+                                 column(&Row::dateTime),
+                                 column(&Row::guid),
+                                 column(&Row::number),
+                                 column(&Row::text),
+                                 column(&Row::wideText),
+                                 probes);
+    CHECK(recorder.indicators.size() == 1);
+    CHECK(recorder.stagingBuffers.size() == 1);
+
+    // A query run in between, as DataMapper's Create() runs one for LastInsertId(), keeps the slots, and the
+    // Prepare() after it hands them back rather than freeing them: the next round of the insert takes the same ones.
+    CHECK(stmt.ExecuteDirectScalar<int>("SELECT 1") == std::optional { 1 });
+    stmt.Prepare(
+        R"(INSERT INTO "ParameterSlots" ("Id", "D", "DT", "G", "N", "S", "U", "P") VALUES (?, ?, ?, ?, ?, ?, ?, ?))");
+    {
+        auto const row = rowFor(SingleRowExecutes + SoftBatchRows + 1);
+        (void) stmt.Execute(row.id,
+                            row.date,
+                            row.dateTime,
+                            row.guid,
+                            row.number,
+                            row.text,
+                            row.wideText,
+                            SlotProbe { .value = row.id, .recorder = &recorder });
+    }
+    CHECK(recorder.indicators.size() == 1);
+    CHECK(recorder.stagingBuffers.size() == 1);
+
+    // Every row round-trips: no parameter read another one's slot. One column read per statement, as
+    // drivers other than SQLite refuse to read a column twice or out of order.
+    auto cursor =
+        stmt.ExecuteDirect(R"(SELECT "Id", "D", "DT", "G", "N", "S", "U", "P" FROM "ParameterSlots" ORDER BY "Id")");
+    auto rowCount = 0;
+    while (cursor.FetchRow())
+    {
+        auto const expected = rowFor(++rowCount);
+        INFO("row " << rowCount);
+        CHECK(cursor.GetColumn<int>(1) == expected.id);
+        CHECK(cursor.GetColumn<SqlDate>(2) == expected.date);
+        CHECK(std::format("{}", cursor.GetColumn<SqlDateTime>(3)) == std::format("{}", expected.dateTime));
+        CHECK(cursor.GetColumn<SqlGuid>(4) == expected.guid);
+        CHECK(cursor.GetColumn<SqlDynamicNumeric>(5) == expected.number);
+        CHECK(cursor.GetColumn<std::string>(6) == expected.text);
+        CHECK((cursor.GetColumn<std::u16string>(7) == expected.wideText));
+        CHECK(cursor.GetColumn<int>(8) == expected.id);
+    }
+    CHECK(rowCount == SingleRowExecutes + SoftBatchRows + 1);
+}
+
+namespace
+{
+/// A row of the hand-bound parameter test's row-wise fetch: a nullable column, so the fetch takes
+/// row-strided indicator storage of its own.
+struct HandBoundFetchRow
+{
+    std::optional<std::int64_t> id;
+};
+} // namespace
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "A row-wise fetch leaves hand-bound parameters' staging alone for the next execute",
+                 "[SqlStatement][ParameterSlots]")
+{
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("HandBoundStaging")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Integer {})
+            .RequiredColumn("G", SqlColumnTypeDefinitions::Guid {})
+            .RequiredColumn("N", SqlColumnTypeDefinitions::Decimal { .precision = 18, .scale = 4 });
+    });
+    auto const guid = SqlGuid::UnsafeParse("1E772AED-3E73-4C72-8684-5DFFAA17330E");
+    auto const number = SqlDynamicNumeric { .unscaledValue = 1'234'567, .precision = 18, .scale = 4 };
+    stmt.Prepare(R"(INSERT INTO "HandBoundStaging" ("Id", "G", "N") VALUES (?, ?, ?))");
+    (void) stmt.Execute(1, guid, number);
+    (void) stmt.Execute(2, SqlGuid::UnsafeParse("00000000-0000-0000-0000-000000000001"), number);
+
+    // The GUID and the numeric are staged by their binders; bound by hand, they are read at every Execute().
+    stmt.Prepare(R"(SELECT "Id" FROM "HandBoundStaging" WHERE "G" = ? AND "N" = ?)");
+    stmt.BindInputParameter(1, guid);
+    stmt.BindInputParameter(2, number);
+    auto const fetchIds = [&] {
+        auto rows = std::vector<HandBoundFetchRow> {};
+        auto cursor = stmt.Execute();
+        cursor.FetchAllRowWise(rows, 8, [](HandBoundFetchRow& row) -> std::optional<std::int64_t>& { return row.id; });
+        auto ids = std::vector<std::int64_t> {};
+        for (auto const& row: rows)
+            ids.push_back(row.id.value_or(-1));
+        return ids;
+    };
+    CHECK(fetchIds() == std::vector<std::int64_t> { 1 });
+
+    // Memory the fetch may have freed is taken and overwritten, as any later allocation could.
+    auto scribbles = std::vector<std::vector<char>> {};
+    for (auto const size: std::views::iota(std::size_t { 1 }, std::size_t { 600 }))
+        scribbles.emplace_back(size, 'x');
+
+    // The same bindings executed again: the parameters still read the GUID and the numeric.
+    CHECK(fetchIds() == std::vector<std::int64_t> { 1 });
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "ExecuteDirect keeps the slots of parameters bound by hand, which stay bound",
+                 "[SqlStatement]")
+{
+    // Bound by hand, parameter 1 stays bound across both ExecuteDirect() calls while only parameter 2 is bound
+    // again: had the second bind taken parameter 1's slot, parameter 1 would read 8 bytes of a 3-byte value.
+    auto stmt = SqlStatement {};
+    auto const first = std::string { "abc" };
+    auto const second = std::string { "defgh" };
+    auto const longer = std::string { "12345678" };
+    auto const read = [&] {
+        auto cursor = stmt.ExecuteDirect("SELECT ?, ?");
+        REQUIRE(cursor.FetchRow());
+        auto one = cursor.GetColumn<std::string>(1);
+        auto two = cursor.GetColumn<std::string>(2);
+        return std::pair { std::move(one), std::move(two) };
+    };
+    stmt.BindInputParameter(1, first);
+    stmt.BindInputParameter(2, second);
+    CHECK(read() == std::pair { first, second });
+    stmt.BindInputParameter(2, longer);
+    CHECK(read() == std::pair { first, longer });
 }
