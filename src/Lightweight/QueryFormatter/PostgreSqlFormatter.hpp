@@ -394,6 +394,13 @@ class PostgreSqlFormatter final: public SQLiteQueryFormatter
         return {};
     }
 
+    /// PostgreSQL has no SQLite settings: undoes the driver attribute inherited from the SQLite formatter.
+    [[nodiscard]] SqlConnectionStringMap DriverConnectionAttributes(
+        SqliteConnectionSettings const& /*settings*/) const override
+    {
+        return {};
+    }
+
     /// PostgreSQL uses `pg_advisory_lock` / `pg_advisory_unlock`. Inline delegation
     /// keeps the vtable weak — see `SQLiteQueryFormatter::AdvisoryLockOps()` for
     /// the rationale.

@@ -20,6 +20,7 @@
 #include <functional>
 #include <memory>
 #include <optional>
+#include <source_location>
 #include <string>
 #include <string_view>
 #include <system_error>
@@ -109,6 +110,13 @@ enum class SqliteJournalMode : uint8_t
 inline constexpr std::chrono::milliseconds SqliteBusyTimeoutDefault { 60'000 };
 
 /// @ingroup CoreApi
+/// @brief What SqlConnection::SetSqliteSettings() made effective on an open connection.
+enum class SqliteSettingsEffect : std::uint8_t
+{
+    Applied,                  //!< Everything took effect (or was only stored: unconnected, or not SQLite).
+    BusyTimeoutAtNextConnect, //!< The busy timeout governs the driver's own waits only from the next Connect().
+};
+
 /// @brief Connection-level settings applied when a connection to a SQLite database is established.
 ///
 /// Inert on every other backend: no statement is issued for them there. The defaults reproduce the
@@ -117,11 +125,15 @@ inline constexpr std::chrono::milliseconds SqliteBusyTimeoutDefault { 60'000 };
 /// @see SqlConnection::SetDefaultSqliteSettings, SqlConnection::SetSqliteSettings
 struct SqliteConnectionSettings
 {
-    /// @brief How long a statement waits on a locked database file before failing, applied via
-    /// @c PRAGMA @c busy_timeout.
+    /// @brief How long a statement waits on a locked database file before failing, applied as the SQLite
+    /// ODBC driver's @c Timeout connection attribute when connecting (unless the connection string names
+    /// one) and via @c PRAGMA @c busy_timeout.
     ///
-    /// Zero disables the wait, so a contended statement fails at once; a negative value is treated as
-    /// zero. Not to be confused with the ODBC login timeout of the connection string.
+    /// Zero, or a negative value, asks for no wait: the driver gets its shortest, one millisecond, because
+    /// it reads a @c Timeout below 1 as 1000000 ms. The driver reads its @c Timeout only when connecting, so
+    /// a change through SqlConnection::SetSqliteSettings() governs its waits from the next Connect() on. A
+    /// connect through a DSN with SqlConnectionDataSource passes no attribute: the DSN's own @c Timeout
+    /// (100000 ms when it sets none) applies; the driver offers no attribute to change it after connecting.
     std::chrono::milliseconds busyTimeout = SqliteBusyTimeoutDefault;
 
     /// The journal mode to switch the database to, see @ref SqliteJournalMode.
@@ -298,12 +310,15 @@ class SqlConnection final
     /// is open to a SQLite database.
     ///
     /// On other backends, or while unconnected, the settings are only stored, to be applied by the next
-    /// Connect() to a SQLite database.
+    /// Connect() to a SQLite database. The SQLite ODBC driver takes the busy timeout for its own waits
+    /// from the connection string, which it reads only when connecting (see
+    /// SqlQueryFormatter::DriverConnectionAttributes()): a changed busy timeout governs those waits from
+    /// the next Connect() on, which the result says.
     ///
     /// @param settings The settings to store and apply.
-    /// @return Nothing on success, or the diagnostic of the @c PRAGMA statement that failed. The
+    /// @return What took effect now, or the diagnostic of the @c PRAGMA statement that failed. The
     ///         settings are stored either way.
-    [[nodiscard]] LIGHTWEIGHT_API std::expected<void, SqlErrorInfo> SetSqliteSettings(
+    [[nodiscard]] LIGHTWEIGHT_API std::expected<SqliteSettingsEffect, SqlErrorInfo> SetSqliteSettings(
         SqliteConnectionSettings const& settings);
 
     /// @brief The connect-retry settings a newly constructed connection adopts.
@@ -743,6 +758,16 @@ class SqlConnection final
     /// One attempt of Connect(SqlConnectionString). The connection string becomes the stored one once the
     /// current session ended, so a refused attempt leaves ConnectionString() naming the session that goes on.
     [[nodiscard]] std::expected<void, SqlErrorInfo> ConnectOnce(SqlConnectionString const& connectionString) noexcept;
+
+    /// Connects the handle with @p connectionString through the entry point the driver takes, and turns
+    /// autocommit on; nothing else of a connect.
+    /// @param connectionString What the driver gets.
+    /// @param driverKey The driver it names (see ConnectThroughDriverTextEntry in the source).
+    /// @param sourceLocation The connect step calling it, which the fault seam matches on.
+    /// @return Nothing, or the failure.
+    [[nodiscard]] std::expected<void, SqlErrorInfo> ConnectDriver(SqlConnectionString const& connectionString,
+                                                                  std::string const& driverKey,
+                                                                  std::source_location sourceLocation) noexcept;
 
     /// Runs @p attempt, retrying a transient failure as the connect-retry settings say.
     /// @return True once an attempt succeeded; false when the policy gave up.

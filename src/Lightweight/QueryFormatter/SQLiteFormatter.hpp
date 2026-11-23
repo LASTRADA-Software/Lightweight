@@ -712,6 +712,14 @@ ALTER TABLE {2} DROP COLUMN "{1}";)",
         return statements;
     }
 
+    /// The SQLite ODBC driver's @c Timeout: the busy timeout in milliseconds, at least 1 (see the base).
+    [[nodiscard]] SqlConnectionStringMap DriverConnectionAttributes(SqliteConnectionSettings const& settings) const override
+    {
+        auto const busyTimeoutMs =
+            std::clamp<std::chrono::milliseconds::rep>(settings.busyTimeout.count(), 1, std::numeric_limits<int>::max());
+        return { { "TIMEOUT", std::to_string(busyTimeoutMs) } };
+    }
+
     /// Maps a journal mode onto its @c PRAGMA @c journal_mode keyword.
     /// @param mode The journal mode.
     /// @return The keyword, or an empty view for @c SqliteJournalMode::Unchanged.

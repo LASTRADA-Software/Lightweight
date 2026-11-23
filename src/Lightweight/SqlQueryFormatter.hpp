@@ -451,6 +451,22 @@ class [[nodiscard]] LIGHTWEIGHT_API SqlQueryFormatter
         return false;
     }
 
+    /// @brief Returns the connection-string attributes the driver needs to realise @p settings, which it
+    /// reads only when connecting.
+    ///
+    /// A connection merges each one into its connection string unless the string names that attribute
+    /// already. Every dialect but SQLite returns none. The SQLite ODBC driver waits on a locked database
+    /// through its own busy handler, with the @c Timeout attribute's limit (default 100000 ms), and keeps it
+    /// installed whatever @c PRAGMA @c busy_timeout says; a @c Timeout below 1 means 1000000 ms to it.
+    ///
+    /// @param settings The connection's SQLite settings.
+    /// @return The attributes by upper-case key; empty when the driver needs none.
+    [[nodiscard]] virtual SqlConnectionStringMap DriverConnectionAttributes(SqliteConnectionSettings const& settings) const
+    {
+        (void) settings;
+        return {};
+    }
+
   protected:
     /// Formats a table name with optional schema prefix.
     static std::string FormatTableName(std::string_view schema, std::string_view table);

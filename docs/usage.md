@@ -77,11 +77,27 @@ long a statement waits on a database file locked by another connection before it
 
 | Field | Default | Applied as |
 |-------|---------|------------|
-| `busyTimeout` | `SqliteBusyTimeoutDefault` (60 s) | `PRAGMA busy_timeout = <ms>` |
+| `busyTimeout` | `SqliteBusyTimeoutDefault` (60 s) | the driver's `Timeout=<ms>` connection attribute, and `PRAGMA busy_timeout = <ms>` |
 | `journalMode` | `SqliteJournalMode::Unchanged` | `PRAGMA journal_mode = <mode>`, unless `Unchanged` |
 
 `SqliteJournalMode` offers `Unchanged`, `Delete`, `Truncate`, `Persist`, `Memory`, `Wal` and `Off`.
-The busy timeout is not the `Timeout=` of the ODBC connection string, which is the login timeout.
+
+The SQLite ODBC driver waits on a locked database through its own busy handler, whose limit is the
+`Timeout=` attribute of the connection string (100000 ms when absent), and it keeps that handler whatever
+`PRAGMA busy_timeout` says. So Lightweight adds `Timeout=<busyTimeout in ms>` to the connection string it
+connects with, unless the connection string names `Timeout` itself, in which case that value is the wait. A
+busy timeout of 0 becomes 1 ms, the driver's shortest (it reads 0 as 1000000 ms). The driver is recognised by
+its name or library path containing `sqlite` in any case (`SQLite3`, `sqlite3`, `/usr/lib/.../libsqlite3odbc.so`,
+`sqlite3odbc.dll`), from the `DRIVER=` key or from the driver manager's entry for the `DSN=`; no extra connect
+is made. A driver it does not recognise gets no attribute.
+The driver reads the attribute only when connecting, and offers no way to change it afterwards:
+
+- `SetSqliteSettings()` on an open connection applies the `PRAGMA`s at once, but a changed busy timeout governs
+  the driver's own waits from the next `Connect()` on; it then returns
+  `SqliteSettingsEffect::BusyTimeoutAtNextConnect` instead of `SqliteSettingsEffect::Applied`.
+- A connect through `SqlConnectionDataSource` (a DSN with user and password, no connection string) passes no
+  attribute: the DSN's own `Timeout` applies. So does a connection made by `SqlConnection::Borrow()`; on both, `SetSqliteSettings()`
+  returns `SqliteSettingsEffect::Applied`, since no later connect of theirs passes the attribute either.
 
 Set the process-wide default once at start-up. Every connection constructed afterwards takes a copy,
 including those Lightweight creates on your behalf (a default-constructed `DataMapper`, the connection
