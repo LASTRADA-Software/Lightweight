@@ -29,6 +29,89 @@ constexpr inline std::size_t SqlOptimalMaxColumnSize = 4000;
 
 namespace detail
 {
+    /// The rest of a value whose first transfer was truncated and whose total length the driver reported: the
+    /// array grows to that length and the remainder is read in one more transfer. Part of ReadRawColumnArrayData.
+    ///
+    /// The @p TrailingNulTerminators term: a character value whose length equals the buffer still truncates (the
+    /// driver spends the last slot on the terminator), so the continuation runs for indicator == buffer size.
+    /// @param getData The data source (see ReadRawColumnArrayData).
+    /// @param result The array the first transfer filled.
+    /// @param indicator The first transfer's indicator, the total length in bytes; the final length on return.
+    /// @param sqlResult The first transfer's result.
+    /// @return The last transfer's result, or SQL_ERROR for an indicator no length can be derived from.
+    template <size_t TrailingNulTerminators, typename ArrayType, typename GetData>
+    SQLRETURN ReadRemainderOfKnownLength(GetData const& getData, ArrayType* result, SQLLEN* indicator, SQLRETURN sqlResult)
+    {
+        using CharType = ArrayType::value_type;
+        auto const totalCharCount = static_cast<size_t>(*indicator) / sizeof(CharType);
+        auto const charsWritten = result->size() - TrailingNulTerminators;
+        result->resize(totalCharCount + TrailingNulTerminators);
+        // A fixed-capacity array may not have grown as asked: the rest is offered only the room it has now. With
+        // none, the remainder is left unread (the next column or row reads on as usual).
+        if (result->size() <= charsWritten + TrailingNulTerminators)
+        {
+            result->resize(charsWritten);
+            *indicator = static_cast<SQLLEN>(charsWritten * sizeof(CharType));
+            return sqlResult;
+        }
+        auto* const bufferCont = result->data() + charsWritten;
+        auto const bufferCharsAvailable = result->size() - charsWritten;
+        sqlResult = getData(bufferCont, static_cast<SQLLEN>(bufferCharsAvailable * sizeof(CharType)), indicator);
+        if (SQL_SUCCEEDED(sqlResult))
+        {
+            if (*indicator < 0)
+                return SQL_ERROR;
+            // What this transfer wrote: all it reported, or, cut short, the room it had but the terminator.
+            auto const transferred = (std::min) (static_cast<size_t>(*indicator) / sizeof(CharType),
+                                                 bufferCharsAvailable - TrailingNulTerminators);
+            result->resize(charsWritten + transferred);
+        }
+        return sqlResult;
+    }
+
+    /// The rest of a value whose transfers are truncated without a known total (@c SQL_NO_TOTAL): the array
+    /// doubles per transfer until one completes. Part of ReadRawColumnArrayData; a first transfer that was not
+    /// truncated passes through unchanged.
+    /// @param getData The data source (see ReadRawColumnArrayData).
+    /// @param result The array the first transfer filled.
+    /// @param indicator The first transfer's indicator; the final length on return.
+    /// @param sqlResult The first transfer's result.
+    /// @return The last transfer's result, or SQL_ERROR for an indicator no length can be derived from.
+    template <size_t TrailingNulTerminators, typename ArrayType, typename GetData>
+    SQLRETURN ReadRemainderOfUnknownLength(GetData const& getData, ArrayType* result, SQLLEN* indicator, SQLRETURN sqlResult)
+    {
+        using CharType = ArrayType::value_type;
+        size_t writeIndex = 0;
+        // Chars offered to the previous SQLGetData call; a truncated transfer filled all but the terminator.
+        size_t lastTransferChars = result->size();
+        while (sqlResult == SQL_SUCCESS_WITH_INFO && *indicator == SQL_NO_TOTAL)
+        {
+            writeIndex += lastTransferChars - TrailingNulTerminators;
+            result->resize(result->size() * 2);
+            if (result->size() <= writeIndex + TrailingNulTerminators)
+            {
+                // A fixed-capacity array cannot grow: keep what it holds, leave the rest unread.
+                result->resize(writeIndex);
+                *indicator = static_cast<SQLLEN>(writeIndex * sizeof(CharType));
+                return sqlResult;
+            }
+            auto* const bufferStart = result->data() + writeIndex;
+            lastTransferChars = result->size() - writeIndex;
+            sqlResult = getData(bufferStart, static_cast<SQLLEN>(lastTransferChars * sizeof(CharType)), indicator);
+        }
+        // The loop exits with the final transfer's char count in the indicator; trim the over-allocated buffer to
+        // the bytes actually written.
+        if (writeIndex > 0 && SQL_SUCCEEDED(sqlResult) && *indicator != SQL_NULL_DATA && *indicator != SQL_NO_TOTAL)
+        {
+            if (*indicator < 0)
+                return SQL_ERROR;
+            result->resize(writeIndex
+                           + (std::min) (static_cast<size_t>(*indicator) / sizeof(CharType),
+                                         lastTransferChars - TrailingNulTerminators));
+        }
+        return sqlResult;
+    }
+
     /// Reads raw column data of an array-like type, growing the array until the value fits.
     ///
     /// Takes the data source as a parameter so a test can make it report what no conforming driver
@@ -89,47 +172,9 @@ namespace detail
 
             if (sqlResult == SQL_SUCCESS_WITH_INFO && *indicator != SQL_NO_TOTAL
                 && (static_cast<size_t>(*indicator) / sizeof(CharType)) + TrailingNulTerminators > result->size())
-            {
-                // Truncation with a known total. Note the TrailingNulTerminators term: a CHARACTER value whose
-                // length exactly equals the buffer still truncates (the driver spends the last slot
-                // on the NUL terminator), so the continuation must run for indicator == buffer size.
-                // We have a truncation and the server knows how much data is left.
-                auto const totalCharCount = static_cast<size_t>(*indicator) / sizeof(CharType);
-                auto const charsWritten = result->size() - TrailingNulTerminators;
-                result->resize(totalCharCount + TrailingNulTerminators);
-                auto* bufferCont = result->data() + charsWritten;
-                auto const bufferCharsAvailable = (totalCharCount + TrailingNulTerminators) - charsWritten;
-                sqlResult = getData(bufferCont, static_cast<SQLLEN>(bufferCharsAvailable * sizeof(CharType)), indicator);
-                if (SQL_SUCCEEDED(sqlResult))
-                {
-                    if (*indicator < 0)
-                        return SQL_ERROR;
-                    result->resize(charsWritten + (static_cast<size_t>(*indicator) / sizeof(CharType)));
-                }
-                return sqlResult;
-            }
+                return ReadRemainderOfKnownLength<TrailingNulTerminators>(getData, result, indicator, sqlResult);
 
-            size_t writeIndex = 0;
-            // Chars offered to the previous SQLGetData call; a truncated transfer filled all but the terminator.
-            size_t lastTransferChars = result->size();
-            while (sqlResult == SQL_SUCCESS_WITH_INFO && *indicator == SQL_NO_TOTAL)
-            {
-                // We have a truncation and the server does not know how much data is left.
-                writeIndex += lastTransferChars - TrailingNulTerminators;
-                result->resize(result->size() * 2);
-                auto* const bufferStart = result->data() + writeIndex;
-                lastTransferChars = result->size() - writeIndex;
-                sqlResult = getData(bufferStart, static_cast<SQLLEN>(lastTransferChars * sizeof(CharType)), indicator);
-            }
-            // The unknown-total loop exits with the final transfer's char count in the indicator; trim
-            // the over-allocated buffer to the bytes actually written.
-            if (writeIndex > 0 && SQL_SUCCEEDED(sqlResult) && *indicator != SQL_NULL_DATA && *indicator != SQL_NO_TOTAL)
-            {
-                if (*indicator < 0)
-                    return SQL_ERROR;
-                result->resize(writeIndex + (static_cast<size_t>(*indicator) / sizeof(CharType)));
-            }
-            return sqlResult;
+            return ReadRemainderOfUnknownLength<TrailingNulTerminators>(getData, result, indicator, sqlResult);
         }
         catch (...)
         {
@@ -205,11 +250,28 @@ namespace detail
                              SqlDataBinderCallback const& /*cb*/) noexcept
     {
         if constexpr (requires { Utf16StringType::Capacity; })
+        {
+            // A fixed capacity: one read into all of it plus the terminator slot it keeps, as the narrow
+            // binder does. A longer value is cut to the capacity; its rest stays unread.
+            using CharType = Utf16StringType::value_type;
+            using StringTraits = SqlBasicStringOperations<Utf16StringType>;
             result->resize(Utf16StringType::Capacity);
-        else if (result->size() == 0)
-            result->resize(255);
-
-        return GetRawColumnArrayData<SQL_C_WCHAR>(stmt, column, result, indicator);
+            auto const rv = SQLGetData(stmt,
+                                       column,
+                                       SQL_C_WCHAR,
+                                       result->data(),
+                                       static_cast<SQLLEN>((Utf16StringType::Capacity + 1) * sizeof(CharType)),
+                                       indicator);
+            if (SQL_SUCCEEDED(rv) || rv == SQL_NO_DATA)
+                StringTraits::PostProcessOutputColumn(result, *indicator);
+            return rv;
+        }
+        else
+        {
+            if (result->size() == 0)
+                result->resize(255);
+            return GetRawColumnArrayData<SQL_C_WCHAR>(stmt, column, result, indicator);
+        }
     }
 
     /// @brief Binds the UTF-16 staging buffer @p staging to @p column, e.g. after a read moved it.
@@ -1055,8 +1117,9 @@ struct SqlDataBinder<Utf32StringType>
             return sqlResult;
 
         auto const u32String = ToUtf32(u16String);
+        // A fixed-capacity target may hold fewer: copy only what Resize() gave room for.
         StringTraits::Resize(result, static_cast<SQLLEN>(u32String.size()));
-        std::copy_n((CharType const*) u32String.data(), u32String.size(), StringTraits::Data(result));
+        std::copy_n((CharType const*) u32String.data(), StringTraits::Size(result), StringTraits::Data(result));
 
         return sqlResult;
     }

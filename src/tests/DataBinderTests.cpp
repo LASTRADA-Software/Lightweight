@@ -12,6 +12,7 @@
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
+#include <algorithm>
 #include <array>
 #include <cstdlib>
 #include <format>
@@ -176,10 +177,10 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlFixedString: c_str", "[SqlFixedString]")
 TEST_CASE_METHOD(SqlTestFixture, "SqlFixedString: TrimRight", "[SqlFixedString]")
 {
     SqlTrimmedFixedString<20> str { "Hello        " };
-    SqlBasicStringOperations<SqlTrimmedFixedString<20>>::TrimRight(&str, 5);
+    SqlBasicStringOperations<SqlTrimmedFixedString<20>>::TrimRight(&str);
     REQUIRE(str == "Hello");
     SqlTrimmedWideFixedString<20> wstr { L"Hello        " };
-    SqlBasicStringOperations<SqlTrimmedWideFixedString<20>>::TrimRight(&wstr, 10);
+    SqlBasicStringOperations<SqlTrimmedWideFixedString<20>>::TrimRight(&wstr);
     REQUIRE(wstr == L"Hello");
     SqlTrimmedWideFixedString<20> wstrWrongIndicator { L"Hello        " };
     REQUIRE(wstrWrongIndicator != L"Hello");
@@ -3896,13 +3897,13 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlFixedString: TrimRight stops at non-whitesp
 {
     // Pin a non-trivial right-trim path: trailing spaces and tabs are all stripped.
     SqlTrimmedFixedString<32> str { "abc   \t   " };
-    SqlBasicStringOperations<SqlTrimmedFixedString<32>>::TrimRight(&str, 10);
+    SqlBasicStringOperations<SqlTrimmedFixedString<32>>::TrimRight(&str);
     CHECK(str == "abc");
 
     SECTION("trim stops at non-whitespace even with extra padding")
     {
         SqlTrimmedFixedString<32> nonTrimmable { "abc def    " };
-        SqlBasicStringOperations<SqlTrimmedFixedString<32>>::TrimRight(&nonTrimmable, 11);
+        SqlBasicStringOperations<SqlTrimmedFixedString<32>>::TrimRight(&nonTrimmable);
         CHECK(nonTrimmable == "abc def");
     }
 }
@@ -4187,4 +4188,118 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlGuid: text that is not a GUID fails the rea
             CHECK(std::get<std::string>(variant.value) == row.text);
         }
     }
+}
+
+namespace
+{
+
+/// A fixed-capacity string followed by memory a write past its end would change.
+template <typename StringType>
+struct GuardedFixedString
+{
+    StringType value {};
+    std::array<typename StringType::value_type, 600> canary {};
+};
+
+constexpr auto FixedStringCanaryMarker = 0x5A;
+constexpr auto LongFixedStringSourceLength = std::size_t { 500 };
+
+/// Reads a 500-character value into a capacity-8 string through GetColumn and a bound output column, and
+/// checks that the string holds the value's first 8 characters and nothing after it was written.
+template <typename StringType>
+void ReadLongValueIntoFixedString(SqlStatement& stmt, std::string const& source)
+{
+    using CharType = StringType::value_type;
+    INFO("type " << Reflection::TypeNameOf<StringType>);
+    auto const expected = std::basic_string<CharType>(source.begin(), source.begin() + StringType {}.capacity());
+    auto const canaryIntact = [](GuardedFixedString<StringType> const& guarded) {
+        return std::ranges::all_of(guarded.canary,
+                                   [](CharType c) { return c == static_cast<CharType>(FixedStringCanaryMarker); });
+    };
+    auto const fresh = [] {
+        auto guarded = GuardedFixedString<StringType> {};
+        guarded.canary.fill(static_cast<CharType>(FixedStringCanaryMarker));
+        return guarded;
+    };
+
+    {
+        auto guarded = fresh();
+        auto cursor = stmt.ExecuteDirect(R"(SELECT "Value" FROM "FixedOverrun")"sv);
+        REQUIRE(cursor.FetchRow());
+        (void) cursor.GetColumn(1, &guarded.value);
+        CHECK(canaryIntact(guarded));
+        CHECK((std::basic_string_view<CharType> { guarded.value.data(), guarded.value.size() } == expected));
+    }
+    {
+        auto guarded = fresh();
+        auto cursor = stmt.ExecuteDirect(R"(SELECT "Value" FROM "FixedOverrun")"sv);
+        cursor.BindOutputColumns(&guarded.value);
+        REQUIRE(cursor.FetchRow());
+        CHECK(canaryIntact(guarded));
+        CHECK((std::basic_string_view<CharType> { guarded.value.data(), guarded.value.size() } == expected));
+    }
+}
+
+} // namespace
+
+TEST_CASE_METHOD(SqlTestFixture, "A value longer than a fixed-capacity string is cut to its capacity", "[SqlDataBinder]")
+{
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("FixedOverrun").RequiredColumn("Value", SqlColumnTypeDefinitions::Varchar { .size = 600 });
+    });
+    auto source = std::string(LongFixedStringSourceLength, ' ');
+    for (auto const index: std::views::iota(std::size_t { 0 }, source.size()))
+        source[index] = static_cast<char>('a' + (index % 26));
+    stmt.Prepare(R"(INSERT INTO "FixedOverrun" ("Value") VALUES (?))");
+    (void) stmt.Execute(source);
+
+    ReadLongValueIntoFixedString<SqlAnsiString<8>>(stmt, source);
+    ReadLongValueIntoFixedString<SqlUtf16String<8>>(stmt, source);
+    ReadLongValueIntoFixedString<SqlUtf32String<8>>(stmt, source);
+    ReadLongValueIntoFixedString<SqlWideString<8>>(stmt, source);
+}
+
+TEST_CASE("ReadRawColumnArrayData offers a fixed-capacity array no more than its room", "[SqlDataBinder]")
+{
+    // A driver that fills every buffer it is given, reporting a 500-unit value with or without its length.
+    struct Answer
+    {
+        SQLRETURN returnCode;
+        SQLLEN indicator;
+    };
+    auto const read = [](std::vector<Answer> const& answers) {
+        auto guarded = GuardedFixedString<SqlUtf16String<8>> {};
+        guarded.canary.fill(static_cast<char16_t>(FixedStringCanaryMarker));
+        guarded.value.resize(guarded.value.capacity()); // as GetColumn sizes it before reading
+        auto calls = std::size_t { 0 };
+        auto indicator = SQLLEN { 0 };
+        auto const rv = detail::ReadRawColumnArrayData<SQL_C_WCHAR>(
+            [&](SQLPOINTER target, SQLLEN bytes, SQLLEN* reported) noexcept {
+                auto const& answer = answers.at((std::min) (calls++, answers.size() - 1));
+                std::fill_n(static_cast<char16_t*>(target), static_cast<std::size_t>(bytes) / sizeof(char16_t), u'x');
+                *reported = answer.indicator;
+                return answer.returnCode;
+            },
+            &guarded.value,
+            &indicator);
+        CHECK(SQL_SUCCEEDED(rv));
+        CHECK(std::ranges::all_of(guarded.canary,
+                                  [](char16_t c) { return c == static_cast<char16_t>(FixedStringCanaryMarker); }));
+        CHECK(guarded.value.size() <= guarded.value.capacity());
+    };
+    constexpr auto Total = SQLLEN { 500 * sizeof(char16_t) };
+    read({ { .returnCode = SQL_SUCCESS_WITH_INFO, .indicator = Total }, { .returnCode = SQL_SUCCESS, .indicator = Total } });
+    read({ { .returnCode = SQL_SUCCESS_WITH_INFO, .indicator = SQL_NO_TOTAL },
+           { .returnCode = SQL_SUCCESS, .indicator = 4 } });
+}
+
+TEST_CASE("A right-trimmed UTF-16 fixed string read shorter than before keeps no stale characters", "[SqlDataBinder]")
+{
+    using String = SqlFixedString<8, char16_t, SqlFixedStringMode::FIXED_SIZE_RIGHT_TRIMMED>;
+    // The variable held a longer value; the driver wrote the next one, "ab", over its start and reported
+    // 2 characters in bytes.
+    auto value = String { u"abcd" };
+    SqlBasicStringOperations<String>::PostProcessOutputColumn(&value, static_cast<SQLLEN>(2 * sizeof(char16_t)));
+    CHECK((std::u16string_view { value.data(), value.size() } == u"ab"));
 }
