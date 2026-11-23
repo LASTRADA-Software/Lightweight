@@ -29,5 +29,6 @@ var searchData=
   ['rowcount_26',['rowcount',['../d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html#a92351f3189fe1adade98ccec8d21a6b2',1,'Lightweight::SqlBackup::TableInfo::rowCount'],['../d1/d6f/structLightweight_1_1SqlBackup_1_1ColumnBatch.html#aa96489eada966b8294d4cc0e950cdbc3',1,'Lightweight::SqlBackup::ColumnBatch::rowCount']]],
   ['rowsbeyondrangecap_27',['rowsBeyondRangeCap',['../d7/d37/structLightweight_1_1SqlBackup_1_1TableRestoreReport.html#a66c4898b6b3bdcf0662cfb3206ff81b9',1,'Lightweight::SqlBackup::TableRestoreReport']]],
   ['rowsfetched_28',['rowsFetched',['../df/d4e/structLightweight_1_1SqlStatisticsSnapshot.html#ac92cee860cb6d2eac2a8fc9ad0cf7940',1,'Lightweight::SqlStatisticsSnapshot']]],
-  ['rowsperchunk_29',['rowsPerChunk',['../d9/dd5/structLightweight_1_1SqlBackup_1_1BackupSettings.html#ae10e3a3fa9942cd75572e2a1815708a6',1,'Lightweight::SqlBackup::BackupSettings']]]
+  ['rowsperchunk_29',['rowsPerChunk',['../d9/dd5/structLightweight_1_1SqlBackup_1_1BackupSettings.html#ae10e3a3fa9942cd75572e2a1815708a6',1,'Lightweight::SqlBackup::BackupSettings']]],
+  ['run_30',['run',['../dc/d16/structLightweight_1_1SqlOutputColumnPreFetch.html#a7044b11126e0972f820c6fe234817fe6',1,'Lightweight::SqlOutputColumnPreFetch']]]
 ];

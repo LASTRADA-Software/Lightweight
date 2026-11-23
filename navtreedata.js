@@ -39,7 +39,9 @@ var NAVTREE =
       ] ],
       [ "Running on a connection handle another component owns", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#running-on-a-connection-handle-another-component-owns", null ],
       [ "Raw SQL Queries", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#raw-sql-queries", null ],
-      [ "Transparent block-prefetch (fewer network round-trips)", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#transparent-block-prefetch-fewer-network-round-trips", null ],
+      [ "Transparent block-prefetch (fewer network round-trips)", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#transparent-block-prefetch-fewer-network-round-trips", [
+        [ "Reading a column as another type under prefetch", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#reading-a-column-as-another-type-under-prefetch", null ]
+      ] ],
       [ "Prepared Statements", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#prepared-statements", null ],
       [ "Prepared-statement cache (fewer prepare round-trips)", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#prepared-statement-cache-fewer-prepare-round-trips", [
         [ "What it is worth, measured", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#what-it-is-worth-measured", [
@@ -141,8 +143,11 @@ var NAVTREE =
       [ "Custom Column Data Type Binder Example", "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#custom-column-data-type-binder-example", null ],
       [ "InputParameter()", "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#inputparameter", null ],
       [ "OutputColumn()", "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#outputcolumn", null ],
-      [ "GetColumn()", "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#getcolumn", null ],
+      [ "GetColumn()", "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#getcolumn", [
+        [ "Custom types and block prefetch", "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#custom-types-and-block-prefetch", null ]
+      ] ],
       [ "Inspect()", "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#inspect", null ],
+      [ "<tt>SqlGuid</tt> and <tt>SqlTime</tt>: what a read returns", "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#sqlguid-and-sqltime-what-a-read-returns", null ],
       [ "<tt>SqlNumeric<Precision, Scale></tt> precision limits", "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#sqlnumericprecision-scale-precision-limits", [
         [ "What each accessor delivers", "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#what-each-accessor-delivers", null ],
         [ "How many of those digits survive a round-trip", "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#how-many-of-those-digits-survive-a-round-trip", null ]
@@ -436,11 +441,11 @@ var NAVTREEINDEX =
 "d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#a04fd31415705ccc61b63eec99a7bf1f3",
 "d7/d79/UnicodeUpgradeProgress_8hpp_source.html",
 "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a1aade87023f69d63e86f4aca06a97595",
-"da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#a25a32f6bdaa186db2f20b2683bcede27",
-"db/dad/classLightweight_1_1SqlStatement.html#ac394d28a45e9b10a2edb1cdf0037281e",
-"de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#ad1d38c21c3e67ddebe2a0067635db84b",
-"de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html",
-"functions_vars_p.html"
+"da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html",
+"db/dad/classLightweight_1_1SqlStatement.html#aa8528873d2ff2b2f879f587e8aa5026a",
+"de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#a83dd64bd4edb7a61b8b28103c8a80837",
+"de/dd2/structLightweight_1_1SqlMigration_1_1BackupRecord.html#a2c8c4abe2cedae396934a4ba46000a40",
+"functions_vars_a.html"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

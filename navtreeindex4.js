@@ -245,9 +245,9 @@ var NAVTREEINDEX4 =
 "d8/ddd/Common_8hpp_source.html":[23,0,1,4,3],
 "d8/deb/HasMany_8hpp_source.html":[23,0,1,2,6],
 "d8/dec/Delete_8hpp_source.html":[23,0,1,5,1],
-"d8/df7/classLightweight_1_1SqlQueryFormatter.html":[22,0,0,77],
-"d8/df7/classLightweight_1_1SqlQueryFormatter.html#a03c4198af1564e763f548e6f466a840c":[22,0,0,77,30],
-"d8/df7/classLightweight_1_1SqlQueryFormatter.html#a09abb2638365ecc1319c35aa8238eb72":[22,0,0,77,28],
-"d8/df7/classLightweight_1_1SqlQueryFormatter.html#a1057a9e70219626b8eae258557d51b1f":[22,0,0,77,29],
-"d8/df7/classLightweight_1_1SqlQueryFormatter.html#a150a177da7cc5510ebd3f5461b555b4e":[22,0,0,77,8]
+"d8/df7/classLightweight_1_1SqlQueryFormatter.html":[22,0,0,78],
+"d8/df7/classLightweight_1_1SqlQueryFormatter.html#a03c4198af1564e763f548e6f466a840c":[22,0,0,78,30],
+"d8/df7/classLightweight_1_1SqlQueryFormatter.html#a09abb2638365ecc1319c35aa8238eb72":[22,0,0,78,28],
+"d8/df7/classLightweight_1_1SqlQueryFormatter.html#a1057a9e70219626b8eae258557d51b1f":[22,0,0,78,29],
+"d8/df7/classLightweight_1_1SqlQueryFormatter.html#a150a177da7cc5510ebd3f5461b555b4e":[22,0,0,78,8]
 };

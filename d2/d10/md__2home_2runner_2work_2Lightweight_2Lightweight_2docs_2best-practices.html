@@ -118,8 +118,9 @@ Binding Output Parameters</h2>
 <p>First things first, always favor using the <code>DataMapper</code> API over manual querying and binding of columns.</p>
 <p>However, when not using the <code>DataMapper</code> API, you need to retrieve the result manually, either via <code>SqlStatement::BindOutputColumns()</code> or afterwards by fetching the columns individually. <br  />
  It is always highly recommended to pre-bind to avoid unnecessary memory allocations and copying.</p>
-<p>With this, it is sufficient to call <code>SqlStatement::BindOutputColumns()</code> once, and then you can reuse the result throughout many <code>SqlStatement::FetchRow()</code> calls.</p>
-<p>The pitfall here is that if you are using <code>std::optional&lt;T&gt;</code> column types, you <b>MUST</b> rebind the result columns before each fetch operation. If there are no nullable values, you do not have to.</p>
+<p>With this, it is sufficient to call <code>SqlStatement::BindOutputColumns()</code> once, and then you can reuse the result throughout many <code>SqlStatement::FetchRow()</code> calls of that result set. Every fetched row sets each bound variable to that row's value: strings and binaries get the row's own length, and a <code>std::optional&lt;T&gt;</code> is reset to <code>std::nullopt</code> on a NULL row and engaged again on the next non-NULL one. The bound variables must outlive the fetch loop; moving a value out of one between two fetches is fine, the column follows the variable's new storage.</p>
+<p>The binding lasts as long as the statement's query: it outlives the end of the result set and the closing of the cursor, so executing the prepared statement again fetches into the same variables, which must therefore stay alive as long as the statement may fetch into them. Preparing or directly executing another query on the statement drops the binding; bind again for it.</p>
+<p>A string or binary variable is bound with a buffer of at least 255 units, or its own size if that is larger. A value longer than the bound buffer is read again with <code>SQLGetData</code> and the buffer grows to it. MS SQL Server's driver cannot read a bound column again (it lacks <code>SQL_GD_BOUND</code>, see <code>SqlConnection::ReadsBoundColumnsAgain()</code>), so there the buffer is at least the column's declared length (up to 8000 units, asked once per result set), and a value that is still longer, such as one in a <code>MAX</code> column, fails <code>FetchRow()</code> with a <code>SqlException</code> instead of coming back truncated. On SQL Server, read a <code>MAX</code> column with <code>GetColumn()</code> or size the variable to the longest value before binding it. For this reason the <code>DataMapper</code> does not bind a record with a growable member (any string or binary type whose size is not fixed, <code>SqlText</code>, or a <code>std::optional</code> of one) on a driver that cannot read a bound column again: it reads that record per row with <code>GetColumn()</code>, which sizes every value to itself.</p>
 <div class="fragment"><div class="line"><span class="keyword">struct </span>MixedNullRow</div>
 <div class="line">{</div>
 <div class="line">    Field&lt;SqlGuid, PrimaryKey::AutoAssign&gt; <span class="keywordtype">id</span> {};</div>
@@ -136,17 +137,11 @@ Binding Output Parameters</h2>
 <div class="line"> </div>
 <div class="line">    <span class="keyword">auto</span> currentRow = MixedNullRow {};</div>
 <div class="line"> </div>
-<div class="line">    <span class="comment">// Bind output columns for the first time</span></div>
+<div class="line">    <span class="comment">// Bind the output columns once for the whole result set</span></div>
 <div class="line">    stmt.BindOutputColumns(&amp;currentRow.id, &amp;currentRow.name, &amp;currentRow.age);</div>
 <div class="line"> </div>
 <div class="line">    <span class="keywordflow">while</span> (stmt.FetchRow())</div>
-<div class="line">    {</div>
 <div class="line">        onRow(currentRow);</div>
-<div class="line"> </div>
-<div class="line">        <span class="comment">// Bind output columns for the next fetch.</span></div>
-<div class="line">        <span class="comment">// (ONLY necessary when using std::optional&lt;T&gt; in the columns)</span></div>
-<div class="line">        stmt.BindOutputColumns(&amp;currentRow.id, &amp;currentRow.name, &amp;currentRow.age);</div>
-<div class="line">    }</div>
 <div class="line">}</div>
 </div><!-- fragment --><h1><a class="anchor" id="sql-driver-related-best-practices"></a>
 SQL Driver-Related Best Practices</h1>

@@ -7,6 +7,8 @@ var classLightweight_1_1SqlDataBinderCallback =
     [ "operator=", "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#abd90cf0b647d60af5bb130b7fe162bd2", null ],
     [ "PlanPostExecuteCallback", "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#a209f52c2128670486fa0df251261bf80", null ],
     [ "PlanPostProcessOutputColumn", "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#ab562de4a035a48baccb4dcd4a54dab30", null ],
+    [ "PlanPreFetchOutputColumn", "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#a6583d0a0b963f55c3d5491c6d2583902", null ],
+    [ "MinimumOutputColumnSize", "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#a12843806ab1d89718143323141687b88", null ],
     [ "ProvideInputIndicator", "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#a7d7b102126f4b2455df46e31906cb189", null ],
     [ "ProvideInputIndicators", "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#ad2b577cf0e7a7cc9eb671677b42cb914", null ],
     [ "ProvideBatchStagingBuffer", "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#af7acc1d446fc49ea446f8ae20f58518c", null ],

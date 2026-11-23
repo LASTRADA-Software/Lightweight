@@ -182,10 +182,25 @@ OutputColumn()</h1>
 GetColumn()</h1>
 <p>The <code>GetColumn()</code> function retrieves the custom type from the SQL statement.</p>
 <p>Calling <code>GetColumn()</code> is usually less efficient than calling <code>OutputColumn()</code> because it requires an additional copy operation.</p>
+<h2><a class="anchor" id="custom-types-and-block-prefetch"></a>
+Custom types and block prefetch</h2>
+<p>By default a connection fetches eligible result sets (all columns numeric, temporal or GUID) in blocks of rows and serves <code>GetColumn&lt;T&gt;()</code> from that block buffer (see "Transparent block-prefetch" in <a class="el" href="../../d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html">usage.md</a>). The block buffer holds the column's value as a built-in type; it cannot run a custom binder. Where the column type is known before the first fetch, Lightweight keeps such a result set on the per-row path, so the custom binder runs: a column bound with <code>BindOutputColumns()</code>, <code>ExecuteDirectScalar&lt;CustomType&gt;()</code>, and the members of a record read with <code>SqlRowIterator&lt;T&gt;</code>.</p>
+<p>A raw <code>GetColumn&lt;CustomType&gt;()</code> on a result set that is already block-prefetched learns the type too late and throws a <code>SqlException</code> (SQLSTATE <code>HY000</code>) instead of returning a wrong value. Two ways out:</p>
+<ul>
+<li>bind the column with <code>BindOutputColumns()</code> (or <code>BindOutputColumn()</code>) before the first <code>FetchRow()</code>, or</li>
+<li>disable block prefetch for the connection with <code>SqlConnection::SetDefaultPrefetchDepth(1)</code>.</li>
+</ul>
+<p><code>char</code> is handled the same way: its binder reads the column as text, which the block buffer does not do for a numeric column, so <code>GetColumn&lt;char&gt;()</code> on a block-prefetched result set throws <code>HY000</code> too, while a bound <code>char</code> keeps the per-row path. Reading a built-in type from a column of another kind (for example a <code>REAL</code> column as <code>std::string</code>) follows the rules in "Reading a column as another type under prefetch" in <a href="../../usage.md#reading-a-column-as-another-type-under-prefetch">usage.md</a>.</p>
 <h1><a class="anchor" id="inspect"></a>
 Inspect()</h1>
 <p>The <code>Inspect()</code> function is used to provide a human-readable representation of the custom type.</p>
 <p>This function should be used purely for debugging purposes.</p>
+<h1><a class="anchor" id="sqlguid-and-sqltime-what-a-read-returns"></a>
+&lt;tt&gt;SqlGuid&lt;/tt&gt; and &lt;tt&gt;SqlTime&lt;/tt&gt;: what a read returns</h1>
+<ul>
+<li>**<code>SqlGuid</code> on SQLite.** SQLite stores a GUID as text. Reading a column whose text is not a GUID (see <code>SqlGuid::TryParse()</code>) as a <code>SqlGuid</code> fails with a <code>SqlException</code>, SQLSTATE <code>22018</code> (invalid character value for cast specification), through <code>GetColumn()</code> and a bound output column (the fetch fails). It used to read as the all-zero GUID. A <code>SqlVariant</code> read does not fail: the SQLite driver reports the column as text, so the variant holds a <code>SqlGuid</code> where the text is one, and the text as a <code>std::string</code> otherwise. A variant reads through the <code>SqlGuid</code> binder, and so fails with <code>22018</code>, only where the driver reports the column as <code>SQL_GUID</code>.</li>
+<li>**<code>SqlTime</code> carries whole seconds.** It is bound as <code>SQL_C_TYPE_TIME</code>, whose structure has no fraction, so after a read the fraction is always 0, on every database and path; a fraction set before writing is not stored.</li>
+</ul>
 <h1><a class="anchor" id="sqlnumericprecision-scale-precision-limits"></a>
 &lt;tt&gt;SqlNumeric&lt;Precision, Scale&gt;&lt;/tt&gt; precision limits</h1>
 <p><code>Precision</code> is a count of <b>decimal digits</b>. It may be at most <code>Lightweight::SqlMaxNumericPrecision</code>, which is <b>19 on every supported toolchain</b>:</p>

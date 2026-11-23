@@ -9,7 +9,7 @@ var classLightweight_1_1SqlStatement =
     [ "IsPrepared", "db/dad/classLightweight_1_1SqlStatement.html#a8d0e75bc859cfc55a99d41b8907d77bd", null ],
     [ "Connection", "db/dad/classLightweight_1_1SqlStatement.html#a34d2659a84a934d2c67c6b31f64a7d4a", null ],
     [ "Connection", "db/dad/classLightweight_1_1SqlStatement.html#ade0634f2250c8cd5c1128a30823279e5", null ],
-    [ "LastError", "db/dad/classLightweight_1_1SqlStatement.html#a5f356550905482daeb99d1a985b93110", null ],
+    [ "LastError", "db/dad/classLightweight_1_1SqlStatement.html#a9dce5893930db1c525c1f9bc432d8868", null ],
     [ "Query", "db/dad/classLightweight_1_1SqlStatement.html#a72af4b178ad4eb42b27e35b8ebfa2310", null ],
     [ "QueryAs", "db/dad/classLightweight_1_1SqlStatement.html#a1a71ae6cfe36477d1b0e2632e50312ef", null ],
     [ "NativeHandle", "db/dad/classLightweight_1_1SqlStatement.html#a0783a366bc0c8fd7d9f2639236b3fc36", null ],

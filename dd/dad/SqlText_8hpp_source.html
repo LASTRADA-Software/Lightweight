@@ -143,21 +143,26 @@ $(document).ready(function(){initNavTree('dd/dad/SqlText_8hpp_source.html','../.
 <div class="line"><a id="l00041" name="l00041"></a><span class="lineno">   41</span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE SQLULEN Size(SqlText <span class="keyword">const</span>* str) <span class="keyword">noexcept</span> { <span class="keywordflow">return</span> Traits::Size(&amp;str-&gt;value); }</div>
 <div class="line"><a id="l00042" name="l00042"></a><span class="lineno">   42</span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE <span class="keywordtype">void</span> Clear(SqlText* str) <span class="keyword">noexcept</span> { Traits::Clear(&amp;str-&gt;value); }</div>
 <div class="line"><a id="l00043" name="l00043"></a><span class="lineno">   43</span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE <span class="keywordtype">void</span> Reserve(SqlText* str, <span class="keywordtype">size_t</span> capacity) <span class="keyword">noexcept</span> { Traits::Reserve(&amp;str-&gt;value, capacity); }</div>
-<div class="line"><a id="l00044" name="l00044"></a><span class="lineno">   44</span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE <span class="keywordtype">void</span> Resize(SqlText* str, SQLLEN indicator) <span class="keyword">noexcept</span> { Traits::Resize(&amp;str-&gt;value, indicator); }</div>
-<div class="line"><a id="l00045" name="l00045"></a><span class="lineno">   45</span>    <span class="comment">// clang-format on</span></div>
-<div class="line"><a id="l00046" name="l00046"></a><span class="lineno">   46</span>};</div>
-<div class="line"><a id="l00047" name="l00047"></a><span class="lineno">   47</span> </div>
-<div class="line"><a id="l00048" name="l00048"></a><span class="lineno">   48</span>} <span class="comment">// namespace Lightweight</span></div>
-<div class="line"><a id="l00049" name="l00049"></a><span class="lineno">   49</span> </div>
-<div class="line"><a id="l00050" name="l00050"></a><span class="lineno">   50</span><span class="keyword">template</span> &lt;&gt;</div>
-<div class="line"><a id="l00051" name="l00051"></a><span class="lineno">   51</span><span class="keyword">struct </span>std::formatter&lt;Lightweight::SqlText&gt;: std::formatter&lt;std::string&gt;</div>
-<div class="line"><a id="l00052" name="l00052"></a><span class="lineno">   52</span>{</div>
-<div class="line"><a id="l00053" name="l00053"></a><span class="lineno">   53</span>    LIGHTWEIGHT_FORCE_INLINE <span class="keyword">auto</span> format(<a class="code hl_struct" href="../../de/dfe/structLightweight_1_1SqlText.html">Lightweight::SqlText</a> <span class="keyword">const</span>&amp; text, format_context&amp; ctx) <span class="keyword">const</span></div>
-<div class="line"><a id="l00054" name="l00054"></a><span class="lineno">   54</span>        -&gt; format_context::iterator</div>
-<div class="line"><a id="l00055" name="l00055"></a><span class="lineno">   55</span>    {</div>
-<div class="line"><a id="l00056" name="l00056"></a><span class="lineno">   56</span>        <span class="keywordflow">return</span> std::formatter&lt;std::string&gt;::format(text.value, ctx);</div>
-<div class="line"><a id="l00057" name="l00057"></a><span class="lineno">   57</span>    }</div>
-<div class="line"><a id="l00058" name="l00058"></a><span class="lineno">   58</span>};</div>
+<div class="line"><a id="l00044" name="l00044"></a><span class="lineno">   44</span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE <span class="keywordtype">void</span> Resize(SqlText* str, SQLLEN indicator) <span class="keyword">noexcept</span> { Traits::Resize(&amp;str-&gt;value, indicator); }<span class="comment"></span></div>
+<div class="line"><a id="l00045" name="l00045"></a><span class="lineno">   45</span><span class="comment">    /// Resizes without initializing the gained characters (see the std::basic_string traits).</span></div>
+<div class="line"><a id="l00046" name="l00046"></a><span class="lineno">   46</span><span class="comment"></span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE <span class="keywordtype">void</span> ResizeForOverwrite(SqlText* str, std::size_t size)</div>
+<div class="line"><a id="l00047" name="l00047"></a><span class="lineno">   47</span>    {</div>
+<div class="line"><a id="l00048" name="l00048"></a><span class="lineno">   48</span>        Traits::ResizeForOverwrite(&amp;str-&gt;value, size);</div>
+<div class="line"><a id="l00049" name="l00049"></a><span class="lineno">   49</span>    }</div>
+<div class="line"><a id="l00050" name="l00050"></a><span class="lineno">   50</span>    <span class="comment">// clang-format on</span></div>
+<div class="line"><a id="l00051" name="l00051"></a><span class="lineno">   51</span>};</div>
+<div class="line"><a id="l00052" name="l00052"></a><span class="lineno">   52</span> </div>
+<div class="line"><a id="l00053" name="l00053"></a><span class="lineno">   53</span>} <span class="comment">// namespace Lightweight</span></div>
+<div class="line"><a id="l00054" name="l00054"></a><span class="lineno">   54</span> </div>
+<div class="line"><a id="l00055" name="l00055"></a><span class="lineno">   55</span><span class="keyword">template</span> &lt;&gt;</div>
+<div class="line"><a id="l00056" name="l00056"></a><span class="lineno">   56</span><span class="keyword">struct </span>std::formatter&lt;Lightweight::SqlText&gt;: std::formatter&lt;std::string&gt;</div>
+<div class="line"><a id="l00057" name="l00057"></a><span class="lineno">   57</span>{</div>
+<div class="line"><a id="l00058" name="l00058"></a><span class="lineno">   58</span>    LIGHTWEIGHT_FORCE_INLINE <span class="keyword">auto</span> format(<a class="code hl_struct" href="../../de/dfe/structLightweight_1_1SqlText.html">Lightweight::SqlText</a> <span class="keyword">const</span>&amp; text, format_context&amp; ctx) <span class="keyword">const</span></div>
+<div class="line"><a id="l00059" name="l00059"></a><span class="lineno">   59</span>        -&gt; format_context::iterator</div>
+<div class="line"><a id="l00060" name="l00060"></a><span class="lineno">   60</span>    {</div>
+<div class="line"><a id="l00061" name="l00061"></a><span class="lineno">   61</span>        <span class="keywordflow">return</span> std::formatter&lt;std::string&gt;::format(text.value, ctx);</div>
+<div class="line"><a id="l00062" name="l00062"></a><span class="lineno">   62</span>    }</div>
+<div class="line"><a id="l00063" name="l00063"></a><span class="lineno">   63</span>};</div>
 <div class="ttc" id="astructLightweight_1_1SqlText_html"><div class="ttname"><a href="../../de/dfe/structLightweight_1_1SqlText.html">Lightweight::SqlText</a></div><div class="ttdef"><b>Definition</b> <a href="../../dd/dad/SqlText_8hpp_source.html#l00019">SqlText.hpp:20</a></div></div>
 <div class="ttc" id="astructLightweight_1_1SqlText_html_a2626f10893b8f4a96e2a6d895a7dd0df"><div class="ttname"><a href="../../de/dfe/structLightweight_1_1SqlText.html#a2626f10893b8f4a96e2a6d895a7dd0df">Lightweight::SqlText::value</a></div><div class="ttdeci">value_type value</div><div class="ttdoc">The text value.</div><div class="ttdef"><b>Definition</b> <a href="../../dd/dad/SqlText_8hpp_source.html#l00025">SqlText.hpp:25</a></div></div>
 <div class="ttc" id="astructLightweight_1_1SqlText_html_acb96ee68a3cc936ac16a50cb90d587d5"><div class="ttname"><a href="../../de/dfe/structLightweight_1_1SqlText.html#acb96ee68a3cc936ac16a50cb90d587d5">Lightweight::SqlText::value_type</a></div><div class="ttdeci">std::string value_type</div><div class="ttdoc">The underlying value type.</div><div class="ttdef"><b>Definition</b> <a href="../../dd/dad/SqlText_8hpp_source.html#l00022">SqlText.hpp:22</a></div></div>

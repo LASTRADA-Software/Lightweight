@@ -134,6 +134,10 @@ Public Member Functions</h2></td></tr>
 <tr class="separator:a209f52c2128670486fa0df251261bf80"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab562de4a035a48baccb4dcd4a54dab30" id="r_ab562de4a035a48baccb4dcd4a54dab30"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#ab562de4a035a48baccb4dcd4a54dab30">PlanPostProcessOutputColumn</a> (std::function&lt; void()&gt; &amp;&amp;)=0</td></tr>
 <tr class="separator:ab562de4a035a48baccb4dcd4a54dab30"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6583d0a0b963f55c3d5491c6d2583902" id="r_a6583d0a0b963f55c3d5491c6d2583902"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#a6583d0a0b963f55c3d5491c6d2583902">PlanPreFetchOutputColumn</a> (<a class="el" href="../../dc/d16/structLightweight_1_1SqlOutputColumnPreFetch.html">SqlOutputColumnPreFetch</a> const &amp;step)=0</td></tr>
+<tr class="separator:a6583d0a0b963f55c3d5491c6d2583902"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a12843806ab1d89718143323141687b88" id="r_a12843806ab1d89718143323141687b88"><td class="memItemLeft" align="right" valign="top">virtual std::size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#a12843806ab1d89718143323141687b88">MinimumOutputColumnSize</a> (SQLUSMALLINT column, SqlOutputColumnLength length)</td></tr>
+<tr class="separator:a12843806ab1d89718143323141687b88"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a7d7b102126f4b2455df46e31906cb189" id="r_a7d7b102126f4b2455df46e31906cb189"><td class="memItemLeft" align="right" valign="top">virtual SQLLEN *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#a7d7b102126f4b2455df46e31906cb189">ProvideInputIndicator</a> ()=0</td></tr>
 <tr class="separator:a7d7b102126f4b2455df46e31906cb189"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad2b577cf0e7a7cc9eb671677b42cb914" id="r_ad2b577cf0e7a7cc9eb671677b42cb914"><td class="memItemLeft" align="right" valign="top">virtual SQLLEN *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#ad2b577cf0e7a7cc9eb671677b42cb914">ProvideInputIndicators</a> (size_t rowCount)=0</td></tr>
@@ -153,7 +157,7 @@ Public Member Functions</h2></td></tr>
 <div class="textblock"><p>Callback interface for SqlDataBinder to allow post-processing of output columns.</p>
 <p>This is needed because the SQLBindCol() function does not allow to specify a callback function to be called after the data has been fetched from the database. This is needed to trim strings to the correct size, for example. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/d0f/DataBinder_2Core_8hpp_source.html#l00034">34</a> of file <a class="el" href="../../d7/d0f/DataBinder_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/d0f/DataBinder_2Core_8hpp_source.html#l00075">75</a> of file <a class="el" href="../../d7/d0f/DataBinder_2Core_8hpp_source.html">Core.hpp</a>.</p>
 </div><h2 class="groupheader">Member Function Documentation</h2>
 <a id="a209f52c2128670486fa0df251261bf80" name="a209f52c2128670486fa0df251261bf80"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a209f52c2128670486fa0df251261bf80">&#9670;&#160;</a></span>PlanPostExecuteCallback()</h2>
@@ -206,8 +210,91 @@ Public Member Functions</h2></td></tr>
   </tr>
 </table>
 </div><div class="memdoc">
-<p>Plans a callback to be called after a column has been processed.</p>
+<p>Plans a callback to be called after every row fetched into the output column being bound.</p>
+<p>The callback stays registered as long as the column binding: it runs after each fetch until the column is bound again or its binding is dropped (a new query is prepared or executed directly).</p>
 <dl class="section see"><dt>See also</dt><dd>SqlDataBinder::PostProcessOutputColumn() </dd></dl>
+
+</div>
+</div>
+<a id="a6583d0a0b963f55c3d5491c6d2583902" name="a6583d0a0b963f55c3d5491c6d2583902"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a6583d0a0b963f55c3d5491c6d2583902">&#9670;&#160;</a></span>PlanPreFetchOutputColumn()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">virtual void Lightweight::SqlDataBinderCallback::PlanPreFetchOutputColumn </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="../../dc/d16/structLightweight_1_1SqlOutputColumnPreFetch.html">SqlOutputColumnPreFetch</a> const &amp;&#160;</td>
+          <td class="paramname"><em>step</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">pure virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Plans a step to run before every row is fetched into the output column being bound.</p>
+<p>A binder that binds straight into a growable container uses this to restore the bound buffer that the previous row's post-processing shrank to that row's length, and to re-bind the column should the container's storage have moved. Steps of one column run in reverse order of planning, so a wrapping binder (e.g. <code>std::optional</code>) prepares its storage before the binder it wraps. Same lifetime as <a class="el" href="../../d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#ab562de4a035a48baccb4dcd4a54dab30">PlanPostProcessOutputColumn</a>.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">step</td><td>The step; its <code>run</code> function reports a failure through its return code, which then fails the fetch. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="a12843806ab1d89718143323141687b88" name="a12843806ab1d89718143323141687b88"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a12843806ab1d89718143323141687b88">&#9670;&#160;</a></span>MinimumOutputColumnSize()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">virtual std::size_t Lightweight::SqlDataBinderCallback::MinimumOutputColumnSize </td>
+          <td>(</td>
+          <td class="paramtype">SQLUSMALLINT&#160;</td>
+          <td class="paramname"><em>column</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">SqlOutputColumnLength&#160;</td>
+          <td class="paramname"><em>length</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>The size a growable container bound to output column <code>column</code> has at least, without terminator.</p>
+<p>A value longer than the bound buffer is read again with <code>SQLGetData</code>. Where the driver can do that for a bound column (<code>SQL_GD_BOUND</code>) this is detail::DefaultBoundColumnSize. Where it cannot (MS SQL Server), it is the column's declared length, so every value the column can hold fits, asked of the driver once per result set and column; a column too long for that (a MAX column) gets detail::DefaultBoundColumnSize, and a longer value fails the fetch.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">column</td><td>The 1-based column index. </td></tr>
+    <tr><td class="paramname">length</td><td>Which declared length counts the container's elements. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The minimum number of elements to bind. </dd></dl>
+
+<p class="definition">Definition at line <a class="el" href="../../d7/d0f/DataBinder_2Core_8hpp_source.html#l00127">127</a> of file <a class="el" href="../../d7/d0f/DataBinder_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -396,7 +483,7 @@ Row-wise callers request <code>~rowStride*rowCount</code> bytes to hold only <co
 </div><div class="memdoc">
 <dl class="section return"><dt>Returns</dt><dd>How the narrow (<code>char</code>) string binders exchange text with the driver. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/d0f/DataBinder_2Core_8hpp_source.html#l00104">104</a> of file <a class="el" href="../../d7/d0f/DataBinder_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/d0f/DataBinder_2Core_8hpp_source.html#l00178">178</a> of file <a class="el" href="../../d7/d0f/DataBinder_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 <p class="reference">Referenced by <a class="el" href="../../d2/d5e/Primitives_8hpp_source.html#l00145">Lightweight::SqlDataBinder&lt; char &gt;::BatchInputParameter()</a>.</p>
 
@@ -435,7 +522,7 @@ Row-wise callers request <code>~rowStride*rowCount</code> bytes to hold only <co
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The declared SQL type, or <code>std::nullopt</code> when it cannot be determined. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/d0f/DataBinder_2Core_8hpp_source.html#l00117">117</a> of file <a class="el" href="../../d7/d0f/DataBinder_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/d0f/DataBinder_2Core_8hpp_source.html#l00191">191</a> of file <a class="el" href="../../d7/d0f/DataBinder_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>

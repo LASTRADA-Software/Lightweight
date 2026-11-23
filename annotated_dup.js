@@ -139,6 +139,7 @@ var annotated_dup =
       [ "SqlNullType", "da/d96/structLightweight_1_1SqlNullType.html", "da/d96/structLightweight_1_1SqlNullType" ],
       [ "SqlNumeric", "d6/d1b/structLightweight_1_1SqlNumeric.html", "d6/d1b/structLightweight_1_1SqlNumeric" ],
       [ "SqlOperationStatistics", "d4/d7d/structLightweight_1_1SqlOperationStatistics.html", "d4/d7d/structLightweight_1_1SqlOperationStatistics" ],
+      [ "SqlOutputColumnPreFetch", "dc/d16/structLightweight_1_1SqlOutputColumnPreFetch.html", "dc/d16/structLightweight_1_1SqlOutputColumnPreFetch" ],
       [ "SqlPoolStatistics", "da/da6/structLightweight_1_1SqlPoolStatistics.html", "da/da6/structLightweight_1_1SqlPoolStatistics" ],
       [ "SqlPreparedStatementCache", "d3/d0f/classLightweight_1_1SqlPreparedStatementCache.html", "d3/d0f/classLightweight_1_1SqlPreparedStatementCache" ],
       [ "SqlQualifiedTableColumnName", "db/d8e/structLightweight_1_1SqlQualifiedTableColumnName.html", "db/d8e/structLightweight_1_1SqlQualifiedTableColumnName" ],

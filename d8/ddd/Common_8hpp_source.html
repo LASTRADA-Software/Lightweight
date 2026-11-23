@@ -134,7 +134,7 @@ $(document).ready(function(){initNavTree('d8/ddd/Common_8hpp_source.html','../..
 <div class="line"><a id="l00034" name="l00034"></a><span class="lineno">   34</span><span class="comment">/// Maximum declared buffer size for binary LOB columns during backup.</span></div>
 <div class="line"><a id="l00035" name="l00035"></a><span class="lineno">   35</span><span class="comment">/// The actual data can grow beyond this via automatic ODBC buffer resizing.</span></div>
 <div class="line"><a id="l00036" name="l00036"></a><span class="lineno">   36</span><span class="comment">/// Set to 16MB to handle typical BLOB/VARBINARY(MAX) columns.</span></div>
-<div class="line"><a id="l00037" name="l00037"></a><span class="lineno">   37</span><span class="comment"></span><span class="keyword">constexpr</span> <span class="keywordtype">size_t</span> MaxBinaryLobBufferSize = 16 * 1024 * 1024;</div>
+<div class="line"><a id="l00037" name="l00037"></a><span class="lineno">   37</span><span class="comment"></span><span class="keyword">inline</span> <span class="keyword">constexpr</span> <span class="keywordtype">size_t</span> MaxBinaryLobBufferSize = 16 * 1024 * 1024;</div>
 <div class="line"><a id="l00038" name="l00038"></a><span class="lineno">   38</span><span class="comment"></span> </div>
 <div class="line"><a id="l00039" name="l00039"></a><span class="lineno">   39</span><span class="comment">/// Metadata for a ZIP entry used during restore operations.</span></div>
 <div class="line"><a id="l00040" name="l00040"></a><span class="lineno">   40</span><span class="comment"></span><span class="keyword">struct </span>ZipEntryInfo</div>

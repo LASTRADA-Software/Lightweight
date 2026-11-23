@@ -173,6 +173,7 @@ var hierarchy =
     [ "Lightweight::SqlNullType", "da/d96/structLightweight_1_1SqlNullType.html", null ],
     [ "Lightweight::SqlNumeric< ThePrecision, TheScale >", "d6/d1b/structLightweight_1_1SqlNumeric.html", null ],
     [ "Lightweight::SqlOperationStatistics", "d4/d7d/structLightweight_1_1SqlOperationStatistics.html", null ],
+    [ "Lightweight::SqlOutputColumnPreFetch", "dc/d16/structLightweight_1_1SqlOutputColumnPreFetch.html", null ],
     [ "Lightweight::SqlPoolStatistics", "da/da6/structLightweight_1_1SqlPoolStatistics.html", null ],
     [ "Lightweight::SqlPreparedStatementCache", "d3/d0f/classLightweight_1_1SqlPreparedStatementCache.html", null ],
     [ "Lightweight::SqlPreparedStatementCache::PreparedHandle", "de/d91/structLightweight_1_1SqlPreparedStatementCache_1_1PreparedHandle.html", null ],
