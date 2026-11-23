@@ -4303,3 +4303,10 @@ TEST_CASE("A right-trimmed UTF-16 fixed string read shorter than before keeps no
     SqlBasicStringOperations<String>::PostProcessOutputColumn(&value, static_cast<SQLLEN>(2 * sizeof(char16_t)));
     CHECK((std::u16string_view { value.data(), value.size() } == u"ab"));
 }
+
+TEST_CASE("SqlDynamicBinary: constructed from a list of bytes", "[SqlDataBinder]")
+{
+    auto const binary = SqlDynamicBinary<16> { 0xDE, 0xAD };
+    // Compared as a whole, so no element is read past what the binary holds.
+    CHECK(std::ranges::equal(std::span { binary.data(), binary.size() }, std::array<std::uint8_t, 2> { 0xDE, 0xAD }));
+}
