@@ -3,6 +3,7 @@
 #include "Utils.hpp"
 
 #include <Lightweight/DataBinder/SqlBinary.hpp>
+#include <Lightweight/DataBinder/SqlDynamicNumeric.hpp>
 #include <Lightweight/Lightweight.hpp>
 
 #include <catch2/catch_test_macros.hpp>
@@ -10,11 +11,14 @@
 #include <algorithm>
 #include <array>
 #include <chrono>
+#include <cmath>
 #include <cstdint>
 #include <format>
+#include <functional>
 #include <optional>
 #include <ostream>
 #include <ranges>
+#include <stdexcept>
 #include <string>
 #include <tuple>
 #include <vector>
@@ -1340,5 +1344,123 @@ TEST_CASE_METHOD(SqlTestFixture, "Prefetch: a DATETIME column read as std::chron
         }
         CHECK(stmt.ExecuteDirectScalar<TimePoint>(R"(SELECT "Moment" FROM "PrefetchTimePoint")")
               == std::optional { expected });
+    }
+}
+
+namespace
+{
+
+/// The values of the SqlDynamicNumeric prefetch tests: fixed and exponent forms on every driver, a value
+/// with a trailing ".0" on SQLite, and a negative zero.
+constexpr auto DynamicNumericFloats = std::array { 3.0, 1e5, 1e-4, 1e15, 1e16, 0.1, -0.0 };
+constexpr auto DynamicNumericIntegers = std::array<std::int64_t, 7> { 3, 100'000, 0, -42, 1'000'000'000'000'000, 7, 0 };
+
+/// A SqlDynamicNumeric with its precision and scale, which `==` does not compare, or the SQLSTATE of the read.
+std::string DynamicNumericOutcome(std::function<SqlDynamicNumeric()> const& read)
+{
+    try
+    {
+        auto const value = read();
+        return std::format("{} p{} s{}", value, value.precision, value.scale);
+    }
+    catch (SqlException const& error)
+    {
+        return std::format("error {}", error.info().sqlState);
+    }
+}
+
+void CreateDynamicNumericTable(SqlStatement& stmt)
+{
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("PrefetchDynamicNumeric")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Integer {})
+            .RequiredColumn("V", SqlColumnTypeDefinitions::Real { .precision = 53 })
+            .RequiredColumn("R", SqlColumnTypeDefinitions::Real { .precision = 24 })
+            .RequiredColumn("S", SqlColumnTypeDefinitions::Smallint {})
+            .RequiredColumn("I", SqlColumnTypeDefinitions::Bigint {});
+    });
+    stmt.Prepare(R"(INSERT INTO "PrefetchDynamicNumeric" ("Id", "V", "R", "S", "I") VALUES (?, ?, ?, ?, ?))");
+    for (auto const i: std::views::iota(std::size_t { 0 }, DynamicNumericFloats.size()))
+        (void) stmt.Execute(static_cast<int>(i),
+                            DynamicNumericFloats[i],
+                            static_cast<float>(DynamicNumericFloats[i]),
+                            static_cast<std::int16_t>(i),
+                            DynamicNumericIntegers[i]);
+}
+
+/// Reads column @p name of row @p id through one access path at prefetch depth @p depth.
+std::string DynamicNumericCell(SqlStatement& stmt, std::string_view path, std::string_view name, std::size_t id)
+{
+    auto const query = std::format(R"(SELECT "{}" FROM "PrefetchDynamicNumeric" WHERE "Id" = {})", name, id);
+    if (path == "scalar")
+        return DynamicNumericOutcome(
+            [&] { return stmt.ExecuteDirectScalar<SqlDynamicNumeric>(query).value_or(SqlDynamicNumeric {}); });
+    return DynamicNumericOutcome([&] {
+        auto cursor = stmt.ExecuteDirect(query);
+        if (!cursor.FetchRow())
+            throw std::runtime_error("no row");
+        return cursor.GetColumn<SqlDynamicNumeric>(1);
+    });
+}
+
+} // namespace
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "Prefetch: SqlDynamicNumeric reads what the per-row path reads, or refuses a floating-point cell",
+                 "[prefetch]")
+{
+    auto stmt = SqlStatement {};
+    CreateDynamicNumericTable(stmt);
+
+    for (auto const id: std::views::iota(std::size_t { 0 }, DynamicNumericFloats.size()))
+    {
+        // "S" before "I" on the same statement: the declared precision the statement keeps per result set and
+        // column must be asked again for the next result set, or "I" would read with SMALLINT's.
+        for (auto const name: { "V"sv, "R"sv, "S"sv, "I"sv })
+        {
+            for (auto const path: { "scalar"sv, "raw"sv })
+            {
+                INFO(std::format("value {} column {} path {}", DynamicNumericFloats[id], name, path));
+                stmt.Connection().SetDefaultPrefetchDepth(1);
+                auto const perRow = DynamicNumericCell(stmt, path, name, id);
+                stmt.Connection().SetDefaultPrefetchDepth(TestPrefetchDepth);
+                auto const prefetched = DynamicNumericCell(stmt, path, name, id);
+                // A raw read of an already-fetched floating-point cell cannot take the driver's own text: it
+                // refuses. Every other read equals the per-row one, precision and scale included.
+                if (path == "raw" && (name == "V" || name == "R"))
+                    CHECK(prefetched == "error 07006");
+                else
+                    CHECK(prefetched == perRow);
+            }
+        }
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "Prefetch: SqlDynamicNumeric of a prepared SELECT ? takes each execute's declared digits",
+                 "[prefetch]")
+{
+    // The same prepared query executed with a SMALLINT and then a BIGINT parameter: the column declares other
+    // digits each time, and the prefetched read must match the per-row read of the same execute.
+    auto stmt = SqlStatement {};
+    stmt.Prepare("SELECT ?");
+    auto const read = [&](std::size_t depth, auto const& value) {
+        stmt.Connection().SetDefaultPrefetchDepth(depth);
+        return DynamicNumericOutcome([&] {
+            SqlResultCursor cursor = stmt.Execute(value);
+            if (!cursor.FetchRow())
+                throw std::runtime_error("no row");
+            return cursor.GetColumn<SqlDynamicNumeric>(1);
+        });
+    };
+    for (auto const pass: { 1, 2 })
+    {
+        INFO("pass " << pass);
+        auto const smallPerRow = read(1, std::int16_t { 7 });
+        auto const smallPrefetched = read(TestPrefetchDepth, std::int16_t { 7 });
+        auto const largePrefetched = read(TestPrefetchDepth, std::int64_t { 5'000'000'000 });
+        auto const largePerRow = read(1, std::int64_t { 5'000'000'000 });
+        CHECK(smallPrefetched == smallPerRow);
+        CHECK(largePrefetched == largePerRow);
     }
 }

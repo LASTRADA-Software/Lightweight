@@ -432,12 +432,18 @@ struct SqlDataBinder<SqlDynamicNumeric>
         return { .returnCode = returnCode, .text = detail::TrimAsciiWhitespace(raw), .isNull = false };
     }
 
-    /// Converts a decimal literal into an exact value, using the column's declared precision and scale.
-    ///
-    /// @retval std::nullopt The value needs more digits than the unscaled 64-bit carrier holds; see
-    ///                      @c SqlMaxDynamicNumericPrecision.
-    [[nodiscard]] static LIGHTWEIGHT_FORCE_INLINE std::optional<SqlDynamicNumeric> FromColumnLiteral(
-        SQLHSTMT stmt, SQLUSMALLINT column, std::string_view literal) noexcept
+    /// The precision and scale a result column declares, as SqlDynamicNumeric digit counts.
+    struct DeclaredDigits
+    {
+        std::uint8_t precision; //!< The declared precision, clamped to SqlMaxDynamicNumericPrecision.
+        std::uint8_t scale;     //!< The declared scale, clamped to SqlMaxDynamicNumericPrecision.
+    };
+
+    /// Asks the driver for the precision and scale result column @p column declares (two @c SQLColAttribute calls).
+    /// @param stmt The statement handle.
+    /// @param column The 1-based column index.
+    /// @return The declared digits; 0 for what the driver does not report.
+    [[nodiscard]] static LIGHTWEIGHT_FORCE_INLINE DeclaredDigits ColumnDigits(SQLHSTMT stmt, SQLUSMALLINT column) noexcept
     {
         SQLLEN declaredPrecision = 0;
         SQLLEN declaredScale = 0;
@@ -449,14 +455,33 @@ struct SqlDataBinder<SqlDynamicNumeric>
         auto const toDigitCount = [](SQLLEN reported) noexcept {
             return static_cast<std::uint8_t>(std::clamp<SQLLEN>(reported, 0, SqlMaxDynamicNumericPrecision));
         };
+        return { .precision = toDigitCount(declaredPrecision), .scale = toDigitCount(declaredScale) };
+    }
 
+    /// Converts a decimal literal into an exact value, using a column's declared precision and scale.
+    /// @param literal The trimmed decimal literal.
+    /// @param declared The column's declared digits (see ColumnDigits()).
+    /// @retval std::nullopt The value needs more digits than the unscaled 64-bit carrier holds; see
+    ///                      @c SqlMaxDynamicNumericPrecision.
+    [[nodiscard]] static LIGHTWEIGHT_FORCE_INLINE std::optional<SqlDynamicNumeric> FromLiteral(
+        std::string_view literal, DeclaredDigits declared) noexcept
+    {
         // Not every column has a declared scale — PostgreSQL's unconstrained `numeric` and any
         // expression column report none — but the literal always states it. Take whichever is
         // larger so the fractional digits present in the text are never discarded.
-        auto const scale = std::max(toDigitCount(declaredScale), detail::FractionDigitsOf(literal));
-        auto const precision = toDigitCount(declaredPrecision);
+        auto const scale = std::max(declared.scale, detail::FractionDigitsOf(literal));
+        return SqlDynamicNumeric::FromString(literal, declared.precision, scale);
+    }
 
-        return SqlDynamicNumeric::FromString(literal, precision, scale);
+    /// Converts a decimal literal into an exact value, using the column's declared precision and scale, which it
+    /// asks the driver for (see ColumnDigits()).
+    ///
+    /// @retval std::nullopt The value needs more digits than the unscaled 64-bit carrier holds; see
+    ///                      @c SqlMaxDynamicNumericPrecision.
+    [[nodiscard]] static LIGHTWEIGHT_FORCE_INLINE std::optional<SqlDynamicNumeric> FromColumnLiteral(
+        SQLHSTMT stmt, SQLUSMALLINT column, std::string_view literal) noexcept
+    {
+        return FromLiteral(literal, ColumnDigits(stmt, column));
     }
 
     /// Retrieves the column as an exact decimal without throwing, for callers that can degrade.

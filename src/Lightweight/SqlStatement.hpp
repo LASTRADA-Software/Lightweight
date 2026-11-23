@@ -7,6 +7,7 @@
 #include "DataBinder/Core.hpp"
 #include "DataBinder/SqlDate.hpp"
 #include "DataBinder/SqlDateTime.hpp"
+#include "DataBinder/SqlDynamicNumeric.hpp"
 #include "DataBinder/SqlFixedString.hpp"
 #include "DataBinder/SqlGuid.hpp"
 #include "DataBinder/SqlNumeric.hpp"
@@ -27,6 +28,7 @@
 
 #include <algorithm>
 #include <array>
+#include <charconv>
 #include <chrono>
 #include <concepts>
 #include <cstdint>
@@ -658,6 +660,7 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
         Temporal, //!< SqlDate and SqlDateTime: DATE and TIMESTAMP columns
         Guid,     //!< SqlGuid: GUID columns
         Text,     //!< string targets: numeric columns (temporal and GUID text is the driver's to format)
+        Exact,    //!< SqlDynamicNumeric: integer columns (a floating-point value is the driver's to render)
     };
     /// @return The PrefetchTarget class of the bound destination type @p T (an optional's value type).
     template <typename T>
@@ -691,6 +694,12 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     /// @brief Converts a materialized block cell to the requested native type @p T.
     template <typename T>
     [[nodiscard]] T ConvertCell(RowArrayCursor const& cursor, std::size_t row, SQLUSMALLINT column) const;
+    /// @brief The precision and scale result column @p column declares, asked of the driver once per result set
+    /// and column, so a block-prefetched SqlDynamicNumeric read costs no driver call per cell.
+    /// @param column The 1-based column index.
+    /// @return The declared digits, as SqlDataBinder<SqlDynamicNumeric>::ColumnDigits() reports them.
+    [[nodiscard]] LIGHTWEIGHT_API SqlDataBinder<SqlDynamicNumeric>::DeclaredDigits DeclaredDynamicNumericDigits(
+        SQLUSMALLINT column) const;
 
     /// @brief Validates a 1-based column index against the active prefetch cursor, throwing
     /// @c std::invalid_argument for an out-of-range index — matching the per-row path's behaviour for
@@ -2379,8 +2388,8 @@ namespace detail
     template <typename T>
     concept PrefetchConvertibleScalar =
         std::same_as<T, SqlVariant> || std::same_as<T, SqlDate> || std::same_as<T, SqlDateTime> || std::same_as<T, SqlGuid>
-        || std::same_as<T, SqlDateTime::native_type> || StringLikeCell<T> || std::is_floating_point_v<T>
-        || (std::is_integral_v<T> && !std::same_as<T, char>) || std::is_enum_v<T>;
+        || std::same_as<T, SqlDateTime::native_type> || std::same_as<T, SqlDynamicNumeric> || StringLikeCell<T>
+        || std::is_floating_point_v<T> || (std::is_integral_v<T> && !std::same_as<T, char>) || std::is_enum_v<T>;
 
     template <typename T>
     struct PrefetchConvertibleOptional: std::false_type
@@ -2481,6 +2490,68 @@ namespace detail
             default:
                 ThrowRestrictedPrefetchConversion<T>(cursor, column);
         }
+    }
+
+    /// @brief Reconstructs a @c SqlDynamicNumeric cell from the block buffer as the per-row read gives it, for the
+    /// cells the block can give it for: an integer, through the binder's own reading of the column's declared
+    /// precision and scale (see @c SqlDataBinder<SqlDynamicNumeric>::FromLiteral), so value, precision and
+    /// scale equal the per-row read. A NULL cell is the zero value, as the binder leaves it.
+    ///
+    /// A floating-point cell is not reconstructed: the per-row read takes the driver's own text for it, which
+    /// differs by driver (digits, exponent form, a trailing ".0"). ExecuteDirectScalar() knows the type before
+    /// the first fetch and keeps such a result set on the per-row path (SqlDynamicNumeric binds no output column,
+    /// so it is neither a bound column nor a record member); this, the raw read of an already-fetched block,
+    /// throws 07006 and names the two ways out.
+    /// @param cursor The block.
+    /// @param row The cell's row in the block.
+    /// @param column The 1-based column index.
+    /// @param declaredDigitsOf Called with @p column for the column's declared precision and scale, only for an
+    ///                         integer cell; the statement answers it once per result set and column.
+    /// @return The cell's value.
+    /// @throws SqlException 07006 for a floating-point or other non-integer cell; 22003 for an integer wider than
+    ///         the declared precision admits, as the binder throws.
+    template <typename DeclaredDigitsOf>
+    [[nodiscard]] SqlDynamicNumeric ReadDynamicNumericCell(RowArrayCursor const& cursor,
+                                                           std::size_t row,
+                                                           SQLUSMALLINT column,
+                                                           DeclaredDigitsOf const& declaredDigitsOf)
+    {
+        using BoundType = RowArrayCursor::BoundType;
+        if (cursor.IsCellNull(row, column))
+            return SqlDynamicNumeric {};
+        switch (cursor.ColumnBoundType(column))
+        {
+            case BoundType::Int64:
+                break;
+            case BoundType::Double:
+                throw SqlException(SqlErrorInfo {
+                    .nativeErrorCode = 0,
+                    .sqlState = "07006",
+                    .message = std::format(
+                        "Restricted data type attribute violation: column {} (DOUBLE) cannot be read as SqlDynamicNumeric "
+                        "from a block-prefetched result set, since the value is the text the driver renders for it. "
+                        "Read it as double or std::string, or disable block prefetch with "
+                        "SqlConnection::SetDefaultPrefetchDepth(1) to read it as SqlDynamicNumeric.",
+                        column),
+                });
+            default:
+                ThrowRestrictedPrefetchConversion<SqlDynamicNumeric>(cursor, column);
+        }
+        auto text = std::array<char, 24> {};
+        auto const* const end =
+            std::to_chars(text.data(), text.data() + text.size(), cursor.GetI64(row, column).value_or(0)).ptr;
+        auto const literal = std::string_view { text.data(), end };
+        if (auto value = SqlDataBinder<SqlDynamicNumeric>::FromLiteral(literal, declaredDigitsOf(column)); value)
+            return *value;
+        throw SqlException(SqlErrorInfo {
+            .nativeErrorCode = 0,
+            .sqlState = "22003",
+            .message = std::format("Column {} holds {}, which SqlDynamicNumeric cannot represent exactly: it carries more "
+                                   "than {} significant digits. Read the column as an integer or std::string instead.",
+                                   column,
+                                   literal,
+                                   SqlMaxDynamicNumericPrecision),
+        });
     }
 
     /// @brief Renders a block-buffer cell to UTF-8 text. Character columns are returned verbatim;
@@ -2597,6 +2668,9 @@ inline T SqlStatement::ConvertCell(RowArrayCursor const& cursor, std::size_t row
         return detail::ReadTemporalGuidCell<SqlDateTime>(cursor, row, column).value();
     else if constexpr (detail::SqlNumericCell<T>)
         return detail::ReadNumericCell<T>(cursor, row, column);
+    else if constexpr (std::same_as<T, SqlDynamicNumeric>)
+        return detail::ReadDynamicNumericCell(
+            cursor, row, column, [this](SQLUSMALLINT index) { return DeclaredDynamicNumericDigits(index); });
     else if constexpr (detail::StringLikeCell<T>)
         return detail::ReadStringLikeCell<T>(cursor, row, column);
     else if constexpr (std::is_floating_point_v<T> || (std::is_integral_v<T> && !std::same_as<T, char>) || std::is_enum_v<T>)
@@ -2652,6 +2726,8 @@ constexpr SqlStatement::PrefetchTarget SqlStatement::PrefetchTargetOf() noexcept
         return PrefetchTarget::Temporal;
     else if constexpr (std::same_as<T, SqlGuid>)
         return PrefetchTarget::Guid;
+    else if constexpr (std::same_as<T, SqlDynamicNumeric>)
+        return PrefetchTarget::Exact;
     else if constexpr (detail::StringLikeCell<T>)
         return PrefetchTarget::Text;
     else
@@ -2770,9 +2846,12 @@ template <typename T>
 inline std::optional<T> SqlStatement::ExecuteDirectScalar(std::string_view const& query, std::source_location location)
 {
     auto cursor = ExecuteDirect(query, location);
-    // The type is known before the first fetch: keep a type the block buffer cannot rebuild on the per-row path.
+    // The type is known before the first fetch: keep a type the block buffer cannot rebuild on the per-row path,
+    // and a column whose SQL type the per-row path reads differently into it (see PrefetchTarget).
     if constexpr (!detail::PrefetchConvertible<T>)
         MarkPrefetchBindingUnsupported();
+    else
+        RecordPrefetchColumnTarget(1, PrefetchTargetOf<T>());
     // FetchRow() throws on a failure; false means an empty result set, which has no scalar.
     if (!FetchRow())
         return std::nullopt;

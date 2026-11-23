@@ -253,10 +253,12 @@ On the per-row path, reading a column into a C++ type of another kind (an `INTEG
 `std::string`, a `TIMESTAMP` column into a `SqlDate`) is the driver's conversion, and where the ODBC rules
 define none, its error. The block buffer cannot call the driver, so Lightweight decides per reader:
 
-- **Bound output columns and `SqlRowIterator<T>` members.** The C++ type is known before the first fetch.
+- **Bound output columns, `ExecuteDirectScalar<T>()` and `SqlRowIterator<T>` members.** The C++ type is
+  known before the first fetch.
   When a column's SQL type is one the per-row path would read differently into it — a `std::string` over a
   floating-point, temporal or `GUID` column, a `SqlDate`/`SqlDateTime` over a non-temporal column, a
-  `SqlGuid` over a non-`GUID` column, a number over a temporal or `GUID` column — the result set keeps the
+  `SqlGuid` over a non-`GUID` column, a number over a temporal or `GUID` column, a `SqlDynamicNumeric` over
+  a non-integer column — the result set keeps the
   per-row path, so the value (or error) is exactly the driver's. `char` is read through its own binder (the
   column as text) and keeps the per-row path too.
 - **Raw `GetColumn<T>()` on a block-prefetched result set.** The type is known only after the block was
@@ -264,7 +266,11 @@ define none, its error. The block buffer cannot call the driver, so Lightweight 
   its date, a `DATE` read as `SqlDateTime` is midnight of that day, a numeric column read as any arithmetic
   type is converted, and any column read as a string is rendered as text — integers exactly as the driver
   renders them, floating-point, temporal and `GUID` values through their `std::formatter` (so a `REAL` 0.1
-  reads as `"0.10000000149011612"` where the driver gives `"0.1"`). Any other pairing (e.g. a `DATE` column
+  reads as `"0.10000000149011612"` where the driver gives `"0.1"`). A `SqlDynamicNumeric` reads an integer
+  exactly, with the precision and scale the per-row read gives (asked of the driver once per result set and
+  column, not per cell); a floating-point column read as
+  `SqlDynamicNumeric` throws `07006`, since its value is the text the driver renders, which differs by driver
+  (read through `ExecuteDirectScalar`, such a column keeps the per-row path). Any other pairing (e.g. a `DATE` column
   read as `double`, a `BIGINT` read as `SqlDateTime`) throws a `SqlException` with SQLSTATE `07006`
   ("Restricted data type attribute violation"), the error a driver that follows the ODBC rules raises on
   the per-row path; some drivers convert such a pair or report NULL instead. `GetColumn<char>()` and a type

@@ -59,6 +59,23 @@ struct SqlStatement::Data
     // the driver once per result set and column, so binding a column again for every row asks nothing
     // (0: not asked yet). Only filled where the driver cannot read a bound column again.
     std::vector<std::array<std::size_t, 2>> declaredOutputColumnSizes;
+    // The precision and scale each result column declares, asked of the driver once per result set and column (see
+    // SqlStatement::DeclaredDynamicNumericDigits()).
+    std::vector<std::optional<SqlDataBinder<SqlDynamicNumeric>::DeclaredDigits>> declaredNumericDigits;
+
+    /// @brief Drops the result set's declared digits: every execute may produce columns of other types (a
+    /// re-executed `SELECT ?` takes its parameter's type).
+    void ForgetResultSetColumns() noexcept
+    {
+        declaredNumericDigits.clear();
+    }
+
+    /// @brief Drops what was asked of the driver about the result set's columns, since the next query's may differ.
+    void ForgetResultColumnDescriptions() noexcept
+    {
+        declaredOutputColumnSizes.clear();
+        ForgetResultSetColumns();
+    }
 
     /// @brief The callback slot of @p column, listed for the fetch loop.
     OutputColumnCallbacks& OutputColumnSlot(SQLUSMALLINT column)
@@ -126,6 +143,7 @@ struct SqlStatement::Data
             case SqlStatement::PrefetchTarget::Numeric:
                 return !isTemporal && !isGuid;
             case SqlStatement::PrefetchTarget::Text:
+            case SqlStatement::PrefetchTarget::Exact:
                 return isIntegerOrBit;
             case SqlStatement::PrefetchTarget::Temporal:
                 return isTemporal;
@@ -343,6 +361,9 @@ void SqlStatement::PlanPostExecuteCallback(std::function<void()>&& cb)
 
 void SqlStatement::ProcessPostExecuteCallbacks()
 {
+    // Every execute of a prepared statement passes here (ExecuteDirect() and ExecuteBatchFetch() forget them in
+    // DropOutputColumnBindings(), the next result set in ConsumePendingResults()): its result set is described anew.
+    m_data->ForgetResultSetColumns();
     for (auto& cb: m_data->postExecuteCallbacks)
         cb();
     m_data->postExecuteCallbacks.clear();
@@ -413,6 +434,7 @@ SqlStatement::SqlStatement():
                  .columnsWithCallbacks = {},
                  .outputColumnBeingBound = 0,
                  .declaredOutputColumnSizes = {},
+                 .declaredNumericDigits = {},
                  .describedParameterTypes = {},
                  .prefetchMode = Data::PrefetchMode::Unarmed,
                  .prefetch = {},
@@ -1328,9 +1350,20 @@ std::size_t SqlStatement::MinimumOutputColumnSize(SQLUSMALLINT column, SqlOutput
     return size;
 }
 
+SqlDataBinder<SqlDynamicNumeric>::DeclaredDigits SqlStatement::DeclaredDynamicNumericDigits(SQLUSMALLINT column) const
+{
+    auto& digits = m_data->declaredNumericDigits;
+    if (digits.size() <= column)
+        digits.resize(static_cast<std::size_t>(column) + 1);
+    auto& declared = digits[column];
+    if (!declared)
+        declared = SqlDataBinder<SqlDynamicNumeric>::ColumnDigits(m_hStmt, column);
+    return *declared;
+}
+
 void SqlStatement::DropOutputColumnBindings() noexcept
 {
-    m_data->declaredOutputColumnSizes.clear(); // the next query's result set may differ
+    m_data->ForgetResultColumnDescriptions(); // the next query's result set may differ
     ResetPrefetchBindings();
     ResetOutputColumnCallbacks();
     m_data->prefetchDeferredBindsIssued = false;
@@ -1758,7 +1791,7 @@ void SqlStatement::ConsumePendingResults(std::source_location location)
 {
     // A cursor kept across its connection's Close() must not drain a freed handle: 08003 instead.
     RequireCurrentSession();
-    m_data->declaredOutputColumnSizes.clear(); // the next result set's columns may differ
+    m_data->ForgetResultColumnDescriptions(); // the next result set's columns may differ
     while (true)
     {
         auto const rc = SQLMoreResults(m_hStmt);
