@@ -280,10 +280,10 @@ namespace detail
     /// @param staging The staging buffer to bind; its size is the bound capacity in UTF-16 code units.
     /// @param indicator The column's length/indicator buffer.
     /// @return The @c SQLBindCol result.
-    inline SQLRETURN BindUtf16Staging(SQLHSTMT stmt,
-                                      SQLUSMALLINT column,
-                                      std::u16string& staging,
-                                      SQLLEN* indicator) noexcept
+    [[nodiscard]] inline SQLRETURN BindUtf16Staging(SQLHSTMT stmt,
+                                                    SQLUSMALLINT column,
+                                                    std::u16string& staging,
+                                                    SQLLEN* indicator) noexcept
     {
         return SQLBindCol(
             stmt, column, SQL_C_WCHAR, staging.data(), static_cast<SQLLEN>(staging.size() * sizeof(char16_t)), indicator);
@@ -383,9 +383,22 @@ namespace detail
         staging.resize(totalChars + 1);
         auto const bufferLength = static_cast<SQLLEN>(staging.size() * sizeof(char16_t));
         auto const rv = getData(staging.data(), bufferLength, indicator);
-        RequireUtf16StagingBound(stmt, column, staging, indicator);
         if (!SQL_SUCCEEDED(rv))
-            ThrowBoundValueNotReadable(stmt, column, totalBytes); // the next rows fit the grown buffer
+        {
+            // The failed read is the error to report: it is taken from the handle before the bind replaces
+            // the handle's diagnostics, and a bind that fails too only unbinds the column.
+            try
+            {
+                ThrowBoundValueNotReadable(stmt, column, totalBytes);
+            }
+            catch (...)
+            {
+                if (!SQL_SUCCEEDED(BindUtf16Staging(stmt, column, staging, indicator)))
+                    UnbindUtf16Staging(stmt, column, indicator);
+                throw; // the next rows fit the grown buffer
+            }
+        }
+        RequireUtf16StagingBound(stmt, column, staging, indicator);
         return { staging.data(), totalChars };
     }
 

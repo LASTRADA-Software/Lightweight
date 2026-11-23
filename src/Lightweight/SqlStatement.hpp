@@ -409,7 +409,8 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     /// throw. Call this after executing a batch whose failure must not go unnoticed.
     ///
     /// @param location The caller's source location, reported with the error.
-    /// @throws SqlException A pending result reports an error.
+    /// @throws SqlException A pending result reports an error; 08003 when the statement's connection session
+    ///         ended (see SqlConnection::SessionId()).
     LIGHTWEIGHT_API void ConsumePendingResults(std::source_location location = std::source_location::current());
 
   private:
@@ -419,7 +420,11 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     template <typename T>
     friend class SqlRowIterator;
 
+    /// @return The number of rows the last query affected.
+    /// @throws SqlException 08003 when the statement's connection session ended.
     [[nodiscard]] LIGHTWEIGHT_API size_t NumRowsAffected() const;
+    /// @return The number of columns of the last query's result set.
+    /// @throws SqlException 08003 when the statement's connection session ended.
     [[nodiscard]] LIGHTWEIGHT_API size_t NumColumnsAffected() const;
     [[nodiscard]] LIGHTWEIGHT_API bool FetchRow();
     [[nodiscard]] LIGHTWEIGHT_API std::expected<bool, SqlErrorInfo> TryFetchRow(
@@ -910,12 +915,14 @@ class [[nodiscard]] SqlResultCursor
     }
 
     /// Retrieves the number of rows affected by the last query.
+    /// @throws SqlException 08003 when the cursor's connection session ended.
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE size_t NumRowsAffected() const
     {
         return m_stmt->NumRowsAffected();
     }
 
     /// Retrieves the number of columns affected by the last query.
+    /// @throws SqlException 08003 when the cursor's connection session ended.
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE size_t NumColumnsAffected() const
     {
         return m_stmt->NumColumnsAffected();
@@ -1617,7 +1624,9 @@ inline LIGHTWEIGHT_FORCE_INLINE void SqlStatement::BindOutputColumns(Args*... ar
         return;
     }
 
-    RequireCurrentSession(); // one compare per bind call; 08003 once the session ended
+    // One compare per call, however many columns it binds; 08003 once the session ended. A binding recorded for
+    // the block prefetch above reaches the driver at the fetch, which checks the session itself.
+    RequireCurrentSession();
     RequireIndicators();
     NoteOutputColumnBoundDirectly();
 
@@ -1663,7 +1672,9 @@ void SqlStatement::BindOutputColumnsToRecord(Records*... records)
         return;
     }
 
-    RequireCurrentSession(); // one compare per bind call; 08003 once the session ended
+    // One compare per call, however many records and columns it binds; 08003 once the session ended. A binding
+    // recorded for the block prefetch above reaches the driver at the fetch, which checks the session itself.
+    RequireCurrentSession();
     RequireIndicators();
     NoteOutputColumnBoundDirectly();
 

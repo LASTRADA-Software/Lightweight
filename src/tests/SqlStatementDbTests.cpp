@@ -1826,6 +1826,16 @@ TEST_CASE_METHOD(SqlTestFixture,
     CHECK(SqlStateOf([&] { (void) read({ { SQL_SUCCESS, -5 } }); }) == "HY000");
     CHECK(SqlStateOf([&] { (void) read({ { SQL_SUCCESS, 256 } }); }) == "HY000");
     CHECK(SqlStateOf([&] { (void) read({ { SQL_SUCCESS_WITH_INFO, Full } }, 4096); }) == "22001");
+
+    // A NULL row, as a column unbound after a failed re-bind reads it: no value, and the indicator stays NULL.
+    auto calls = std::size_t { 0 };
+    auto buffer = std::vector<std::uint8_t>(detail::DefaultBoundColumnSize);
+    auto indicator = SQLLEN { SQL_NO_TOTAL };
+    auto const nullScript = std::vector<ScriptedChunk> { { .returnCode = SQL_SUCCESS, .indicator = SQL_NULL_DATA } };
+    CHECK(detail::ReadBoundValueOfUnknownLength<Ops, 1, 0>(
+              hStmt, 1, SQL_C_BINARY, &buffer, &indicator, ScriptedGetData(nullScript, calls))
+          == 0);
+    CHECK(indicator == SQL_NULL_DATA);
 }
 
 TEST_CASE_METHOD(SqlTestFixture,
@@ -1895,6 +1905,35 @@ TEST_CASE_METHOD(SqlTestFixture,
                       hStmt, RefusedColumn, staging, &indicator, ScriptedGetData(script, calls));
               })
               != "none");
+        CHECK(indicator == SQL_NO_TOTAL);
+    }
+
+    // The read fails as well: its 22001 is reported, not the refused bind's error, and the column is unbound.
+    SECTION("known length, the read fails")
+    {
+        auto const totalBytes = static_cast<SQLLEN>((staging.size() + 10) * sizeof(char16_t));
+        auto const script = std::vector<ScriptedChunk> { { .returnCode = SQL_ERROR, .indicator = 0 } };
+        auto indicator = totalBytes;
+        CHECK(SqlStateOf([&] {
+                  (void) detail::ReadBoundUtf16Staging(
+                      hStmt, RefusedColumn, staging, &indicator, ScriptedGetData(script, calls));
+              })
+              == "22001");
+        CHECK(indicator == SQL_NO_TOTAL);
+    }
+
+    SECTION("unknown length, the read fails")
+    {
+        auto const script = std::vector<ScriptedChunk> {
+            { .returnCode = SQL_SUCCESS_WITH_INFO, .indicator = SQL_NO_TOTAL },
+            { .returnCode = SQL_ERROR, .indicator = 0 },
+        };
+        auto indicator = SQLLEN { SQL_NO_TOTAL };
+        CHECK(SqlStateOf([&] {
+                  (void) detail::ReadBoundUtf16Staging(
+                      hStmt, RefusedColumn, staging, &indicator, ScriptedGetData(script, calls));
+              })
+              == "22001");
         CHECK(indicator == SQL_NO_TOTAL);
     }
 }

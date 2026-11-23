@@ -576,7 +576,8 @@ namespace detail
     /// @param getData Reads the next chunk: @c SQLGetData of the column as @p cType, given the target, its
     ///                length in bytes and the indicator.
     /// @param maxBytes The most bytes the container grows to.
-    /// @return The value's length in elements.
+    /// @return The value's length in elements; 0 for a NULL, which leaves @p indicator at @c SQL_NULL_DATA (a
+    ///         column unbound after a failed re-bind is read through here, NULL rows included).
     /// @throws SqlException 22001 when the driver cannot read the bound column again (see
     ///         @ref ThrowBoundValueNotReadable) or the value exceeds @p maxBytes; HY000 when the driver reports
     ///         a length that contradicts the call.
@@ -609,6 +610,8 @@ namespace detail
             }
             if (!SQL_SUCCEEDED(rv))
                 ThrowBoundValueNotReadable(stmt, column, SQL_NO_TOTAL);
+            if (first && *indicator == SQL_NULL_DATA)
+                return 0; // a NULL: nothing to read, the indicator says so
             first = false;
             if (rv == SQL_SUCCESS)
             {
