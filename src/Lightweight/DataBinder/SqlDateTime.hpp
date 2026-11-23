@@ -15,6 +15,7 @@
 #include <memory>
 #include <ranges>
 #include <string_view>
+#include <tuple>
 #include <vector>
 
 #include <sql.h>
@@ -34,6 +35,10 @@ struct SqlDateTime
     using native_type = std::chrono::system_clock::time_point;
     /// The duration type used for arithmetic operations.
     using duration_type = std::chrono::system_clock::duration;
+    /// The duration the arithmetic operators compute in: as fine as the fraction's 100 ns and as @ref duration_type,
+    /// independent of the tick of @c system_clock (100 ns on MSVC, 1 ns on libstdc++, 1 us on libc++).
+    using arithmetic_duration =
+        std::common_type_t<duration_type, std::chrono::duration<long long, std::ratio<1, 10'000'000>>>;
 
     /// Returns the current date and time.
     [[nodiscard]] static LIGHTWEIGHT_FORCE_INLINE SqlDateTime Now() noexcept
@@ -68,9 +73,16 @@ struct SqlDateTime
     constexpr ~SqlDateTime() noexcept = default;
 
     /// Three-way comparison operator.
+    ///
+    /// Compares the stored fields from the year down to the fraction, which orders every value the clock can
+    /// represent as value() does, and every other one too: a time point of @c system_clock overflows outside
+    /// about 1678..2262 where it counts nanoseconds (libstdc++, libc++).
     constexpr std::weak_ordering operator<=>(SqlDateTime const& other) const noexcept
     {
-        return value() <=> other.value();
+        auto const fields = [](SQL_TIMESTAMP_STRUCT const& v) noexcept {
+            return std::tuple { v.year, v.month, v.day, v.hour, v.minute, v.second, v.fraction };
+        };
+        return fields(sqlValue) <=> fields(other.sqlValue);
     }
     /// Equality comparison operator.
     constexpr bool operator==(SqlDateTime const& other) const noexcept
@@ -173,7 +185,7 @@ struct SqlDateTime
 
     // NOLINTEND(readability-identifier-naming)
 
-    /// Converts this SqlDateTime to its native time_point representation.
+    /// Converts this SqlDateTime to its native time_point representation (within the range value() documents).
     LIGHTWEIGHT_FORCE_INLINE constexpr operator native_type() const noexcept
     {
         return value();
@@ -241,38 +253,80 @@ struct SqlDateTime
         // clang-format on
     }
 
-    /// Returns the current date and time.
+    /// Returns the stored date and time as a time point of @c std::chrono::system_clock.
+    ///
+    /// Only dates the clock can count are representable: where it counts nanoseconds in 64 bits (libstdc++,
+    /// libc++) that is about 1677-09-21 to 2262-04-11; MSVC's 100 ns clock reaches years 1 to 9999. A date
+    /// outside that range overflows, so read such a value through its fields (year(), month(), ...) instead.
     [[nodiscard]] constexpr LIGHTWEIGHT_FORCE_INLINE native_type value() const noexcept
     {
         return ConvertToNative(sqlValue);
     }
 
     /// Adds a duration to this date-time.
-    LIGHTWEIGHT_FORCE_INLINE SqlDateTime& operator+=(duration_type duration) noexcept
+    ///
+    /// The sum is taken in @ref arithmetic_duration, so the fraction keeps its 100 ns digits whatever
+    /// @c system_clock counts in (microseconds on libc++).
+    LIGHTWEIGHT_FORCE_INLINE constexpr SqlDateTime& operator+=(duration_type duration) noexcept
     {
-        *this = SqlDateTime { value() + duration };
+        *this = FromArithmeticTime(ToArithmeticTime() + duration);
         return *this;
     }
 
-    /// Subtracts a duration from this date-time.
-    LIGHTWEIGHT_FORCE_INLINE SqlDateTime& operator-=(duration_type duration) noexcept
+    /// Subtracts a duration from this date-time, keeping the fraction's 100 ns digits (see operator+=()).
+    LIGHTWEIGHT_FORCE_INLINE constexpr SqlDateTime& operator-=(duration_type duration) noexcept
     {
-        *this = SqlDateTime { value() - duration };
+        *this = FromArithmeticTime(ToArithmeticTime() - duration);
         return *this;
     }
 
-    friend LIGHTWEIGHT_FORCE_INLINE SqlDateTime operator+(SqlDateTime dateTime, duration_type duration) noexcept
+    /// Returns @p dateTime plus @p duration, keeping the fraction's 100 ns digits (see operator+=()).
+    friend LIGHTWEIGHT_FORCE_INLINE constexpr SqlDateTime operator+(SqlDateTime dateTime, duration_type duration) noexcept
     {
-        return SqlDateTime { dateTime.value() + duration };
+        return dateTime += duration;
     }
 
-    friend LIGHTWEIGHT_FORCE_INLINE SqlDateTime operator-(SqlDateTime dateTime, duration_type duration) noexcept
+    /// Returns @p dateTime minus @p duration, keeping the fraction's 100 ns digits (see operator+=()).
+    friend LIGHTWEIGHT_FORCE_INLINE constexpr SqlDateTime operator-(SqlDateTime dateTime, duration_type duration) noexcept
     {
-        return SqlDateTime { dateTime.value() - duration };
+        return dateTime -= duration;
     }
 
     /// Holds the underlying SQL timestamp structure.
     SQL_TIMESTAMP_STRUCT sqlValue {};
+
+  private:
+    /// The stored date and time as a time point counted in @ref arithmetic_duration.
+    [[nodiscard]] constexpr std::chrono::sys_time<arithmetic_duration> ToArithmeticTime() const noexcept
+    {
+        using namespace std::chrono;
+        auto const date = sys_days { std::chrono::year { sqlValue.year } / std::chrono::month { sqlValue.month }
+                                     / std::chrono::day { sqlValue.day } };
+        // The fraction is a whole number of 100 ns, so this cast is exact.
+        return date
+               + duration_cast<arithmetic_duration>(hours { sqlValue.hour } + minutes { sqlValue.minute }
+                                                    + seconds { sqlValue.second } + nanoseconds { sqlValue.fraction });
+    }
+
+    /// The date and time of @p time, its fraction rounded down to 100 ns as every constructor does.
+    [[nodiscard]] static constexpr SqlDateTime FromArithmeticTime(std::chrono::sys_time<arithmetic_duration> time) noexcept
+    {
+        using namespace std::chrono;
+        auto const date = floor<days>(time);
+        auto const ymd = year_month_day { date };
+        auto const timeOfDay = hh_mm_ss<arithmetic_duration> { time - date };
+        auto result = SqlDateTime {};
+        result.sqlValue = SQL_TIMESTAMP_STRUCT {
+            .year = (SQLSMALLINT) (int) ymd.year(),
+            .month = (SQLUSMALLINT) (unsigned) ymd.month(),
+            .day = (SQLUSMALLINT) (unsigned) ymd.day(),
+            .hour = (SQLUSMALLINT) timeOfDay.hours().count(),
+            .minute = (SQLUSMALLINT) timeOfDay.minutes().count(),
+            .second = (SQLUSMALLINT) timeOfDay.seconds().count(),
+            .fraction = (SQLUINTEGER) ((duration_cast<nanoseconds>(timeOfDay.subseconds()).count() / 100) * 100),
+        };
+        return result;
+    }
 };
 
 } // namespace Lightweight

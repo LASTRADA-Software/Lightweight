@@ -4310,3 +4310,56 @@ TEST_CASE("SqlDynamicBinary: constructed from a list of bytes", "[SqlDataBinder]
     // Compared as a whole, so no element is read past what the binary holds.
     CHECK(std::ranges::equal(std::span { binary.data(), binary.size() }, std::array<std::uint8_t, 2> { 0xDE, 0xAD }));
 }
+
+namespace
+{
+
+/// A SqlDateTime on @p year at 23:59:59.9999999 of December 31 (the latest moment of the year).
+constexpr SqlDateTime EndOfYear(int year)
+{
+    using namespace std::chrono;
+    return SqlDateTime { std::chrono::year { year }, December, day { 31 }, hours { 23 }, minutes { 59 }, seconds { 59 },
+                         nanoseconds { 999'999'900 } };
+}
+
+/// A SqlDateTime at midnight of January 1 of @p year.
+constexpr SqlDateTime StartOfYear(int year)
+{
+    using namespace std::chrono;
+    return SqlDateTime { std::chrono::year { year }, January, day { 1 }, hours { 0 }, minutes { 0 }, seconds { 0 } };
+}
+
+// Compared field by field, in constant expressions, beyond what a nanosecond system_clock can count.
+static_assert(StartOfYear(1) < StartOfYear(1600));
+static_assert(StartOfYear(1600) < StartOfYear(2262));
+static_assert(EndOfYear(2262) < StartOfYear(2263));
+static_assert(StartOfYear(2263) < EndOfYear(9999));
+static_assert(EndOfYear(9999) == EndOfYear(9999));
+static_assert(StartOfYear(9999) != EndOfYear(9999));
+static_assert((EndOfYear(9999) <=> StartOfYear(1)) == std::weak_ordering::greater);
+// Beyond even a 100 ns clock (MSVC): SQL_TIMESTAMP_STRUCT holds years up to 32767.
+static_assert(EndOfYear(9999) < StartOfYear(32000));
+
+} // namespace
+
+TEST_CASE("SqlDateTime: values of every year compare and sort in time order", "[SqlDataBinder],[SqlDateTime]")
+{
+    auto values = std::vector { EndOfYear(9999),   StartOfYear(2263), StartOfYear(1), EndOfYear(2262),
+                                StartOfYear(1600), StartOfYear(9999), EndOfYear(1) };
+    std::ranges::sort(values);
+    auto const expected = std::vector { StartOfYear(1),    EndOfYear(1),      StartOfYear(1600), EndOfYear(2262),
+                                        StartOfYear(2263), StartOfYear(9999), EndOfYear(9999) };
+    CHECK(values == expected);
+    // The fields order values 100 ns apart, the fraction's unit.
+    using namespace std::chrono;
+    auto const early = SqlDateTime { year { 2000 }, March, day { 1 }, hours { 12 }, minutes { 0 }, seconds { 0 } };
+    auto const later =
+        SqlDateTime { year { 2000 }, March, day { 1 }, hours { 12 }, minutes { 0 }, seconds { 0 }, nanoseconds { 100 } };
+    CHECK(early < later);
+    // Within the clock's range the order is the time points' order, down to what the clock counts: value() has
+    // only whole microseconds on libc++, so this compares values 1 us apart.
+    auto const late =
+        SqlDateTime { year { 2000 }, March, day { 1 }, hours { 12 }, minutes { 0 }, seconds { 0 }, microseconds { 1 } };
+    CHECK(early < late);
+    CHECK((early.value() < late.value()));
+}
