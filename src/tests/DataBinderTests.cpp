@@ -835,6 +835,32 @@ TEST_CASE("SqlDateTime construction", "[SqlDataBinder],[SqlDateTime]")
     CHECK(baseDateTime.sqlValue.fraction == 123'456'700);
 }
 
+TEST_CASE("SqlDateTime construction from a date and a time of day", "[SqlDataBinder],[SqlDateTime]")
+{
+    using namespace std::chrono_literals;
+    auto const date =
+        std::chrono::year_month_day { std::chrono::year { 2025 }, std::chrono::January, std::chrono::day { 2 } };
+    // A time of day of duration_type holds what system_clock counts: 100 ns (MSVC), 1 ns (libstdc++) or only
+    // 1 us (libc++), so the 100 ns digit of 123'456'700 ns reaches the constructor only where the clock has it.
+    auto const subseconds = std::chrono::duration_cast<SqlDateTime::duration_type>(123'456'700ns);
+    auto const timeOfDay = std::chrono::hh_mm_ss<SqlDateTime::duration_type> { 12h + 34min + 56s + subseconds };
+    auto const value = SqlDateTime { date, timeOfDay };
+
+    // The fraction is the part below one second, not the whole time of day in nanoseconds.
+    auto const fraction = std::chrono::duration_cast<std::chrono::nanoseconds>(subseconds);
+    CHECK(value.sqlValue.hour == 12);
+    CHECK(value.sqlValue.minute == 34);
+    CHECK(value.sqlValue.second == 56);
+    CHECK(value.sqlValue.fraction == fraction.count());
+    CHECK(value.sqlValue.fraction >= 123'456'000);
+    CHECK(
+        value
+        == SqlDateTime(std::chrono::year { 2025 }, std::chrono::January, std::chrono::day { 2 }, 12h, 34min, 56s, fraction));
+
+    // A whole second has no fraction at all.
+    CHECK(SqlDateTime { date, std::chrono::hh_mm_ss<SqlDateTime::duration_type> { 1s } }.sqlValue.fraction == 0);
+}
+
 TEST_CASE("SqlDateTime operations", "[SqlDataBinder],[SqlDateTime]")
 {
     namespace chrono = std::chrono;

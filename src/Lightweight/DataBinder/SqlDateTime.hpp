@@ -107,7 +107,7 @@ struct SqlDateTime
             .minute = (SQLUSMALLINT) time.minutes().count(),
             .second = (SQLUSMALLINT) time.seconds().count(),
             .fraction =
-                (SQLUINTEGER) (std::chrono::duration_cast<std::chrono::nanoseconds>(time.to_duration()).count() / 100) * 100,
+                (SQLUINTEGER) (std::chrono::duration_cast<std::chrono::nanoseconds>(time.subseconds()).count() / 100) * 100,
         }
     {
     }
