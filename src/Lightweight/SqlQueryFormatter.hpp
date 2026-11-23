@@ -451,6 +451,19 @@ class [[nodiscard]] LIGHTWEIGHT_API SqlQueryFormatter
         return false;
     }
 
+    /// @brief Whether the driver converts an @c int8_t bound as @c SQL_C_STINYINT and a @c uint32_t bound as
+    /// @c SQL_C_ULONG over the type's full range.
+    ///
+    /// Defaults to `true`. SQLite returns `false`: its driver stores an @c SQL_C_STINYINT -1 as 255 and an
+    /// @c SQL_C_ULONG above @c INT32_MAX as a negative number, and reads such a value back as @c INT32_MAX.
+    /// The binders of those two types then stage each value through a wider C type.
+    ///
+    /// @return `true` if those C types round-trip their full range on this backend.
+    [[nodiscard]] virtual bool ConvertsNarrowIntegerCTypes() const noexcept
+    {
+        return true;
+    }
+
     /// @brief Returns the connection-string attributes the driver needs to realise @p settings, which it
     /// reads only when connecting.
     ///

@@ -14,6 +14,7 @@
 
 #include <algorithm>
 #include <array>
+#include <concepts>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
@@ -28,6 +29,7 @@
 #include <string>
 #include <type_traits>
 #include <variant>
+#include <vector>
 
 // NOLINTBEGIN(readability-container-size-empty, bugprone-unchecked-optional-access)
 
@@ -4218,6 +4220,467 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlGuid: text that is not a GUID fails the rea
             CHECK(std::get<std::string>(variant.value) == row.text);
         }
     }
+}
+
+namespace
+{
+
+/// Counts the native batch executes while it is installed.
+class NativeBatchCountingLogger: public SqlLogger::Null
+{
+  public:
+    NativeBatchCountingLogger()
+    {
+        SqlLogger::SetLogger(*this);
+    }
+    NativeBatchCountingLogger(NativeBatchCountingLogger const&) = delete;
+    NativeBatchCountingLogger(NativeBatchCountingLogger&&) = delete;
+    NativeBatchCountingLogger& operator=(NativeBatchCountingLogger const&) = delete;
+    NativeBatchCountingLogger& operator=(NativeBatchCountingLogger&&) = delete;
+
+    ~NativeBatchCountingLogger() override
+    {
+        SqlLogger::SetLogger(m_previousLogger);
+    }
+
+    void OnExecuteNativeBatch(std::string_view /*query*/) override
+    {
+        ++m_nativeBatches;
+    }
+
+    /// @return The native batch executes counted so far.
+    [[nodiscard]] int NativeBatches() const noexcept
+    {
+        return m_nativeBatches;
+    }
+
+  private:
+    SqlLogger& m_previousLogger = SqlLogger::GetLogger();
+    int m_nativeBatches = 0;
+};
+
+/// A row of the row-wise batch of @ref IntegerRangeTest.
+template <typename T>
+struct IntegerRangeRow
+{
+    std::int64_t id {};
+    T value {};
+};
+
+/// Writes @p values of @p T through every write path of its binder into a BIGINT column, and checks what the
+/// database stored and what every read path reads back.
+template <typename T>
+void IntegerRangeTest(std::vector<T> const& values)
+{
+    INFO("type " << Reflection::TypeNameOf<T>);
+    auto stmt = SqlStatement {};
+    auto ids = std::vector<std::int64_t> {};
+    auto expectedText = std::vector<std::string> {};
+    for (auto const index: std::views::iota(std::size_t { 0 }, values.size()))
+    {
+        ids.push_back(static_cast<std::int64_t>(index) + 1);
+        expectedText.push_back(std::to_string(values[index]));
+    }
+
+    // What the database holds, as text: a value stored wrongly also misleads every other reader.
+    auto const storedText = [&] {
+        auto stored = std::vector<std::string> {};
+        auto cursor = stmt.ExecuteDirect(R"(SELECT CAST("Value" AS VARCHAR(40)) FROM "IntegerRange" ORDER BY "Id")"sv);
+        while (cursor.FetchRow())
+            stored.push_back(cursor.GetColumn<std::string>(1));
+        return stored;
+    };
+    auto const reset = [&] {
+        (void) stmt.ExecuteDirect(R"(DELETE FROM "IntegerRange")"sv);
+        stmt.Prepare(R"(INSERT INTO "IntegerRange" ("Id", "Value") VALUES (?, ?))");
+    };
+
+    reset();
+    for (auto const index: std::views::iota(std::size_t { 0 }, values.size()))
+        (void) stmt.Execute(ids[index], values[index]);
+    CHECK(storedText() == expectedText);
+
+    reset();
+    (void) stmt.ExecuteBatch(ids, values); // column-major
+    CHECK(storedText() == expectedText);
+
+    reset();
+    auto rows = std::vector<IntegerRangeRow<T>> {};
+    for (auto const index: std::views::iota(std::size_t { 0 }, values.size()))
+        rows.push_back(IntegerRangeRow<T> { .id = ids[index], .value = values[index] });
+    {
+        auto const logger = NativeBatchCountingLogger {};
+        (void) stmt.ExecuteBatch(
+            std::span { rows },
+            [](IntegerRangeRow<T> const& row) -> std::int64_t const& { return row.id; },
+            [](IntegerRangeRow<T> const& row) -> T const& { return row.value; });
+        // The row-wise batch stays one native execute, except where the binder must stage the value: on SQLite.
+        auto const staged = SqlColumnMayStage<T>() && stmt.Connection().ServerType() == SqlServerType::SQLITE;
+        CHECK(logger.NativeBatches() == (stmt.Connection().SupportsNativeRowBatch() && !staged ? 1 : 0));
+    }
+    CHECK(storedText() == expectedText);
+
+    // Read back, from values the database holds correctly whatever the write paths did.
+    (void) stmt.ExecuteDirect(R"(DELETE FROM "IntegerRange")"sv);
+    for (auto const index: std::views::iota(std::size_t { 0 }, values.size()))
+        (void) stmt.ExecuteDirect(
+            std::format(R"(INSERT INTO "IntegerRange" ("Id", "Value") VALUES ({}, {}))", ids[index], expectedText[index]));
+    for (auto const depth: { PrefetchDepthDefault, std::size_t { 1 } })
+    {
+        INFO("prefetch depth " << depth);
+        stmt.Connection().SetDefaultPrefetchDepth(depth);
+        auto readByGetColumn = std::vector<T> {};
+        {
+            auto cursor = stmt.ExecuteDirect(R"(SELECT "Value" FROM "IntegerRange" ORDER BY "Id")"sv);
+            while (cursor.FetchRow())
+                readByGetColumn.push_back(cursor.GetColumn<T>(1));
+        }
+        CHECK(readByGetColumn == values);
+        auto readBound = std::vector<T> {};
+        {
+            auto value = T {};
+            auto cursor = stmt.ExecuteDirect(R"(SELECT "Value" FROM "IntegerRange" ORDER BY "Id")"sv);
+            cursor.BindOutputColumns(&value);
+            while (cursor.FetchRow())
+                readBound.push_back(value);
+        }
+        CHECK(readBound == values);
+    }
+    stmt.Connection().SetDefaultPrefetchDepth(PrefetchDepthDefault);
+    CHECK(stmt.ExecuteDirectScalar<T>(std::format(R"(SELECT "Value" FROM "IntegerRange" WHERE "Id" = {})", ids.back()))
+          == values.back());
+}
+
+} // namespace
+
+TEST_CASE_METHOD(SqlTestFixture, "Integer binders store and read the full range of their type", "[SqlDataBinder]")
+{
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("IntegerRange")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Bigint {})
+            .RequiredColumn("Value", SqlColumnTypeDefinitions::Bigint {});
+    });
+
+    IntegerRangeTest<std::int8_t>({ -128, -1, 0, 127 });
+    IntegerRangeTest<std::uint8_t>({ 0, 127, 128, 255 });
+    IntegerRangeTest<std::int16_t>({ -32768, -1, 32767 });
+    IntegerRangeTest<std::uint16_t>({ 0, 32767, 32768, 65535 });
+    IntegerRangeTest<std::int32_t>(
+        { (std::numeric_limits<std::int32_t>::min)(), -1, (std::numeric_limits<std::int32_t>::max)() });
+    IntegerRangeTest<std::uint32_t>({ 0, 2147483647U, 2147483648U, 4294967295U });
+}
+
+namespace
+{
+/// The SQLSTATE @p read throws, or "none".
+template <typename Read>
+std::string IntegerReadState(Read const& read)
+{
+    try
+    {
+        read();
+        return "none";
+    }
+    catch (SqlException const& error)
+    {
+        return error.info().sqlState;
+    }
+}
+} // namespace
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "int8_t and uint32_t reads of a value outside their range fail with 22003",
+                 "[SqlDataBinder]")
+{
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("NarrowOutOfRange")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Bigint {})
+            .RequiredColumn("Small", SqlColumnTypeDefinitions::Bigint {})
+            .RequiredColumn("Large", SqlColumnTypeDefinitions::Bigint {});
+    });
+    // psqlODBC converts a value outside the narrow C type's range without an error, and these types bind in place
+    // there; SQL Server raises 22003 itself, and on SQLite the staged copy is checked.
+    UNSUPPORTED_DATABASE(stmt, SqlServerType::POSTGRESQL);
+    (void) stmt.ExecuteDirect(R"(INSERT INTO "NarrowOutOfRange" ("Id", "Small", "Large") VALUES (1, 300, 4294967296))"sv);
+    auto const query = R"(SELECT "Small", "Large" FROM "NarrowOutOfRange")"sv;
+
+    // 300 is no int8_t and 4294967296 no uint32_t, nor a form an older version stored on SQLite: the read fails
+    // rather than wrapping the value, through the binders' own reads and under block prefetch alike.
+    for (auto const depth: { std::size_t { 1 }, PrefetchDepthDefault })
+    {
+        INFO("prefetch depth " << depth);
+        stmt.Connection().SetDefaultPrefetchDepth(depth);
+        CHECK(IntegerReadState([&] {
+                  auto cursor = stmt.ExecuteDirect(query);
+                  (void) cursor.FetchRow();
+                  (void) cursor.GetColumn<std::int8_t>(1);
+              })
+              == "22003");
+        CHECK(IntegerReadState([&] {
+                  auto cursor = stmt.ExecuteDirect(query);
+                  (void) cursor.FetchRow();
+                  (void) cursor.GetColumn<std::uint32_t>(2);
+              })
+              == "22003");
+        CHECK(IntegerReadState([&] {
+                  auto small = std::int8_t {};
+                  auto large = std::uint32_t {};
+                  auto cursor = stmt.ExecuteDirect(query);
+                  cursor.BindOutputColumns(&small, &large);
+                  (void) cursor.FetchRow();
+              })
+              == "22003");
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "SQLite int8_t and uint32_t rows an older version stored read back unchanged",
+                 "[SqlDataBinder]")
+{
+    auto stmt = SqlStatement {};
+    // The legacy forms are those of the SQLite driver, which stored an int8_t -1 as 255 and a uint32_t above
+    // INT32_MAX as its negative 32-bit pattern; SQL Server and PostgreSQL stored the values themselves.
+    UNSUPPORTED_DATABASE(stmt, SqlServerType::MICROSOFT_SQL);
+    UNSUPPORTED_DATABASE(stmt, SqlServerType::POSTGRESQL);
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("NarrowLegacy")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Bigint {})
+            .RequiredColumn("Small", SqlColumnTypeDefinitions::Bigint {})
+            .RequiredColumn("Large", SqlColumnTypeDefinitions::Bigint {});
+    });
+    // Written with raw SQL, as an older version left them: the stored value, the expected int8_t, the expected
+    // uint32_t (an empty expectation: SQLSTATE 22003).
+    struct LegacyRow
+    {
+        std::int64_t small = 0;
+        std::optional<std::int8_t> expectedSmall;
+        std::int64_t large = 0;
+        std::optional<std::uint32_t> expectedLarge;
+    };
+    auto const rows = std::array {
+        LegacyRow { .small = 255, .expectedSmall = -1, .large = -1, .expectedLarge = 4'294'967'295U },
+        LegacyRow { .small = 128, .expectedSmall = -128, .large = -2'147'483'648, .expectedLarge = 2'147'483'648U },
+        LegacyRow { .small = 127, .expectedSmall = 127, .large = 2'147'483'647, .expectedLarge = 2'147'483'647U },
+        LegacyRow { .small = -128, .expectedSmall = -128, .large = 4'294'967'295, .expectedLarge = 4'294'967'295U },
+        LegacyRow { .small = 0, .expectedSmall = 0, .large = 0, .expectedLarge = 0U },
+        LegacyRow { .small = 256, .expectedSmall = std::nullopt, .large = 4'294'967'296, .expectedLarge = std::nullopt },
+        LegacyRow { .small = -129, .expectedSmall = std::nullopt, .large = -2'147'483'649, .expectedLarge = std::nullopt },
+        // Outside int16_t: their 16-bit wrap (-1, -128) lies in the legacy range, the numbers do not.
+        LegacyRow { .small = 65'535, .expectedSmall = std::nullopt, .large = 0, .expectedLarge = 0U },
+        LegacyRow { .small = 65'408, .expectedSmall = std::nullopt, .large = 0, .expectedLarge = 0U },
+    };
+    for (auto const index: std::views::iota(std::size_t { 0 }, rows.size()))
+        (void) stmt.ExecuteDirect(std::format(R"(INSERT INTO "NarrowLegacy" ("Id", "Small", "Large") VALUES ({}, {}, {}))",
+                                              index,
+                                              rows[index].small,
+                                              rows[index].large));
+
+    auto const outcome = [](auto const& read) -> std::string {
+        try
+        {
+            return std::to_string(read());
+        }
+        catch (SqlException const& error)
+        {
+            return error.info().sqlState;
+        }
+    };
+    auto const expected = [](auto const& value) -> std::string {
+        return value ? std::to_string(*value) : std::string { "22003" };
+    };
+    for (auto const depth: { std::size_t { 1 }, PrefetchDepthDefault })
+    {
+        stmt.Connection().SetDefaultPrefetchDepth(depth);
+        for (auto const index: std::views::iota(std::size_t { 0 }, rows.size()))
+        {
+            INFO(std::format("depth {} row {}", depth, index));
+            auto const query = std::format(R"(SELECT "Small", "Large" FROM "NarrowLegacy" WHERE "Id" = {})", index);
+            CHECK(outcome([&] {
+                      auto cursor = stmt.ExecuteDirect(query);
+                      (void) cursor.FetchRow();
+                      return cursor.GetColumn<std::int8_t>(1);
+                  })
+                  == expected(rows[index].expectedSmall));
+            CHECK(outcome([&] {
+                      auto cursor = stmt.ExecuteDirect(query);
+                      (void) cursor.FetchRow();
+                      return cursor.GetColumn<std::uint32_t>(2);
+                  })
+                  == expected(rows[index].expectedLarge));
+        }
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "int8_t and uint32_t boundary values round-trip, with and without prefetch",
+                 "[SqlDataBinder]")
+{
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("NarrowBoundaries")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Bigint {})
+            .RequiredColumn("Small", SqlColumnTypeDefinitions::Bigint {})
+            .RequiredColumn("Large", SqlColumnTypeDefinitions::Bigint {});
+    });
+    auto const smalls = std::array<std::int8_t, 5> { -128, -1, 0, 1, 127 };
+    auto const larges = std::array<std::uint32_t, 5> { 0, 1, 2'147'483'647, 2'147'483'648, 4'294'967'295 };
+    stmt.Prepare(R"(INSERT INTO "NarrowBoundaries" ("Id", "Small", "Large") VALUES (?, ?, ?))");
+    for (auto const index: std::views::iota(std::size_t { 0 }, smalls.size()))
+        (void) stmt.Execute(static_cast<std::int64_t>(index), smalls[index], larges[index]);
+
+    for (auto const depth: { std::size_t { 1 }, PrefetchDepthDefault })
+    {
+        stmt.Connection().SetDefaultPrefetchDepth(depth);
+        auto cursor = stmt.ExecuteDirect(R"(SELECT "Small", "Large" FROM "NarrowBoundaries" ORDER BY "Id")");
+        auto index = std::size_t { 0 };
+        while (cursor.FetchRow())
+        {
+            INFO(std::format("depth {} row {}", depth, index));
+            REQUIRE(index < smalls.size());
+            CHECK(cursor.GetColumn<std::int8_t>(1) == smalls[index]);
+            CHECK(cursor.GetColumn<std::uint32_t>(2) == larges[index]);
+            ++index;
+        }
+        CHECK(index == smalls.size());
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "A NULL read into a bound int8_t or uint32_t resets it, with and without prefetch",
+                 "[SqlDataBinder]")
+{
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("NarrowNull")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Bigint {})
+            .Column("Small", SqlColumnTypeDefinitions::Bigint {})
+            .Column("Large", SqlColumnTypeDefinitions::Bigint {});
+    });
+    // Bound in place, SQL Server's and PostgreSQL's drivers leave a non-optional variable untouched on NULL, as for
+    // every other type; only SQLite stages these two types, and its staged read resets the variable as prefetch does.
+    UNSUPPORTED_DATABASE(stmt, SqlServerType::MICROSOFT_SQL);
+    UNSUPPORTED_DATABASE(stmt, SqlServerType::POSTGRESQL);
+    (void) stmt.ExecuteDirect(R"(INSERT INTO "NarrowNull" ("Id", "Small", "Large") VALUES (1, 5, 7), (2, NULL, NULL))"sv);
+    for (auto const depth: { std::size_t { 1 }, PrefetchDepthDefault })
+    {
+        INFO("prefetch depth " << depth);
+        stmt.Connection().SetDefaultPrefetchDepth(depth);
+        auto small = std::int8_t {};
+        auto large = std::uint32_t {};
+        auto cursor = stmt.ExecuteDirect(R"(SELECT "Small", "Large" FROM "NarrowNull" ORDER BY "Id")"sv);
+        cursor.BindOutputColumns(&small, &large);
+        REQUIRE(cursor.FetchRow());
+        CHECK(small == 5);
+        CHECK(large == 7U);
+        REQUIRE(cursor.FetchRow());
+        CHECK(small == 0);
+        CHECK(large == 0U);
+    }
+}
+
+TEST_CASE("SqlQueryFormatter: only SQLite stages int8_t and uint32_t", "[SqlDataBinder]")
+{
+    CHECK_FALSE(SqlQueryFormatter::Sqlite().ConvertsNarrowIntegerCTypes());
+    CHECK(SqlQueryFormatter::PostgrSQL().ConvertsNarrowIntegerCTypes());
+    CHECK(SqlQueryFormatter::SqlServer().ConvertsNarrowIntegerCTypes());
+}
+
+namespace
+{
+
+/// A record of the direct row-wise fetch test: the integer widths whose C type SQLite does not convert.
+struct NarrowIntegerRow
+{
+    std::int64_t id {};
+    std::uint32_t large {};
+    std::int8_t small {};
+    std::optional<std::uint32_t> maybeLarge {};
+};
+
+} // namespace
+
+TEST_CASE_METHOD(SqlTestFixture, "FetchAllRowWise reads the full range of int8_t and uint32_t", "[SqlDataBinder]")
+{
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("NarrowRowWise")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Bigint {})
+            .RequiredColumn("Large", SqlColumnTypeDefinitions::Bigint {})
+            .RequiredColumn("Small", SqlColumnTypeDefinitions::Bigint {})
+            .Column("MaybeLarge", SqlColumnTypeDefinitions::Bigint {});
+    });
+    (void) stmt.ExecuteDirect(R"(INSERT INTO "NarrowRowWise" ("Id", "Large", "Small", "MaybeLarge") VALUES )"
+                              R"((1, 4294967295, -128, 2147483648), (2, 2147483648, -1, NULL), (3, 0, 127, 0))"sv);
+
+    auto rows = std::vector<NarrowIntegerRow> {};
+    auto cursor = stmt.ExecuteDirect(R"(SELECT "Id", "Large", "Small", "MaybeLarge" FROM "NarrowRowWise" ORDER BY "Id")"sv);
+    cursor.FetchAllRowWise(
+        rows,
+        64,
+        [](NarrowIntegerRow& row) -> std::int64_t& { return row.id; },
+        [](NarrowIntegerRow& row) -> std::uint32_t& { return row.large; },
+        [](NarrowIntegerRow& row) -> std::int8_t& { return row.small; },
+        [](NarrowIntegerRow& row) -> std::optional<std::uint32_t>& { return row.maybeLarge; });
+
+    REQUIRE(rows.size() == 3);
+    CHECK(rows[0].large == 4294967295U);
+    CHECK(rows[0].small == -128);
+    CHECK(rows[0].maybeLarge == std::optional<std::uint32_t> { 2147483648U });
+    CHECK(rows[1].large == 2147483648U);
+    CHECK(rows[1].small == -1);
+    CHECK_FALSE(rows[1].maybeLarge.has_value());
+    CHECK(rows[2].large == 0U);
+    CHECK(rows[2].small == 127);
+}
+
+/// A record that has no default constructor: its @c int8_t member is a required field. At namespace scope rather
+/// than in an anonymous namespace, like the other records reflection may see (MSVC C7631).
+struct RequiredNarrowRecord
+{
+    std::int64_t id {};
+    Field<std::int8_t> small;
+};
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "FetchAllRowWise reads a staged column per row into records without a default constructor",
+                 "[SqlDataBinder]")
+{
+    static_assert(!std::default_initializable<RequiredNarrowRecord>);
+    auto stmt = SqlStatement {};
+    if (stmt.Connection().ServerType() != SqlServerType::SQLITE)
+        SKIP("Only SQLite stages int8_t, which makes FetchAllRowWise read per row");
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("RequiredNarrow")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Bigint {})
+            .RequiredColumn("Small", SqlColumnTypeDefinitions::Bigint {});
+    });
+    // 255 is how an older version stored -1; 300 fits no int8_t.
+    (void) stmt.ExecuteDirect(R"(INSERT INTO "RequiredNarrow" ("Id", "Small") VALUES (1, 255), (2, 127), (3, 300))"sv);
+
+    auto rows = std::vector<RequiredNarrowRecord> {};
+    auto cursor = stmt.ExecuteDirect(R"(SELECT "Id", "Small" FROM "RequiredNarrow" ORDER BY "Id")"sv);
+    auto const sqlState = [&]() -> std::string {
+        try
+        {
+            cursor.FetchAllRowWise(
+                rows,
+                64,
+                [](RequiredNarrowRecord& row) -> std::int64_t& { return row.id; },
+                [](RequiredNarrowRecord& row) -> std::int8_t& { return row.small.MutableValue(); });
+            return "none";
+        }
+        catch (SqlException const& error)
+        {
+            return error.info().sqlState;
+        }
+    }();
+
+    CHECK(sqlState == "22003");
+    REQUIRE(rows.size() == 2); // the rows read before the failing one, and only those
+    CHECK(rows[0].small.Value() == -1);
+    CHECK(rows[1].small.Value() == 127);
 }
 
 namespace

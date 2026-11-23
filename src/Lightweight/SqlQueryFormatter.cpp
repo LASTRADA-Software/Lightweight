@@ -53,6 +53,12 @@ SqlQueryFormatter const& SqlQueryFormatter::PostgrSQL()
     return formatter;
 }
 
+bool detail::ConvertsNarrowIntegerCTypes(SqlServerType serverType) noexcept
+{
+    auto const* formatter = SqlQueryFormatter::Get(serverType);
+    return formatter == nullptr || formatter->ConvertsNarrowIntegerCTypes();
+}
+
 bool detail::BooleanTrueMayBeMinusOne(SqlServerType serverType) noexcept
 {
     auto const* formatter = SqlQueryFormatter::Get(serverType);

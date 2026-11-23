@@ -68,6 +68,11 @@ class SqlServerQueryFormatter final: public SQLiteQueryFormatter
     }
 
     /// The SQL Server driver converts every integer C type over its range: undoes the SQLite formatter's answer.
+    [[nodiscard]] bool ConvertsNarrowIntegerCTypes() const noexcept override
+    {
+        return true;
+    }
+
     [[nodiscard]] bool BoundsBulkLoadTransactionSize() const noexcept override
     {
         return false;

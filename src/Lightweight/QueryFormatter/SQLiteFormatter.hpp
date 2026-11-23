@@ -57,6 +57,11 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
         return true;
     }
 
+    [[nodiscard]] bool ConvertsNarrowIntegerCTypes() const noexcept override
+    {
+        return false;
+    }
+
     [[nodiscard]] bool BoundsBulkLoadTransactionSize() const noexcept override
     {
         return true;

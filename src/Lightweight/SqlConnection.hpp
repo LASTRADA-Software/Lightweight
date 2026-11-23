@@ -480,6 +480,11 @@ class SqlConnection final
     /// per connect.
     [[nodiscard]] bool ReadsBoundColumnsAgain() const noexcept;
 
+    /// Whether the driver converts an @c int8_t and a @c uint32_t over their full range in place (see
+    /// SqlQueryFormatter::ConvertsNarrowIntegerCTypes). Decided once per connect, so the binders of those
+    /// types ask a flag rather than the formatter.
+    [[nodiscard]] bool ConvertsNarrowIntegerCTypes() const noexcept;
+
     /// Whether the driver reports a cell its column type cannot convert as NULL (see
     /// SqlQueryFormatter::ReportsUnconvertibleCellsAsNull); @c false for a backend without a formatter. Decided
     /// once per connect.
@@ -816,6 +821,7 @@ class SqlConnection final
     bool m_acceptsWideQueryText = true;
     detail::NarrowTextBinding m_narrowTextBinding = detail::NarrowTextBinding::Narrow;
     bool m_readsBoundColumnsAgain = true;
+    bool m_convertsNarrowIntegerCTypes = true;
     bool m_reportsUnconvertibleCellsAsNull = false;
     bool m_booleanTrueMayBeMinusOne = false;
     SqlStringTruncationMode m_stringTruncationMode = SqlStringTruncationMode::Truncate;
@@ -848,6 +854,11 @@ inline detail::NarrowTextBinding SqlConnection::NarrowTextBindingMode() const no
 inline bool SqlConnection::ReadsBoundColumnsAgain() const noexcept
 {
     return m_readsBoundColumnsAgain;
+}
+
+inline bool SqlConnection::ConvertsNarrowIntegerCTypes() const noexcept
+{
+    return m_convertsNarrowIntegerCTypes;
 }
 
 inline bool SqlConnection::ReportsUnconvertibleCellsAsNull() const noexcept

@@ -331,12 +331,15 @@ TEST_CASE("Formatter capabilities a connection caches answer for a backend witho
     {
         CHECK(SqlQueryFormatter::Get(serverType) == nullptr);
         CHECK_FALSE(detail::ReportsUnconvertibleCellsAsNull(serverType));
+        CHECK(detail::ConvertsNarrowIntegerCTypes(serverType));
     }
     CHECK(detail::ReportsUnconvertibleCellsAsNull(SqlServerType::SQLITE));
     CHECK_FALSE(detail::ReportsUnconvertibleCellsAsNull(SqlServerType::POSTGRESQL));
     CHECK_FALSE(detail::ReportsUnconvertibleCellsAsNull(SqlServerType::MICROSOFT_SQL));
+    CHECK_FALSE(detail::ConvertsNarrowIntegerCTypes(SqlServerType::SQLITE));
 
     // A connection that never connected has no formatter either, and answers the defaults.
     auto const unconnected = SqlConnection { std::nullopt };
     CHECK_FALSE(unconnected.ReportsUnconvertibleCellsAsNull());
+    CHECK(unconnected.ConvertsNarrowIntegerCTypes());
 }

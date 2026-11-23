@@ -210,6 +210,12 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     /// The value is bound by address: the driver reads it only at the next @c Execute(), so @p arg
     /// must stay alive until then. Temporaries are therefore rejected at compile time.
     ///
+    /// Some binders bind a copy, made when binding, rather than @p arg itself: @c SqlGuid, @c SqlDynamicNumeric,
+    /// text that is converted (UTF-8 and UTF-32 strings everywhere, narrow strings on PostgreSQL or under the
+    /// SQLite driver's code-page option), @c SqlDateTime on the legacy SQL Server driver, and on SQLite
+    /// @c int8_t and @c uint32_t. For those, a change to @p arg after binding is not seen by the next
+    /// @c Execute(): bind the value again (or pass it to @c Execute()) after changing it.
+    ///
     /// The indicator and staging storage a bind takes stays allocated until the next @c Prepare(): binding
     /// by hand and executing with @c Execute() in a loop grows it by one slot per bind, since a parameter
     /// left bound from an earlier round may still use any earlier slot. @c Execute() with arguments binds
@@ -488,6 +494,9 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     /// per-cell @c SQLGetData and no intermediate copy. @p out is grown a block at a time and trimmed to
     /// the exact row count on the final partial block.
     ///
+    /// A result set with an @c int8_t or @c uint32_t column is read per row where the driver does not convert
+    /// those C types over their full range (SQLite, see @c SqlQueryFormatter::ConvertsNarrowIntegerCTypes).
+    ///
     /// @pre Every accessor's value type satisfies @c SqlRowWiseFetchableColumn and
     ///      @c sizeof(Record) % alignof(SQLLEN) == 0 (so the row-strided indicator slots stay aligned).
     ///      The caller (DataMapper) guarantees both before selecting this path.
@@ -593,6 +602,8 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     [[nodiscard]] LIGHTWEIGHT_API SqlServerType ServerType() const noexcept override;
     [[nodiscard]] LIGHTWEIGHT_API std::string const& DriverName() const noexcept override;
     [[nodiscard]] LIGHTWEIGHT_API detail::NarrowTextBinding NarrowTextBindingMode() const noexcept override;
+    /// @copydoc SqlDataBinderCallback::ConvertsNarrowIntegerCTypes
+    [[nodiscard]] LIGHTWEIGHT_API bool ConvertsNarrowIntegerCTypes() const noexcept override;
     /// @copydoc SqlDataBinderCallback::ProvideOutputColumnStaging
     [[nodiscard]] LIGHTWEIGHT_API SqlOutputColumnStaging* ProvideOutputColumnStaging(SQLUSMALLINT column) override;
     /// @copydoc SqlDataBinderCallback::BooleanTrueMayBeMinusOne
@@ -1861,6 +1872,21 @@ concept SqlRowBindableColumn = SqlNativeRowBindableValue<V> || SqlOptionalRowBin
 template <typename V>
 concept SqlRowWiseFetchableColumn = SqlRowBindableColumn<V>;
 
+/// @brief Whether @p V (or the value type of a @c std::optional @p V) binds through a staging copy on a
+/// driver that does not convert its C type over the type's full range (see @c SqlStagedIntegerDataBinder).
+///
+/// A row-wise array bind strides the bound address through the caller's rows, so it cannot stage: on such
+/// a driver a row-wise batch carrying one takes the per-row path, and the row-wise fetch binds it in place.
+/// @return @c true for @c int8_t and @c uint32_t (and optionals of them).
+template <typename V>
+constexpr bool SqlColumnMayStage() noexcept
+{
+    if constexpr (SqlIsStdOptional<V>)
+        return SqlColumnMayStage<typename V::value_type>();
+    else
+        return requires { &SqlDataBinder<V>::OutputColumnInPlace; };
+}
+
 /// @brief Whether @p V's binder provides a row-wise batch entry point (@c BatchRowWiseInputParameter).
 ///
 /// Such types (e.g. @c std::optional of a fixed type, or inline fixed-capacity strings) need a
@@ -2074,7 +2100,12 @@ SqlResultCursor SqlStatement::ExecuteBatch(Rows const& rows, ColumnAccessors con
         bool const narrowColumnsBindInPlace =
             !anyNarrowFixedStringColumn || NarrowTextBindingMode() != detail::NarrowTextBinding::WideFromProcessCodePage;
 
-        if (m_connection->SupportsNativeRowBatch() && rowStrideOk && narrowColumnsBindInPlace)
+        // A column whose binder stages its value on this driver cannot be array-bound in the caller's rows.
+        constexpr bool anyColumnMayStage =
+            (SqlColumnMayStage<std::remove_cvref_t<std::invoke_result_t<ColumnAccessors const&, RowElem const&>>>() || ...);
+        bool const bindsInPlace = !anyColumnMayStage || detail::ConvertsNarrowIntegerCTypes(m_connection->ServerType());
+
+        if (m_connection->SupportsNativeRowBatch() && rowStrideOk && narrowColumnsBindInPlace && bindsInPlace)
             return ExecuteBatchNativeRowWise(rows, accessors...);
     }
 
@@ -2201,6 +2232,14 @@ void SqlStatement::BindRowWiseValue(SQLUSMALLINT column, void* base0, SQLLEN* in
         BeginOutputColumnBinding(column);
         RequireSuccess(SQLBindCol(m_hStmt, column, SQL_C_BIT, base0, 0, indicators));
     }
+    else if constexpr (SqlColumnMayStage<Value>())
+    {
+        // The row array strides through the records, so no staging copy: bound in place as its own C type.
+        // Only reached where the driver converts that C type over the full range: elsewhere (SQLite)
+        // FetchAllRowWise reads such a result set per row.
+        BeginOutputColumnBinding(column);
+        RequireSuccess(SqlDataBinder<Value>::OutputColumnInPlace(m_hStmt, column, static_cast<Value*>(base0), indicators));
+    }
     else
     {
         // Fixed-width value (primitive, date/time/datetime, numeric): a plain, callback-free SQLBindCol
@@ -2318,6 +2357,32 @@ void SqlStatement::FetchAllRowWise(std::vector<Record>& out, std::size_t arrayDe
 
     static_assert(sizeof...(ColumnAccessors) >= 1, "FetchAllRowWise requires at least one column accessor");
     constexpr std::size_t columnCount = sizeof...(ColumnAccessors);
+
+    // A column whose binder stages its value where the driver does not convert its C type over the full range
+    // (int8_t, uint32_t on SQLite) cannot be array-bound in the records: such a result set is read per row.
+    constexpr bool anyColumnMayStage =
+        (SqlColumnMayStage<std::remove_cvref_t<std::invoke_result_t<ColumnAccessors const&, Record&>>>() || ...);
+    if constexpr (anyColumnMayStage)
+    {
+        if (!detail::ConvertsNarrowIntegerCTypes(m_connection->ServerType()))
+        {
+            while (FetchRow())
+            {
+                auto& record = detail::EmplaceBackUninitialized(out);
+                try
+                {
+                    SQLUSMALLINT column = 0;
+                    ((++column, (void) GetColumn(column, std::addressof(accessors(record)))), ...);
+                }
+                catch (...)
+                {
+                    out.pop_back(); // keep only the rows read in full
+                    throw;
+                }
+            }
+            return;
+        }
+    }
 
     // Adapt the depth to the per-cursor memory budget. The row-strided indicator staging over-allocates
     // to sizeof(Record) per row per column, so the per-row footprint is sizeof(Record) * (1 + columns)
@@ -2766,14 +2831,21 @@ namespace detail
     /// instead). One compare, and only where @p T is narrower than the 64-bit cell: a 64-bit @p T takes the cell's
     /// bits, which is how a driver stores an unsigned 64-bit value (2^63 and above as negative). A @c bool takes 0 and
     /// 1 (and -1 where the driver reports a boolean true so, see @c BoolFromInteger) and fails with 22003 otherwise, as
-    /// its per-row read does; enumerations take the value as before.
+    /// its per-row read does; enumerations take the value as before. Where the dialect stages @c int8_t and
+    /// @c uint32_t (SQLite), those two take the decision of their per-row read, which accepts the form earlier
+    /// versions stored as well (see @c SqlStagedIntegerDataBinder::NarrowStaged).
     /// @param value The cell's value.
     /// @param column The 1-based column index, for the error.
-    /// @param cb The statement, which answers whether the driver may report a boolean true as -1.
+    /// @param cb The statement, which answers the two dialect questions.
     /// @return The value as @p T.
     template <typename T>
     [[nodiscard]] inline T IntegerCellAs(std::int64_t value, SQLUSMALLINT column, SqlDataBinderCallback const& cb)
     {
+        if constexpr (SqlColumnMayStage<T>())
+        {
+            if (!cb.ConvertsNarrowIntegerCTypes())
+                return SqlDataBinder<T>::NarrowStaged(value, column);
+        }
         if constexpr (std::same_as<T, bool>)
             return BoolFromInteger(value, column, cb.BooleanTrueMayBeMinusOne());
         else

@@ -1202,6 +1202,32 @@ namespace detail
         return SqlConnection::RoundTripsNarrowTextByteExact(serverType) && narrowTextBinding == NarrowTextBinding::Narrow;
     }
 
+    /// @return Whether @p FieldType is a result column whose binder stages its value on a driver that does
+    /// not convert its C type over the full range (see @ref SqlColumnMayStage).
+    template <typename FieldType>
+    constexpr bool ColumnMayStage()
+    {
+        if constexpr (IsField<FieldType> || IsBelongsTo<FieldType>)
+            return SqlColumnMayStage<RowWiseColumnValueType<FieldType>>();
+        else
+            return false;
+    }
+
+    /// @brief Whether any of @p Record's members @p Is is a column whose binder may stage (see ColumnMayStage()).
+    template <typename Record, std::size_t... Is>
+    constexpr bool RecordHasStagedColumnImpl(std::index_sequence<Is...> /*indices*/)
+    {
+        return (ColumnMayStage<RecordMemberTypeOf<Is, Record>>() || ...);
+    }
+
+    /// @brief Whether @p Record has a result column whose binder stages its value on some drivers. The
+    /// row-wise fetch binds such a column in place, so on such a driver the record is read per row.
+    template <typename Record>
+    constexpr bool RecordHasStagedColumn()
+    {
+        return RecordHasStagedColumnImpl<Record>(std::make_index_sequence<RecordMemberCount<Record>> {});
+    }
+
     /// @brief Whether @p Record may use the row-wise fetch fast path on @p serverType: it is row-wise
     /// fetchable, the driver supports row-array fetch, and any narrow fixed-string column round-trips
     /// byte-exact there. Single runtime gate composed from connection capabilities + the compile-time
@@ -1213,7 +1239,8 @@ namespace detail
             return false;
         else
             return SqlConnection::SupportsNativeRowArrayFetch(serverType)
-                   && (!RecordHasNarrowFixedStringColumn<Record>() || NarrowTextBindsInPlace(serverType, narrowTextBinding));
+                   && (!RecordHasNarrowFixedStringColumn<Record>() || NarrowTextBindsInPlace(serverType, narrowTextBinding))
+                   && (!RecordHasStagedColumn<Record>() || ConvertsNarrowIntegerCTypes(serverType));
     }
 
     // --- Two-record tuple (JOIN) fast path ----------------------------------------------------------
@@ -1262,7 +1289,9 @@ namespace detail
         else
             return SqlConnection::SupportsNativeRowArrayFetch(serverType)
                    && ((!RecordHasNarrowFixedStringColumn<First>() && !RecordHasNarrowFixedStringColumn<Second>())
-                       || NarrowTextBindsInPlace(serverType, narrowTextBinding));
+                       || NarrowTextBindsInPlace(serverType, narrowTextBinding))
+                   && ((!RecordHasStagedColumn<First>() && !RecordHasStagedColumn<Second>())
+                       || ConvertsNarrowIntegerCTypes(serverType));
     }
 
     /// Accessor tuple for member @p I of the @p TupleIndex-th sub-record, or empty for non-columns.

@@ -464,6 +464,11 @@ std::string const& SqlStatement::DriverName() const noexcept
     return m_connection->DriverName();
 }
 
+bool SqlStatement::ConvertsNarrowIntegerCTypes() const noexcept
+{
+    return m_connection == nullptr || m_connection->ConvertsNarrowIntegerCTypes();
+}
+
 SqlOutputColumnStaging* SqlStatement::ProvideOutputColumnStaging(SQLUSMALLINT column)
 {
     auto& slots = m_data->outputColumnStaging;

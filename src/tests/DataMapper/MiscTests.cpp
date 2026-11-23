@@ -876,3 +876,72 @@ TEST_CASE_METHOD(SqlTestFixture, "DataMapper reads long text into growable and o
     }
     CHECK(iterated == LongTextRows.size());
 }
+
+// Outside the anonymous namespace: reflection needs the record to have external linkage (MSVC C7631).
+/// A record whose integer members' binders stage their values on SQLite (see SqlStagedIntegerDataBinder).
+struct IntegerRangeRecord
+{
+    static constexpr std::string_view TableName = "IntegerRangeRecord";
+
+    Field<std::int64_t, PrimaryKey::ServerSideAutoIncrement> Id;
+    Field<std::int8_t> Small;
+    Field<std::uint32_t> Large;
+    Field<std::optional<std::uint32_t>> MaybeLarge;
+};
+
+TEST_CASE_METHOD(SqlTestFixture, "DataMapper writes and reads the full range of int8_t and uint32_t", "[DataMapper]")
+{
+    auto dm = DataMapper {};
+    {
+        // BIGINT columns, so every value fits on every database (the record's own column types do not).
+        auto stmt = SqlStatement { dm.Connection() };
+        stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+            migration.CreateTable("IntegerRangeRecord")
+                .PrimaryKeyWithAutoIncrement("Id", SqlColumnTypeDefinitions::Bigint {})
+                .RequiredColumn("Small", SqlColumnTypeDefinitions::Bigint {})
+                .RequiredColumn("Large", SqlColumnTypeDefinitions::Bigint {})
+                .Column("MaybeLarge", SqlColumnTypeDefinitions::Bigint {});
+        });
+    }
+
+    struct Expected
+    {
+        std::int8_t small {};
+        std::uint32_t large {};
+        std::optional<std::uint32_t> maybeLarge {};
+    };
+    auto const expected = std::array {
+        Expected { .small = -128, .large = 4294967295U, .maybeLarge = 2147483648U },
+        Expected { .small = -1, .large = 2147483648U, .maybeLarge = std::nullopt },
+        Expected { .small = 127, .large = 0, .maybeLarge = 4294967295U },
+    };
+    auto records = std::vector<IntegerRangeRecord> {};
+    for (auto const& row: expected)
+        records.push_back(
+            IntegerRangeRecord { .Id = {}, .Small = row.small, .Large = row.large, .MaybeLarge = row.maybeLarge });
+    // The first record through a single insert, the others through the batch insert.
+    dm.CreateExplicit(records.front());
+    auto rest = std::vector<IntegerRangeRecord>(std::next(records.begin()), records.end());
+    dm.CreateAll(rest);
+
+    // What the database holds, read as text, then every record read back.
+    auto stmt = SqlStatement { dm.Connection() };
+    auto cursor = stmt.ExecuteDirect(
+        R"(SELECT CAST("Small" AS VARCHAR(40)), CAST("Large" AS VARCHAR(40)) FROM "IntegerRangeRecord" ORDER BY "Id")");
+    for (auto const& row: expected)
+    {
+        REQUIRE(cursor.FetchRow());
+        CHECK(cursor.GetColumn<std::string>(1) == std::to_string(row.small));
+        CHECK(cursor.GetColumn<std::string>(2) == std::to_string(row.large));
+    }
+
+    auto const all = dm.Query<IntegerRangeRecord>().OrderBy("Id").All();
+    REQUIRE(all.size() == expected.size());
+    for (auto const index: std::views::iota(std::size_t { 0 }, expected.size()))
+    {
+        INFO("record " << index);
+        CHECK(all[index].Small.Value() == expected[index].small);
+        CHECK(all[index].Large.Value() == expected[index].large);
+        CHECK(all[index].MaybeLarge.Value() == expected[index].maybeLarge);
+    }
+}

@@ -168,6 +168,48 @@ such a batch the rows before the bad one are already stored.
   so after a read the fraction is always 0, on every database and path; a fraction set before writing is
   not stored.
 
+## Integer types: full range on every database
+
+Every built-in integer type round-trips its full range through an input parameter, an output column,
+`GetColumn()` and the batch paths, given a column wide enough to hold it:
+
+- An input parameter declares an SQL type that holds the whole range: `int8_t` as `SMALLINT`, `uint16_t`
+  as `INTEGER`, `uint32_t` as `BIGINT`. SQL Server checks a value against the declared type, so a narrower
+  one rejected `-1` as an `int8_t` and anything above `INT32_MAX` as a `uint32_t` with SQLSTATE `22003`.
+- The SQLite ODBC driver does not convert the C types of `int8_t` and `uint32_t` over their range (it
+  stored `-1` as `255` and `4294967295` as `-1`, and read a `uint32_t` above `INT32_MAX` back as
+  `INT32_MAX`). There, selected by `SqlQueryFormatter::ConvertsNarrowIntegerCTypes()`, those two binders
+  stage each value through a wider C type: an 8-byte staging buffer per input parameter, one buffer per
+  column of a column-wise batch, one staging value plus a copy per row for an output column. A row-wise
+  `ExecuteBatch(rows, accessors...)` carrying such a column executes row by row on SQLite, and the
+  DataMapper and `FetchAllRowWise()` read a record with such a member per row there. PostgreSQL and SQL Server bind them in place,
+  as before.
+
+The column types the DataMapper creates for these records are unchanged (`int8_t` → `TINYINT`, `uint16_t`
+→ `SMALLINT`, `uint32_t` → `INTEGER`), and they do not hold the type's whole range on every database
+(`TINYINT` is 0..255 on SQL Server; `INTEGER` is 32-bit signed on SQL Server and PostgreSQL). Declare a wider
+column where the full range matters.
+
+On SQLite a staged read checks the range too, on the per-row path and under block prefetch alike: it accepts
+the type's own range and the form an older version stored (below), and fails with SQLSTATE `22003` for
+anything else (300 or -129 read as an `int8_t`, 4294967296 or -2147483649 as a `uint32_t`), as SQL Server
+reports a value outside the type. A `NULL` read into a bound non-optional `int8_t` or `uint32_t` sets it to 0,
+as the block prefetch does. Through PostgreSQL's driver such a read converts without an error. A value passed
+through `BindInputParameter()` on SQLite is copied when it is bound, so bind it again after changing it.
+
+**SQLite databases written by an older version.** Before, `int8_t` -128..-1 was stored as 128..255 and a
+`uint32_t` above `INT32_MAX` as its negative 32-bit pattern (4294967295 as -1). Those rows read back
+unchanged: a read into `int8_t` takes 128..255 as -128..-1, and a read into `uint32_t` takes
+-2147483648..-1 as 2147483648..4294967295. The other narrow types (`uint8_t`, `int16_t`, `uint16_t`, `bool`,
+`char`) were stored as they are now. A query that compares such a column with a value (`WHERE c = ?` with -1)
+binds the true value, so it does not match the old rows until they are rewritten. Rewriting them once per
+affected column is recommended, not required for reading; both statements are idempotent:
+
+```sql
+UPDATE "Table" SET "SmallColumn" = "SmallColumn" - 256 WHERE "SmallColumn" BETWEEN 128 AND 255;  -- int8_t
+UPDATE "Table" SET "LargeColumn" = "LargeColumn" + 4294967296 WHERE "LargeColumn" < 0;          -- uint32_t
+```
+
 ## `bool`
 
 A `bool` is never written by the driver into the `bool` itself: a `bool` holding any byte but 0 or 1 is undefined
@@ -208,7 +250,9 @@ than 0 or 1 that means:
 - **PostgreSQL** writes the number's low byte: a number whose low byte is 1 or 0xFF reads `true` (257 and -255 via
   0x01; 255, 511, -1 and -257 via 0xFF), one whose low byte is 0 reads `false` (256, 512, -256), and any other
   fails with `22003` (2, 254).
-- **SQLite** writes 1 for any positive number and 0 otherwise: 2, 255 and 256 read `true`, -1 reads `false`.
+- **SQLite** writes 1 for any positive number and 0 otherwise: 2, 255 and 256 read `true`, -1 reads `false`. A
+  record that also has an `int8_t` or `uint32_t` member is read per row on SQLite (see above), so there 2 fails with
+  `22003` as in a single read.
 
 | Value in an integer column | Single read, with or without prefetch | Row-wise: SQL Server | PostgreSQL | SQLite  |
 |----------------------------|---------------------------------------|----------------------|------------|---------|

@@ -271,6 +271,7 @@ using Lightweight::SqlServerQueryFormatter;
 using Lightweight::SqlServerRetryOps;
 using Lightweight::SqlServerType;
 using Lightweight::SqlSimpleDataBinder;
+using Lightweight::SqlStagedIntegerDataBinder;
 using Lightweight::SqlStatement;
 using Lightweight::SqlStatistics;
 using Lightweight::SqlStatisticsOperation;

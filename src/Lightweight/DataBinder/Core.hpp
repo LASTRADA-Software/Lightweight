@@ -121,6 +121,12 @@ namespace detail
         return value >= 1.0;
     }
 
+    /// @brief Whether @p serverType's driver converts the @c int8_t and @c uint32_t C types over their full
+    /// range; forwards to @c SqlQueryFormatter::ConvertsNarrowIntegerCTypes, which the binders cannot include.
+    /// @param serverType The backend.
+    /// @return @c true where those binders bind in place; @c false where they stage a wider C type.
+    [[nodiscard]] LIGHTWEIGHT_API bool ConvertsNarrowIntegerCTypes(SqlServerType serverType) noexcept;
+
     /// @brief Whether @p serverType's driver reports a cell its column type cannot convert as NULL; forwards to
     /// @c SqlQueryFormatter::ReportsUnconvertibleCellsAsNull.
     /// @param serverType The backend.
@@ -287,6 +293,16 @@ class LIGHTWEIGHT_API SqlDataBinderCallback
     virtual void ReportInputParameterError(SqlErrorInfo const& error) noexcept
     {
         (void) error;
+    }
+
+    /// Whether the driver converts an @c int8_t bound as @c SQL_C_STINYINT and a @c uint32_t bound as
+    /// @c SQL_C_ULONG over the type's full range (see @c SqlQueryFormatter::ConvertsNarrowIntegerCTypes); the
+    /// binders of those types stage a wider C type where it does not. A statement answers from its connection,
+    /// which decides it once per connect.
+    /// @return @c true where those binders bind in place.
+    [[nodiscard]] virtual bool ConvertsNarrowIntegerCTypes() const noexcept
+    {
+        return detail::ConvertsNarrowIntegerCTypes(ServerType());
     }
 
     /// Provides the staging of output column @p column, which stays valid as long as the callback: a binder that

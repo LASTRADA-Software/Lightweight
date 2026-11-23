@@ -530,6 +530,7 @@ SqlConnection::SqlConnection(SqlConnection&& other) noexcept:
     m_acceptsWideQueryText { other.m_acceptsWideQueryText },
     m_narrowTextBinding { other.m_narrowTextBinding },
     m_readsBoundColumnsAgain { other.m_readsBoundColumnsAgain },
+    m_convertsNarrowIntegerCTypes { other.m_convertsNarrowIntegerCTypes },
     m_reportsUnconvertibleCellsAsNull { other.m_reportsUnconvertibleCellsAsNull },
     m_booleanTrueMayBeMinusOne { other.m_booleanTrueMayBeMinusOne },
     m_stringTruncationMode { other.m_stringTruncationMode },
@@ -559,6 +560,7 @@ SqlConnection& SqlConnection::operator=(SqlConnection&& other) noexcept
     m_acceptsWideQueryText = other.m_acceptsWideQueryText;
     m_narrowTextBinding = other.m_narrowTextBinding;
     m_readsBoundColumnsAgain = other.m_readsBoundColumnsAgain;
+    m_convertsNarrowIntegerCTypes = other.m_convertsNarrowIntegerCTypes;
     m_reportsUnconvertibleCellsAsNull = other.m_reportsUnconvertibleCellsAsNull;
     m_booleanTrueMayBeMinusOne = other.m_booleanTrueMayBeMinusOne;
     m_stringTruncationMode = other.m_stringTruncationMode;
@@ -1184,6 +1186,7 @@ void SqlConnection::DetectServer()
     // Decided before the first statement is issued, so every statement takes the right entry point.
     m_acceptsWideQueryText = DriverAcceptsWideQueryText(m_hDbc);
     m_narrowTextBinding = DetectNarrowTextBinding(m_serverType, m_data->driverConnectionString, m_data->dataSourceName);
+    m_convertsNarrowIntegerCTypes = detail::ConvertsNarrowIntegerCTypes(m_serverType);
     m_reportsUnconvertibleCellsAsNull = detail::ReportsUnconvertibleCellsAsNull(m_serverType);
     m_booleanTrueMayBeMinusOne = detail::BooleanTrueMayBeMinusOne(m_serverType);
 
