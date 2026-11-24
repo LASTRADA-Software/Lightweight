@@ -909,6 +909,107 @@ TEST_CASE_METHOD(SqlTestFixture, "ExecuteBatch column-wise of SqlTime round-trip
     CHECK(actual == std::vector<SqlTime>(times.begin(), times.end()));
 }
 
+namespace
+{
+
+/// A row of the by-value accessor batch test.
+struct NamedBatchRow
+{
+    std::int64_t id {};
+    std::string name;
+};
+
+/// Text that a batch accessor returns by value, bound in place from a buffer that outlives it, which it
+/// overwrites when it is destroyed: a row stores its text only if the value lives until the row has executed.
+struct OverwrittenWhenDestroyed
+{
+    /// The text bound, which outlives this value.
+    std::string* text {};
+
+    /// Points at @p text, which must outlive this value.
+    explicit OverwrittenWhenDestroyed(std::string* text) noexcept:
+        text { text }
+    {
+    }
+    OverwrittenWhenDestroyed(OverwrittenWhenDestroyed const&) = default;
+    OverwrittenWhenDestroyed(OverwrittenWhenDestroyed&&) = default;
+    OverwrittenWhenDestroyed& operator=(OverwrittenWhenDestroyed const&) = default;
+    OverwrittenWhenDestroyed& operator=(OverwrittenWhenDestroyed&&) = default;
+    ~OverwrittenWhenDestroyed()
+    {
+        if (text != nullptr)
+            std::ranges::fill(*text, '#');
+    }
+};
+
+} // namespace
+
+namespace Lightweight
+{
+
+/// Binds an OverwrittenWhenDestroyed as the text it points at.
+template <>
+struct SqlDataBinder<OverwrittenWhenDestroyed>
+{
+    /// Binds the text @p value points at, in place.
+    /// @return What the @c std::string binder returns.
+    static SQLRETURN InputParameter(SQLHSTMT stmt,
+                                    SQLUSMALLINT column,
+                                    OverwrittenWhenDestroyed const& value,
+                                    SqlDataBinderCallback& cb) noexcept
+    {
+        return SqlDataBinder<std::string>::InputParameter(stmt, column, *value.text, cb);
+    }
+};
+
+} // namespace Lightweight
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "ExecuteBatch of rows keeps a value an accessor returns by value alive until its row has executed",
+                 "[SqlStatement]")
+{
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("batch_by_value")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Bigint {})
+            .RequiredColumn("Name", SqlColumnTypeDefinitions::Varchar { .size = 200 });
+    });
+    stmt.Prepare(R"(INSERT INTO "batch_by_value" ("Id", "Name") VALUES (?, ?))");
+
+    // A by-value accessor takes the row-by-row path: each row binds the accessor's result before executing.
+    auto const rowCount = std::int64_t { 50 };
+    auto rows = std::vector<NamedBatchRow> {};
+    for (auto const id: std::views::iota(std::int64_t { 1 }, rowCount + 1))
+        rows.push_back(NamedBatchRow {
+            .id = id, .name = std::format("{:0>3} {}", id, std::string(100, static_cast<char>('a' + (id % 26)))) });
+    auto const idOf = [](NamedBatchRow const& row) -> std::int64_t const& {
+        return row.id;
+    };
+    (void) stmt.ExecuteBatch(std::span { rows }, idOf, [](NamedBatchRow const& row) -> std::string { return row.name; });
+
+    // A value whose destruction is visible: the text it binds must be stored before it is overwritten.
+    auto texts = std::vector<std::string> {};
+    for (auto const id: std::views::iota(rowCount + 1, (2 * rowCount) + 1))
+        texts.push_back(std::format("{:0>3} {}", id, std::string(100, static_cast<char>('A' + (id % 26)))));
+    auto const expectedTexts = texts;
+    auto pointers = std::vector<NamedBatchRow> {};
+    for (auto const id: std::views::iota(rowCount + 1, (2 * rowCount) + 1))
+        pointers.push_back(NamedBatchRow { .id = id, .name = {} });
+    (void) stmt.ExecuteBatch(std::span { pointers }, idOf, [&](NamedBatchRow const& row) {
+        return OverwrittenWhenDestroyed { &texts[static_cast<std::size_t>(row.id - rowCount - 1)] };
+    });
+
+    auto expected = std::vector<std::string> {};
+    for (auto const& row: rows)
+        expected.push_back(row.name);
+    expected.insert(expected.end(), expectedTexts.begin(), expectedTexts.end());
+    auto actual = std::vector<std::string> {};
+    auto cursor = stmt.ExecuteDirect(R"(SELECT "Name" FROM "batch_by_value" ORDER BY "Id")"sv);
+    while (cursor.FetchRow())
+        actual.push_back(cursor.GetColumn<std::string>(1));
+    CHECK(actual == expected);
+}
+
 TEST_CASE_METHOD(SqlTestFixture, "ExecuteBatch column-wise of a UTF-16 fixed string round-trips", "[SqlStatement]")
 {
     auto stmt = SqlStatement {};

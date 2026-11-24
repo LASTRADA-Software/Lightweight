@@ -331,7 +331,11 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     /// driver advertises parameter-array support (@ref SqlConnection::SupportsNativeRowBatch). A
     /// per-row runtime stride check guards against accessors that are not constant-offset subobjects.
     /// Otherwise the soft path is used, which correctly binds every supported type (strings, binary,
-    /// variant, @c std::optional of any type, …) one row at a time.
+    /// variant, @c std::optional of any type, …) one row at a time. An accessor may also return its value
+    /// by value (a computed or converted value): the soft path keeps that value alive until its row has
+    /// executed. An accessor may be called more than once per row (a check of every row's values runs
+    /// before the first row is bound), and the accessors of one row are called in an unspecified order, so
+    /// they should be free of side effects.
     ///
     /// @param rows Contiguous range of row structs (e.g. @c std::span<Record const>).
     /// @param accessors One invocable per bound column; @c accessor(row) yields that column's value.
@@ -2188,14 +2192,15 @@ SqlResultCursor SqlStatement::ExecuteBatchSoftRowMajor(Rows const& rows, ColumnA
     // Rows execute one by one: a value that cannot be written is refused before the first one is stored.
     (detail::RequireWritableYears(std::span { rowData, rowCount }, accessors), ...);
 
-    for (auto const rowIndex: std::views::iota(std::size_t { 0 }, rowCount))
-    {
-        auto const& row = rowData[rowIndex];
+    // The binders keep pointers into the values they bind, so each value must live until its row has executed.
+    // The values are the arguments of one call: a value an accessor returns by value is a temporary that lives
+    // until that call returns, and one it returns by reference is bound where it is, without a copy.
+    auto const bindAndExecuteRow = [this](auto const&... values) {
         ReuseParameterSlots();
         SQLUSMALLINT column = 0;
         ((++column,
-          RequireSuccess(SqlDataBinder<std::remove_cvref_t<decltype(accessors(row))>>::InputParameter(
-              m_hStmt, column, accessors(row), *this))),
+          RequireSuccess(
+              SqlDataBinder<std::remove_cvref_t<decltype(values)>>::InputParameter(m_hStmt, column, values, *this))),
          ...);
         SqlLogger::GetLogger().OnExecute(m_preparedQuery);
         {
@@ -2203,7 +2208,9 @@ SqlResultCursor SqlStatement::ExecuteBatchSoftRowMajor(Rows const& rows, ColumnA
             RequireExecuteSucceededOrNoData(SQLExecute(m_hStmt));
         }
         ProcessPostExecuteCallbacks();
-    }
+    };
+    for (auto const rowIndex: std::views::iota(std::size_t { 0 }, rowCount))
+        bindAndExecuteRow(accessors(rowData[rowIndex])...);
 
     return SqlResultCursor { *this };
 }
