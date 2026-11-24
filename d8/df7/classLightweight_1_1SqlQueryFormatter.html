@@ -255,6 +255,18 @@ virtual <a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.h
 <tr class="memitem:a71e6c5911a51109f735fe766680ff410" id="r_a71e6c5911a51109f735fe766680ff410"><td class="memItemLeft" align="right" valign="top">virtual bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a71e6c5911a51109f735fe766680ff410">BoundsBulkLoadTransactionSize</a> () const noexcept</td></tr>
 <tr class="memdesc:a71e6c5911a51109f735fe766680ff410"><td class="mdescLeft">&#160;</td><td class="mdescRight">Whether a bulk load should commit periodically rather than hold all its rows in one transaction.  <br /></td></tr>
 <tr class="separator:a71e6c5911a51109f735fe766680ff410"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a8ac7b33550dea498d70b6b9e15668c48" id="r_a8ac7b33550dea498d70b6b9e15668c48"><td class="memItemLeft" align="right" valign="top">virtual bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a8ac7b33550dea498d70b6b9e15668c48">ConvertsNarrowIntegerCTypes</a> () const noexcept</td></tr>
+<tr class="memdesc:a8ac7b33550dea498d70b6b9e15668c48"><td class="mdescLeft">&#160;</td><td class="mdescRight">Whether the driver converts an <code>int8_t</code> bound as <code>SQL_C_STINYINT</code> and a <code>uint32_t</code> bound as <code>SQL_C_ULONG</code> over the type's full range.  <br /></td></tr>
+<tr class="separator:a8ac7b33550dea498d70b6b9e15668c48"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a94153b2a179cf78fd25c4f061dffa9d1" id="r_a94153b2a179cf78fd25c4f061dffa9d1"><td class="memItemLeft" align="right" valign="top">virtual SqlConnectionStringMap&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a94153b2a179cf78fd25c4f061dffa9d1">DriverConnectionAttributes</a> (<a class="el" href="../../d9/d23/structLightweight_1_1SqliteConnectionSettings.html">SqliteConnectionSettings</a> const &amp;settings) const</td></tr>
+<tr class="memdesc:a94153b2a179cf78fd25c4f061dffa9d1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the connection-string attributes the driver needs to realise <code>settings</code>, which it reads only when connecting.  <br /></td></tr>
+<tr class="separator:a94153b2a179cf78fd25c4f061dffa9d1"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afec9ab58a6e0cff80972ab2893df371a" id="r_afec9ab58a6e0cff80972ab2893df371a"><td class="memItemLeft" align="right" valign="top">virtual bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#afec9ab58a6e0cff80972ab2893df371a">ReportsUnconvertibleCellsAsNull</a> () const noexcept</td></tr>
+<tr class="memdesc:afec9ab58a6e0cff80972ab2893df371a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Whether the driver reports a cell whose stored value its declared column type cannot convert (text in an INTEGER or DATE column) as NULL when the cell is read as that type.  <br /></td></tr>
+<tr class="separator:afec9ab58a6e0cff80972ab2893df371a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab0bc358f93fca71227fe152bf346c25d" id="r_ab0bc358f93fca71227fe152bf346c25d"><td class="memItemLeft" align="right" valign="top">virtual bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#ab0bc358f93fca71227fe152bf346c25d">BooleanTrueMayBeMinusOne</a> () const noexcept</td></tr>
+<tr class="memdesc:ab0bc358f93fca71227fe152bf346c25d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Whether the driver may report a boolean true as -1.  <br /></td></tr>
+<tr class="separator:ab0bc358f93fca71227fe152bf346c25d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-static-methods" name="pub-static-methods"></a>
 Static Public Member Functions</h2></td></tr>
@@ -1425,6 +1437,135 @@ template&lt;typename Range &gt; </div>
 <dl class="section return"><dt>Returns</dt><dd><code>true</code> if a bulk load bounds the rows per transaction. </dd></dl>
 
 <p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00449">449</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+
+</div>
+</div>
+<a id="a8ac7b33550dea498d70b6b9e15668c48" name="a8ac7b33550dea498d70b6b9e15668c48"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a8ac7b33550dea498d70b6b9e15668c48">&#9670;&#160;</a></span>ConvertsNarrowIntegerCTypes()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">virtual bool Lightweight::SqlQueryFormatter::ConvertsNarrowIntegerCTypes </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">virtual</span><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Whether the driver converts an <code>int8_t</code> bound as <code>SQL_C_STINYINT</code> and a <code>uint32_t</code> bound as <code>SQL_C_ULONG</code> over the type's full range. </p>
+<p>Defaults to <code>true</code>. SQLite returns <code>false</code>: its driver stores an <code>SQL_C_STINYINT</code> -1 as 255 and an <code>SQL_C_ULONG</code> above <code>INT32_MAX</code> as a negative number, and reads such a value back as <code>INT32_MAX</code>. The binders of those two types then stage each value through a wider C type.</p>
+<dl class="section return"><dt>Returns</dt><dd><code>true</code> if those C types round-trip their full range on this backend. </dd></dl>
+
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00462">462</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+
+</div>
+</div>
+<a id="a94153b2a179cf78fd25c4f061dffa9d1" name="a94153b2a179cf78fd25c4f061dffa9d1"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a94153b2a179cf78fd25c4f061dffa9d1">&#9670;&#160;</a></span>DriverConnectionAttributes()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">virtual SqlConnectionStringMap Lightweight::SqlQueryFormatter::DriverConnectionAttributes </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="../../d9/d23/structLightweight_1_1SqliteConnectionSettings.html">SqliteConnectionSettings</a> const &amp;&#160;</td>
+          <td class="paramname"><em>settings</em></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Returns the connection-string attributes the driver needs to realise <code>settings</code>, which it reads only when connecting. </p>
+<p>A connection merges each one into its connection string unless the string names that attribute already. Every dialect but SQLite returns none. The SQLite ODBC driver waits on a locked database through its own busy handler, with the <code>Timeout</code> attribute's limit (default 100000 ms), and keeps it installed whatever <code>PRAGMA</code> <code>busy_timeout</code> says; a <code>Timeout</code> below 1 means 1000000 ms to it.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">settings</td><td>The connection's SQLite settings. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The attributes by upper-case key; empty when the driver needs none. </dd></dl>
+
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00477">477</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+
+</div>
+</div>
+<a id="afec9ab58a6e0cff80972ab2893df371a" name="afec9ab58a6e0cff80972ab2893df371a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#afec9ab58a6e0cff80972ab2893df371a">&#9670;&#160;</a></span>ReportsUnconvertibleCellsAsNull()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">virtual bool Lightweight::SqlQueryFormatter::ReportsUnconvertibleCellsAsNull </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">virtual</span><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Whether the driver reports a cell whose stored value its declared column type cannot convert (text in an INTEGER or DATE column) as NULL when the cell is read as that type. </p>
+<p>Defaults to <code>false</code>. SQLite returns <code>true</code>: its columns' types are declarations only, and its driver answers such a typed read with <code>SQL_NULL_DATA</code>, so a <a class="el" href="../../df/d3f/structLightweight_1_1SqlVariant.html" title="Represents a value that can be any of the supported SQL data types.">SqlVariant</a> reads the cell again as text. </p><dl class="section return"><dt>Returns</dt><dd><code>true</code> if a typed read's NULL may hide a value of another type. </dd></dl>
+
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00489">489</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+
+</div>
+</div>
+<a id="ab0bc358f93fca71227fe152bf346c25d" name="ab0bc358f93fca71227fe152bf346c25d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab0bc358f93fca71227fe152bf346c25d">&#9670;&#160;</a></span>BooleanTrueMayBeMinusOne()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">virtual bool Lightweight::SqlQueryFormatter::BooleanTrueMayBeMinusOne </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">virtual</span><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Whether the driver may report a boolean true as -1. </p>
+<p>Defaults to <code>false</code>. PostgreSQL returns <code>true</code>: psqlODBC with the connection option <code>TrueIsMinus1=1</code> reports a boolean true as -1 (through <code>SQL_C_BIT</code> the byte 0xFF), so a <code>bool</code> read there takes -1 as <code>true</code>. </p><dl class="section return"><dt>Returns</dt><dd><code>true</code> if -1 is a form of a boolean true on this backend. </dd></dl>
+
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00499">499</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>

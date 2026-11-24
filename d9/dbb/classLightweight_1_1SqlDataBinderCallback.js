@@ -15,5 +15,10 @@ var classLightweight_1_1SqlDataBinderCallback =
     [ "ServerType", "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#aa4a1025e0d27d3e8f0c97081e2419875", null ],
     [ "DriverName", "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#a151e499b5da3afcaea3326bfb35d3c36", null ],
     [ "NarrowTextBindingMode", "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#a45b37b294222fbd105071e20e86ba3a1", null ],
-    [ "DescribeInputParameterType", "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#ad098c3dad4ee1a7363b6f2de5d875861", null ]
+    [ "DescribeInputParameterType", "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#ad098c3dad4ee1a7363b6f2de5d875861", null ],
+    [ "DescribeResultColumnType", "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#a3707d73747284f505083f490d1abb251", null ],
+    [ "ReportInputParameterError", "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#a97ad8b11f15370f16290651ddfa82c7f", null ],
+    [ "ConvertsNarrowIntegerCTypes", "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#a380f153a46c1e8de320973475bbdb05c", null ],
+    [ "ProvideOutputColumnStaging", "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#adf448d6fc9909e31a21a2f0fe66c761f", null ],
+    [ "BooleanTrueMayBeMinusOne", "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#a5a599b1702a0f87bc497e593b4c27f59", null ]
 ];

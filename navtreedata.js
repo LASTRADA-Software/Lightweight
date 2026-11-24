@@ -149,12 +149,17 @@ var NAVTREE =
         [ "Custom types and block prefetch", "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#custom-types-and-block-prefetch", null ]
       ] ],
       [ "Inspect()", "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#inspect", null ],
+      [ "UnwritableYear() (optional)", "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#unwritableyear-optional", null ],
       [ "<tt>SqlGuid</tt> and <tt>SqlTime</tt>: what a read returns", "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#sqlguid-and-sqltime-what-a-read-returns", null ],
+      [ "Integer types: full range on every database", "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#integer-types-full-range-on-every-database", null ],
+      [ "<tt>bool</tt>", "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#bool", null ],
       [ "<tt>SqlNumeric<Precision, Scale></tt> precision limits", "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#sqlnumericprecision-scale-precision-limits", [
         [ "What each accessor delivers", "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#what-each-accessor-delivers", null ],
         [ "How many of those digits survive a round-trip", "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#how-many-of-those-digits-survive-a-round-trip", null ]
       ] ],
-      [ "How <tt>SqlVariant</tt> decides which alternative to fill", "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#how-sqlvariant-decides-which-alternative-to-fill", null ],
+      [ "How <tt>SqlVariant</tt> decides which alternative to fill", "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#how-sqlvariant-decides-which-alternative-to-fill", [
+        [ "SQLite: a cell whose value is not of its column's type", "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#sqlite-a-cell-whose-value-is-not-of-its-columns-type", null ]
+      ] ],
       [ "<tt>SqlDynamicNumeric</tt>: exact decimals in a <tt>SqlVariant</tt>", "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#sqldynamicnumeric-exact-decimals-in-a-sqlvariant", [
         [ "When a column does not fit", "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#when-a-column-does-not-fit", null ]
       ] ],
@@ -439,15 +444,15 @@ var NAVTREEINDEX =
 [
 "annotated.html",
 "d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html#a91bfca7ee0426ab2e20aa926dc627293",
-"d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a4a3c08e9053c7409a170abd9891e15bf",
-"d6/d46/classLightweight_1_1Zip_1_1ZipEntry.html#a5d201bcfee8b32a1b40be54646a00387",
-"d7/d53/structLightweight_1_1SqlTime.html#aa3a8628bcc0afb2df5a174ed754d74df",
-"d8/deb/HasMany_8hpp_source.html",
-"da/d23/BelongsTo_8hpp_source.html",
-"db/dad/classLightweight_1_1SqlStatement.html#a974caa85fa8a93440fa9d7ef964464ee",
-"de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#a39e111bb6b1fd0a6d1b950385d1ae7bf",
-"de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#what-each-accessor-delivers",
-"functions_q.html"
+"d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a48ed86737153cbf627f517f3b0d11322",
+"d6/d46/classLightweight_1_1Zip_1_1ZipEntry.html#a2299e18f28f3ace1f4f16512a58dcc7d",
+"d7/d53/structLightweight_1_1SqlTime.html#a9514703950ebb6f7ac3251976256813b",
+"d8/dd2/structLightweight_1_1SqlFieldExpression.html#afe87625542faab00a7af2b26a45849f5",
+"da/d07/structLightweight_1_1SqlRawColumnMetadata.html#a9437efb270ef1560d5cd08a1275d6d10",
+"db/dad/classLightweight_1_1SqlStatement.html#a2f51e2e203c890b25312deadcad244b1",
+"dd/dde/classLightweight_1_1SqlDiagnosticSource.html#a75629e57362de728f0356e35f838953a",
+"de/dae/classLightweight_1_1SqlFixedString.html#aa32ffd4a90d06f0ac4fa6d701712cded",
+"functions_func_c.html"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

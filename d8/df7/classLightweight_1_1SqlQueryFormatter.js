@@ -44,5 +44,9 @@ var classLightweight_1_1SqlQueryFormatter =
     [ "ComparesFixedCharWithPadSemantics", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#afc290a0d92f83f5125f2d738f9c7b5f9", null ],
     [ "FoldUnquotedIdentifier", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#afb75f0c0a2d379bdc2ee9711cad748ec", null ],
     [ "ParameterStatusIdentifiesFailedRows", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#ac31747a66913dd0df3a4cbfc35997fcd", null ],
-    [ "BoundsBulkLoadTransactionSize", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a71e6c5911a51109f735fe766680ff410", null ]
+    [ "BoundsBulkLoadTransactionSize", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a71e6c5911a51109f735fe766680ff410", null ],
+    [ "ConvertsNarrowIntegerCTypes", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a8ac7b33550dea498d70b6b9e15668c48", null ],
+    [ "DriverConnectionAttributes", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a94153b2a179cf78fd25c4f061dffa9d1", null ],
+    [ "ReportsUnconvertibleCellsAsNull", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#afec9ab58a6e0cff80972ab2893df371a", null ],
+    [ "BooleanTrueMayBeMinusOne", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#ab0bc358f93fca71227fe152bf346c25d", null ]
 ];

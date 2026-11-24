@@ -103,6 +103,9 @@ $(document).ready(function(){initNavTree('da/d2d/structLightweight_1_1SqlDataBin
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="nested-classes" name="nested-classes"></a>
 Classes</h2></td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/da7/structLightweight_1_1SqlDataBinder_3_01SqlDynamicNumeric_01_4_1_1DeclaredDigits.html">DeclaredDigits</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">The precision and scale a result column declares, as <a class="el" href="../../d7/d2c/structLightweight_1_1SqlDynamicNumeric.html" title="A fixed-point decimal whose precision and scale are known only at run time.">SqlDynamicNumeric</a> digit counts.  <a href="../../d9/da7/structLightweight_1_1SqlDataBinder_3_01SqlDynamicNumeric_01_4_1_1DeclaredDigits.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../db/d29/structLightweight_1_1SqlDataBinder_3_01SqlDynamicNumeric_01_4_1_1Literal.html">Literal</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">A decimal column's text, as delivered by a single SQLGetData call.  <a href="../../db/d29/structLightweight_1_1SqlDataBinder_3_01SqlDynamicNumeric_01_4_1_1Literal.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -114,6 +117,10 @@ Static Public Member Functions</h2></td></tr>
 <tr class="separator:a310d82871dab9637b5dacede95851854"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:adf9871bcc5f37911fa216b1126f82879" id="r_adf9871bcc5f37911fa216b1126f82879"><td class="memItemLeft" align="right" valign="top">static LIGHTWEIGHT_FORCE_INLINE Literal&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/d2d/structLightweight_1_1SqlDataBinder_3_01SqlDynamicNumeric_01_4.html#adf9871bcc5f37911fa216b1126f82879">ReadLiteral</a> (SQLHSTMT stmt, SQLUSMALLINT column, SQLLEN *indicator, std::span&lt; char &gt; buffer) noexcept</td></tr>
 <tr class="separator:adf9871bcc5f37911fa216b1126f82879"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aeec16157e148ecaf969a57b14a6ff639" id="r_aeec16157e148ecaf969a57b14a6ff639"><td class="memItemLeft" align="right" valign="top">static LIGHTWEIGHT_FORCE_INLINE DeclaredDigits&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/d2d/structLightweight_1_1SqlDataBinder_3_01SqlDynamicNumeric_01_4.html#aeec16157e148ecaf969a57b14a6ff639">ColumnDigits</a> (SQLHSTMT stmt, SQLUSMALLINT column) noexcept</td></tr>
+<tr class="separator:aeec16157e148ecaf969a57b14a6ff639"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab4a870fee4f5373c36aa4176a5ba92e3" id="r_ab4a870fee4f5373c36aa4176a5ba92e3"><td class="memItemLeft" align="right" valign="top">static LIGHTWEIGHT_FORCE_INLINE std::optional&lt; <a class="el" href="../../d7/d2c/structLightweight_1_1SqlDynamicNumeric.html">SqlDynamicNumeric</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/d2d/structLightweight_1_1SqlDataBinder_3_01SqlDynamicNumeric_01_4.html#ab4a870fee4f5373c36aa4176a5ba92e3">FromLiteral</a> (std::string_view literal, DeclaredDigits declared) noexcept</td></tr>
+<tr class="separator:ab4a870fee4f5373c36aa4176a5ba92e3"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a530bd701c6e7cee3015fb8c2141030dd" id="r_a530bd701c6e7cee3015fb8c2141030dd"><td class="memItemLeft" align="right" valign="top">static LIGHTWEIGHT_FORCE_INLINE std::optional&lt; <a class="el" href="../../d7/d2c/structLightweight_1_1SqlDynamicNumeric.html">SqlDynamicNumeric</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/d2d/structLightweight_1_1SqlDataBinder_3_01SqlDynamicNumeric_01_4.html#a530bd701c6e7cee3015fb8c2141030dd">FromColumnLiteral</a> (SQLHSTMT stmt, SQLUSMALLINT column, std::string_view literal) noexcept</td></tr>
 <tr class="separator:a530bd701c6e7cee3015fb8c2141030dd"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a354ed4f709c5f9c773b6ef4320ec5d33" id="r_a354ed4f709c5f9c773b6ef4320ec5d33"><td class="memItemLeft" align="right" valign="top">static LIGHTWEIGHT_FORCE_INLINE SQLRETURN&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/d2d/structLightweight_1_1SqlDataBinder_3_01SqlDynamicNumeric_01_4.html#a354ed4f709c5f9c773b6ef4320ec5d33">TryGetColumn</a> (SQLHSTMT stmt, SQLUSMALLINT column, <a class="el" href="../../d7/d2c/structLightweight_1_1SqlDynamicNumeric.html">SqlDynamicNumeric</a> *result, SQLLEN *indicator, <a class="el" href="../../d9/dbb/classLightweight_1_1SqlDataBinderCallback.html">SqlDataBinderCallback</a> const &amp;) noexcept</td></tr>
@@ -134,7 +141,7 @@ Static Public Attributes</h2></td></tr>
 <div class="textblock"><p>Binds <a class="el" href="../../d7/d2c/structLightweight_1_1SqlDynamicNumeric.html">SqlDynamicNumeric</a> as an exact decimal literal.</p>
 <p>Text is deliberately the wire format in both directions. <code>SQL_C_NUMERIC</code> needs the application to publish precision and scale on the descriptor before each call and is honoured inconsistently — the SQL Server driver returns scale-0 values without it and the SQLite driver has no native support at all, which is why <code>SqlDataBinder&lt;<a class="el" href="../../d6/d1b/structLightweight_1_1SqlNumeric.html">SqlNumeric</a>&lt;P, S&gt;&gt;</code> routes both backends around it. Every supported driver converts between a decimal column and its literal exactly, with no binary floating-point step, so this path keeps all digits on all backends. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00337">337</a> of file <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html">SqlDynamicNumeric.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00375">375</a> of file <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html">SqlDynamicNumeric.hpp</a>.</p>
 </div><h2 class="groupheader">Member Function Documentation</h2>
 <a id="a310d82871dab9637b5dacede95851854" name="a310d82871dab9637b5dacede95851854"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a310d82871dab9637b5dacede95851854">&#9670;&#160;</a></span>InputParameter()</h2>
@@ -184,7 +191,9 @@ Static Public Attributes</h2></td></tr>
 
 <p>Binds the value as an input parameter, rendered as an exact decimal literal. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00343">343</a> of file <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html">SqlDynamicNumeric.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00381">381</a> of file <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html">SqlDynamicNumeric.hpp</a>.</p>
+
+<p class="reference">References <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00298">Lightweight::SqlDynamicNumeric::MaxLiteralLength</a>.</p>
 
 </div>
 </div>
@@ -245,7 +254,106 @@ Static Public Attributes</h2></td></tr>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00399">399</a> of file <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html">SqlDynamicNumeric.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00438">438</a> of file <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html">SqlDynamicNumeric.hpp</a>.</p>
+
+</div>
+</div>
+<a id="aeec16157e148ecaf969a57b14a6ff639" name="aeec16157e148ecaf969a57b14a6ff639"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aeec16157e148ecaf969a57b14a6ff639">&#9670;&#160;</a></span>ColumnDigits()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">static LIGHTWEIGHT_FORCE_INLINE DeclaredDigits Lightweight::SqlDataBinder&lt; <a class="el" href="../../d7/d2c/structLightweight_1_1SqlDynamicNumeric.html">SqlDynamicNumeric</a> &gt;::ColumnDigits </td>
+          <td>(</td>
+          <td class="paramtype">SQLHSTMT&#160;</td>
+          <td class="paramname"><em>stmt</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">SQLUSMALLINT&#160;</td>
+          <td class="paramname"><em>column</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">static</span><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Asks the driver for the precision and scale result column <code>column</code> declares (two <code>SQLColAttribute</code> calls). </p><dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">stmt</td><td>The statement handle. </td></tr>
+    <tr><td class="paramname">column</td><td>The 1-based column index. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The declared digits; 0 for what the driver does not report. </dd></dl>
+
+<p class="definition">Definition at line <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00485">485</a> of file <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html">SqlDynamicNumeric.hpp</a>.</p>
+
+</div>
+</div>
+<a id="ab4a870fee4f5373c36aa4176a5ba92e3" name="ab4a870fee4f5373c36aa4176a5ba92e3"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab4a870fee4f5373c36aa4176a5ba92e3">&#9670;&#160;</a></span>FromLiteral()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">static LIGHTWEIGHT_FORCE_INLINE std::optional&lt; <a class="el" href="../../d7/d2c/structLightweight_1_1SqlDynamicNumeric.html">SqlDynamicNumeric</a> &gt; Lightweight::SqlDataBinder&lt; <a class="el" href="../../d7/d2c/structLightweight_1_1SqlDynamicNumeric.html">SqlDynamicNumeric</a> &gt;::FromLiteral </td>
+          <td>(</td>
+          <td class="paramtype">std::string_view&#160;</td>
+          <td class="paramname"><em>literal</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">DeclaredDigits&#160;</td>
+          <td class="paramname"><em>declared</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">static</span><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Converts a decimal literal into an exact value, using a column's declared precision and scale. </p><dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">literal</td><td>The trimmed decimal literal. </td></tr>
+    <tr><td class="paramname">declared</td><td>The column's declared digits (see <a class="el" href="../../da/d2d/structLightweight_1_1SqlDataBinder_3_01SqlDynamicNumeric_01_4.html#aeec16157e148ecaf969a57b14a6ff639">ColumnDigits()</a>). </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">std::nullopt</td><td>The value needs more digits than the unscaled 64-bit carrier holds; see <code>SqlMaxDynamicNumericPrecision</code>. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+<p class="definition">Definition at line <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00505">505</a> of file <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html">SqlDynamicNumeric.hpp</a>.</p>
+
+<p class="reference">References <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00355">Lightweight::SqlDynamicNumeric::FromString()</a>.</p>
 
 </div>
 </div>
@@ -288,7 +396,7 @@ Static Public Attributes</h2></td></tr>
   </tr>
 </table>
 </div><div class="memdoc">
-<p>Converts a decimal literal into an exact value, using the column's declared precision and scale.</p>
+<p>Converts a decimal literal into an exact value, using the column's declared precision and scale, which it asks the driver for (see <a class="el" href="../../da/d2d/structLightweight_1_1SqlDataBinder_3_01SqlDynamicNumeric_01_4.html#aeec16157e148ecaf969a57b14a6ff639">ColumnDigits()</a>).</p>
 <dl class="retval"><dt>Return values</dt><dd>
   <table class="retval">
     <tr><td class="paramname">std::nullopt</td><td>The value needs more digits than the unscaled 64-bit carrier holds; see <code>SqlMaxDynamicNumericPrecision</code>. </td></tr>
@@ -296,9 +404,7 @@ Static Public Attributes</h2></td></tr>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00439">439</a> of file <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html">SqlDynamicNumeric.hpp</a>.</p>
-
-<p class="reference">References <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00317">Lightweight::SqlDynamicNumeric::FromString()</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00520">520</a> of file <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html">SqlDynamicNumeric.hpp</a>.</p>
 
 </div>
 </div>
@@ -361,7 +467,7 @@ Static Public Attributes</h2></td></tr>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00470">470</a> of file <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html">SqlDynamicNumeric.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00534">534</a> of file <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html">SqlDynamicNumeric.hpp</a>.</p>
 
 </div>
 </div>
@@ -424,9 +530,9 @@ Static Public Attributes</h2></td></tr>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00499">499</a> of file <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html">SqlDynamicNumeric.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00563">563</a> of file <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html">SqlDynamicNumeric.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../d9/d02/SqlError_8hpp_source.html#l00034">Lightweight::SqlErrorInfo::nativeErrorCode</a>.</p>
+<p class="reference">References <a class="el" href="../../d9/d02/SqlError_8hpp_source.html#l00036">Lightweight::SqlErrorInfo::nativeErrorCode</a>.</p>
 
 </div>
 </div>
@@ -456,9 +562,9 @@ Static Public Attributes</h2></td></tr>
 
 <p>Renders the value for SQL trace logs. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00519">519</a> of file <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html">SqlDynamicNumeric.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00583">583</a> of file <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html">SqlDynamicNumeric.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00294">Lightweight::SqlDynamicNumeric::ToString()</a>.</p>
+<p class="reference">References <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00343">Lightweight::SqlDynamicNumeric::ToString()</a>.</p>
 
 </div>
 </div>
@@ -485,7 +591,7 @@ Static Public Attributes</h2></td></tr>
 
 <p>Widest decimal ODBC admits, so no supported backend can overflow the bind buffer. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00340">340</a> of file <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html">SqlDynamicNumeric.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00378">378</a> of file <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html">SqlDynamicNumeric.hpp</a>.</p>
 
 </div>
 </div>

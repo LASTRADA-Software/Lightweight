@@ -161,9 +161,7 @@ virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>OnScopedTimer
 virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>OnConnectionOpened</b> (<a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html">SqlConnection</a> const &amp;connection)=0</td></tr>
 <tr class="memdesc:af7d984686564f12829697aaffa839395"><td class="mdescLeft">&#160;</td><td class="mdescRight">Invoked when a connection is opened. <br /></td></tr>
 <tr class="separator:af7d984686564f12829697aaffa839395"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aa4a431f0941273837878750619925192" id="r_aa4a431f0941273837878750619925192"><td class="memItemLeft" align="right" valign="top"><a id="aa4a431f0941273837878750619925192" name="aa4a431f0941273837878750619925192"></a>
-virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>OnConnectionClosed</b> (<a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html">SqlConnection</a> const &amp;connection)=0</td></tr>
-<tr class="memdesc:aa4a431f0941273837878750619925192"><td class="mdescLeft">&#160;</td><td class="mdescRight">Invoked when a connection is closed. <br /></td></tr>
+<tr class="memitem:aa4a431f0941273837878750619925192" id="r_aa4a431f0941273837878750619925192"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../db/dfd/classLightweight_1_1SqlLogger.html#aa4a431f0941273837878750619925192">OnConnectionClosed</a> (<a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html">SqlConnection</a> const &amp;connection)=0</td></tr>
 <tr class="separator:aa4a431f0941273837878750619925192"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab340e6fd29c7dc20244185b4faec7940" id="r_ab340e6fd29c7dc20244185b4faec7940"><td class="memItemLeft" align="right" valign="top"><a id="ab340e6fd29c7dc20244185b4faec7940" name="ab340e6fd29c7dc20244185b4faec7940"></a>
 virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>OnConnectionIdle</b> (<a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html">SqlConnection</a> const &amp;connection)=0</td></tr>
@@ -362,6 +360,33 @@ Protected Attributes</h2></td></tr>
 
 </div>
 </div>
+<a id="aa4a431f0941273837878750619925192" name="aa4a431f0941273837878750619925192"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa4a431f0941273837878750619925192">&#9670;&#160;</a></span>OnConnectionClosed()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">virtual void Lightweight::SqlLogger::OnConnectionClosed </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html">SqlConnection</a> const &amp;&#160;</td>
+          <td class="paramname"><em>connection</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">pure virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Invoked when a connection's session has ended: by <code><a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#a85b56ddb608b6c84fe33b7bff71a7f24">SqlConnection::Close()</a></code> (also from the destructor) or by a <code>Connect()</code> that replaces it, once for each session reported opened, after the driver disconnected. The connection can no longer query its server then; its identity (<code>ConnectionId()</code>) and connection string are still those of the ended session. </p>
+
+</div>
+</div>
 <a id="a8f14312f2f4bf2436d124947d9150716" name="a8f14312f2f4bf2436d124947d9150716"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a8f14312f2f4bf2436d124947d9150716">&#9670;&#160;</a></span>OnBindInputParameter()</h2>
 
@@ -400,7 +425,7 @@ template&lt;typename T &gt; </div>
 
 <p>Invoked when an input parameter is bound. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/de5/SqlLogger_8hpp_source.html#l00097">97</a> of file <a class="el" href="../../d9/de5/SqlLogger_8hpp_source.html">SqlLogger.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/de5/SqlLogger_8hpp_source.html#l00100">100</a> of file <a class="el" href="../../d9/de5/SqlLogger_8hpp_source.html">SqlLogger.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="../../db/dfd/classLightweight_1_1SqlLogger.html#a7d32ec109f6a93e7680a8ac63c92f2de">OnBind()</a>.</p>
 
@@ -433,7 +458,7 @@ template&lt;typename T &gt; </div>
 <p>Invoked once per block-prefetch round-trip (one <code>SQLFetchScroll</code> that materialized a whole row block on the transparent prefetch path), with the number of rows the block yielded. </p>
 <p>Non-pure with an empty default so existing loggers need no change; override to observe how many network round-trips a query actually cost (N rows at depth D collapse to <code>ceil</code>(N/D) blocks). The argument is the number of rows materialized by this block fetch (0 at end of result set). </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/de5/SqlLogger_8hpp_source.html#l00127">127</a> of file <a class="el" href="../../d9/de5/SqlLogger_8hpp_source.html">SqlLogger.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/de5/SqlLogger_8hpp_source.html#l00130">130</a> of file <a class="el" href="../../d9/de5/SqlLogger_8hpp_source.html">SqlLogger.hpp</a>.</p>
 
 </div>
 </div>
@@ -488,7 +513,7 @@ template&lt;typename T &gt; </div>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/de5/SqlLogger_8hpp_source.html#l00141">141</a> of file <a class="el" href="../../d9/de5/SqlLogger_8hpp_source.html">SqlLogger.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/de5/SqlLogger_8hpp_source.html#l00144">144</a> of file <a class="el" href="../../d9/de5/SqlLogger_8hpp_source.html">SqlLogger.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="../../db/dfd/classLightweight_1_1SqlLogger.html#a2af9309b27fd6bef80768c26080368ea">OnError()</a>.</p>
 
@@ -527,7 +552,7 @@ template&lt;typename T &gt; </div>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/de5/SqlLogger_8hpp_source.html#l00153">153</a> of file <a class="el" href="../../d9/de5/SqlLogger_8hpp_source.html">SqlLogger.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/de5/SqlLogger_8hpp_source.html#l00156">156</a> of file <a class="el" href="../../d9/de5/SqlLogger_8hpp_source.html">SqlLogger.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="../../db/dfd/classLightweight_1_1SqlLogger.html#a89a7b4c6fd89c71bfdab6e81b7f15f35">OnExecuteBatch()</a>.</p>
 
@@ -611,7 +636,7 @@ template&lt;typename T &gt; </div>
 
 <p>The function used to write log messages. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/de5/SqlLogger_8hpp_source.html#l00189">189</a> of file <a class="el" href="../../d9/de5/SqlLogger_8hpp_source.html">SqlLogger.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/de5/SqlLogger_8hpp_source.html#l00192">192</a> of file <a class="el" href="../../d9/de5/SqlLogger_8hpp_source.html">SqlLogger.hpp</a>.</p>
 
 </div>
 </div>

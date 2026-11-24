@@ -116,8 +116,10 @@ var hierarchy =
     [ "Lightweight::SqlCreateIndexOptions", "d3/d9d/structLightweight_1_1SqlCreateIndexOptions.html", null ],
     [ "Lightweight::SqlCreateIndexPlan", "dd/d2b/structLightweight_1_1SqlCreateIndexPlan.html", null ],
     [ "Lightweight::SqlCreateTableQueryBuilder", "d4/de8/classLightweight_1_1SqlCreateTableQueryBuilder.html", null ],
+    [ "Lightweight::SqlDataBinder< bool >", "df/db8/structLightweight_1_1SqlDataBinder_3_01bool_01_4.html", null ],
     [ "Lightweight::SqlDataBinder< char >", "d8/dca/structLightweight_1_1SqlDataBinder_3_01char_01_4.html", null ],
     [ "Lightweight::SqlDataBinder< SqlDynamicNumeric >", "da/d2d/structLightweight_1_1SqlDataBinder_3_01SqlDynamicNumeric_01_4.html", null ],
+    [ "Lightweight::SqlDataBinder< SqlDynamicNumeric >::DeclaredDigits", "d9/da7/structLightweight_1_1SqlDataBinder_3_01SqlDynamicNumeric_01_4_1_1DeclaredDigits.html", null ],
     [ "Lightweight::SqlDataBinder< SqlDynamicNumeric >::Literal", "db/d29/structLightweight_1_1SqlDataBinder_3_01SqlDynamicNumeric_01_4_1_1Literal.html", null ],
     [ "Lightweight::SqlDataBinderCallback", "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html", [
       [ "Lightweight::SqlStatement", "db/dad/classLightweight_1_1SqlStatement.html", null ]
@@ -174,6 +176,7 @@ var hierarchy =
     [ "Lightweight::SqlNumeric< ThePrecision, TheScale >", "d6/d1b/structLightweight_1_1SqlNumeric.html", null ],
     [ "Lightweight::SqlOperationStatistics", "d4/d7d/structLightweight_1_1SqlOperationStatistics.html", null ],
     [ "Lightweight::SqlOutputColumnPreFetch", "dc/d16/structLightweight_1_1SqlOutputColumnPreFetch.html", null ],
+    [ "Lightweight::SqlOutputColumnStaging", "dc/d1c/structLightweight_1_1SqlOutputColumnStaging.html", null ],
     [ "Lightweight::SqlPoolStatistics", "da/da6/structLightweight_1_1SqlPoolStatistics.html", null ],
     [ "Lightweight::SqlPreparedStatementCache", "d3/d0f/classLightweight_1_1SqlPreparedStatementCache.html", null ],
     [ "Lightweight::SqlPreparedStatementCache::PreparedHandle", "de/d91/structLightweight_1_1SqlPreparedStatementCache_1_1PreparedHandle.html", null ],
@@ -203,6 +206,7 @@ var hierarchy =
     [ "Lightweight::SqlScopedLock", "d3/de6/classLightweight_1_1SqlScopedLock.html", null ],
     [ "Lightweight::SqlScopedTimeLogger", "dc/d6c/classLightweight_1_1SqlScopedTimeLogger.html", null ],
     [ "Lightweight::SqlScopedTraceLogger", "df/d9c/classLightweight_1_1SqlScopedTraceLogger.html", null ],
+    [ "Lightweight::SqlStagedIntegerDataBinder< T, TheCType, TheSqlType, WideType, WideCType, TheColumnType >", "dc/d64/structLightweight_1_1SqlStagedIntegerDataBinder.html", null ],
     [ "Lightweight::SqlStatistics", "dd/de6/classLightweight_1_1SqlStatistics.html", null ],
     [ "Lightweight::SqlStatisticsScope", "d9/d5c/classLightweight_1_1SqlStatisticsScope.html", null ],
     [ "Lightweight::SqlStatisticsSnapshot", "df/d4e/structLightweight_1_1SqlStatisticsSnapshot.html", null ],
@@ -222,6 +226,8 @@ var hierarchy =
     [ "Lightweight::Zip::ZipArchive", "d4/d8a/classLightweight_1_1Zip_1_1ZipArchive.html", null ],
     [ "Lightweight::Zip::ZipEntry", "d6/d46/classLightweight_1_1Zip_1_1ZipEntry.html", null ],
     [ "Lightweight::Zip::ZipError", "da/dd4/structLightweight_1_1Zip_1_1ZipError.html", null ],
+    [ "Lightweight::SqlStagedIntegerDataBinder< int8_t, SQL_C_STINYINT, SQL_SMALLINT, int64_t, SQL_C_SBIGINT, SqlColumnTypeDefinitions::Tinyint {}>", "dc/d64/structLightweight_1_1SqlStagedIntegerDataBinder.html", null ],
+    [ "Lightweight::SqlStagedIntegerDataBinder< uint32_t, SQL_C_ULONG, SQL_BIGINT, int64_t, SQL_C_SBIGINT, SqlColumnTypeDefinitions::Integer {}>", "dc/d64/structLightweight_1_1SqlStagedIntegerDataBinder.html", null ],
     [ "Lightweight::SqlWhereClauseBuilder< SqlAllFieldsQueryBuilder< Record, QueryOptions, SqlQueryExecutionMode::Synchronous > >", "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html", null ],
     [ "Lightweight::SqlWhereClauseBuilder< SqlDeleteQueryBuilder >", "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html", [
       [ "Lightweight::SqlDeleteQueryBuilder", "d1/d57/classLightweight_1_1SqlDeleteQueryBuilder.html", null ]

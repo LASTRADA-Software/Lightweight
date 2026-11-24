@@ -31,6 +31,7 @@ var searchData=
   ['providebatchstagingbuffer_28',['ProvideBatchStagingBuffer',['../d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#af7acc1d446fc49ea446f8ae20f58518c',1,'Lightweight::SqlDataBinderCallback']]],
   ['provideinputindicator_29',['ProvideInputIndicator',['../d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#a7d7b102126f4b2455df46e31906cb189',1,'Lightweight::SqlDataBinderCallback']]],
   ['provideinputindicators_30',['ProvideInputIndicators',['../d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#ad2b577cf0e7a7cc9eb671677b42cb914',1,'Lightweight::SqlDataBinderCallback']]],
-  ['push_31',['Push',['../d4/d9e/classLightweight_1_1ThreadSafeQueue.html#a63735e069a31797b01b4ae891794ab8a',1,'Lightweight::ThreadSafeQueue']]],
-  ['push_5fback_32',['push_back',['../d7/d9a/classLightweight_1_1SqlDynamicString.html#af1e42154c6693aebec4911d3089eb584',1,'Lightweight::SqlDynamicString::push_back()'],['../de/dae/classLightweight_1_1SqlFixedString.html#a50438c4dd3511d7dba129606f23950a8',1,'Lightweight::SqlFixedString::push_back()']]]
+  ['provideoutputcolumnstaging_31',['ProvideOutputColumnStaging',['../d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#adf448d6fc9909e31a21a2f0fe66c761f',1,'Lightweight::SqlDataBinderCallback']]],
+  ['push_32',['Push',['../d4/d9e/classLightweight_1_1ThreadSafeQueue.html#a63735e069a31797b01b4ae891794ab8a',1,'Lightweight::ThreadSafeQueue']]],
+  ['push_5fback_33',['push_back',['../d7/d9a/classLightweight_1_1SqlDynamicString.html#af1e42154c6693aebec4911d3089eb584',1,'Lightweight::SqlDynamicString::push_back()'],['../de/dae/classLightweight_1_1SqlFixedString.html#a50438c4dd3511d7dba129606f23950a8',1,'Lightweight::SqlFixedString::push_back()']]]
 ];

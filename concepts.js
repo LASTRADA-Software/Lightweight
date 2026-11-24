@@ -1,6 +1,7 @@
 var concepts =
 [
     [ "Lightweight", null, [
+      [ "SqlBinderChecksYear", "d3/dd9/conceptLightweight_1_1SqlBinderChecksYear.html", null ],
       [ "ConnectionType", "dd/de8/conceptLightweight_1_1ConnectionType.html", null ],
       [ "DataMapperRecord", "de/d36/conceptLightweight_1_1DataMapperRecord.html", null ],
       [ "RelationSelector", "da/df2/conceptLightweight_1_1RelationSelector.html", null ],

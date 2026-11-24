@@ -107,9 +107,6 @@ Classes</h2></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d6/d8d/structLightweight_1_1SqlConnectionDataSource.html">Lightweight::SqlConnectionDataSource</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/d23/structLightweight_1_1SqliteConnectionSettings.html">Lightweight::SqliteConnectionSettings</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Connection-level settings applied when a connection to a SQLite database is established.  <a href="../../d9/d23/structLightweight_1_1SqliteConnectionSettings.html#details">More...</a><br /></td></tr>
-<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html">Lightweight::SqlConnection</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Represents a connection to a SQL database.  <a href="../../da/da8/classLightweight_1_1SqlConnection.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -175,6 +172,11 @@ Enumerations</h2></td></tr>
  }</td></tr>
 <tr class="memdesc:ga4e69e872eba3ff2b5e59b999b747add8"><td class="mdescLeft">&#160;</td><td class="mdescRight">The SQLite journal mode a connection requests when it is established.  <a href="../../d9/d8a/group__CoreApi.html#ga4e69e872eba3ff2b5e59b999b747add8">More...</a><br /></td></tr>
 <tr class="separator:ga4e69e872eba3ff2b5e59b999b747add8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga8e66af89e69dc991343856c475c07918" id="r_ga8e66af89e69dc991343856c475c07918"><td class="memItemLeft" align="right" valign="top">enum class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/d8a/group__CoreApi.html#ga8e66af89e69dc991343856c475c07918">Lightweight::SqliteSettingsEffect</a> : std::uint8_t { <a class="el" href="../../d9/d8a/group__CoreApi.html#gga8e66af89e69dc991343856c475c07918a733d43480c8589b1368e5def6b480415">SqliteSettingsEffect::Applied</a>
+, <a class="el" href="../../d9/d8a/group__CoreApi.html#gga8e66af89e69dc991343856c475c07918ab96093cb4e8026e5e5deddf85b990fa8">SqliteSettingsEffect::BusyTimeoutAtNextConnect</a>
+ }</td></tr>
+<tr class="memdesc:ga8e66af89e69dc991343856c475c07918"><td class="mdescLeft">&#160;</td><td class="mdescRight">What SqlConnection::SetSqliteSettings() made effective on an open connection.  <a href="../../d9/d8a/group__CoreApi.html#ga8e66af89e69dc991343856c475c07918">More...</a><br /></td></tr>
+<tr class="separator:ga8e66af89e69dc991343856c475c07918"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gac575bf775e5877a5eeddbde62f8e8e67" id="r_gac575bf775e5877a5eeddbde62f8e8e67"><td class="memItemLeft" align="right" valign="top">enum class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/d8a/group__CoreApi.html#gac575bf775e5877a5eeddbde62f8e8e67">Lightweight::SqlHandleOwnership</a> : uint8_t { <a class="el" href="../../d9/d8a/group__CoreApi.html#ggac575bf775e5877a5eeddbde62f8e8e67a60848c692f8ddb0363e500da44563bae">SqlHandleOwnership::Owned</a>
 , <a class="el" href="../../d9/d8a/group__CoreApi.html#ggac575bf775e5877a5eeddbde62f8e8e67a0508624b46fa4785138cf2fdff6d7039">SqlHandleOwnership::Borrowed</a>
  }</td></tr>
@@ -273,7 +275,7 @@ Functions</h2></td></tr>
 </td></tr>
 </table>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00052">52</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00053">53</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
 
 </div>
 </div>
@@ -317,7 +319,39 @@ Functions</h2></td></tr>
 </td></tr>
 </table>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00078">78</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00079">79</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
+
+</div>
+</div>
+<a id="ga8e66af89e69dc991343856c475c07918" name="ga8e66af89e69dc991343856c475c07918"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga8e66af89e69dc991343856c475c07918">&#9670;&#160;</a></span>SqliteSettingsEffect</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">enum class <a class="el" href="../../d9/d8a/group__CoreApi.html#ga8e66af89e69dc991343856c475c07918">Lightweight::SqliteSettingsEffect</a> : std::uint8_t</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">strong</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>What <a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#a637dc802bde7e94ed743975ca8be0f33" title="Changes this connection&#39;s SQLite settings, applying them immediately when the connection is open to a...">SqlConnection::SetSqliteSettings()</a> made effective on an open connection. </p>
+<table class="fieldtable">
+<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="gga8e66af89e69dc991343856c475c07918a733d43480c8589b1368e5def6b480415" name="gga8e66af89e69dc991343856c475c07918a733d43480c8589b1368e5def6b480415"></a>Applied&#160;</td><td class="fielddoc"><p>Everything took effect (or was only stored: unconnected, or not SQLite). </p>
+</td></tr>
+<tr><td class="fieldname"><a id="gga8e66af89e69dc991343856c475c07918ab96093cb4e8026e5e5deddf85b990fa8" name="gga8e66af89e69dc991343856c475c07918ab96093cb4e8026e5e5deddf85b990fa8"></a>BusyTimeoutAtNextConnect&#160;</td><td class="fielddoc"><p>The busy timeout governs the driver's own waits only from the next Connect(). </p>
+</td></tr>
+</table>
+
+<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00114">114</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
 
 </div>
 </div>
@@ -349,7 +383,7 @@ Functions</h2></td></tr>
 </td></tr>
 </table>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00136">136</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00148">148</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
 
 </div>
 </div>
