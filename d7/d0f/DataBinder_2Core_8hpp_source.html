@@ -639,450 +639,478 @@ $(document).ready(function(){initNavTree('d7/d0f/DataBinder_2Core_8hpp_source.ht
 <div class="line"><a id="l00517" name="l00517"></a><span class="lineno">  517</span> </div>
 <div class="line"><a id="l00518" name="l00518"></a><span class="lineno">  518</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span>&gt;</div>
 <div class="line"><a id="l00519" name="l00519"></a><span class="lineno">  519</span><span class="keyword">struct </span>SqlDataBinder;</div>
-<div class="line"><a id="l00520" name="l00520"></a><span class="lineno">  520</span><span class="comment"></span> </div>
-<div class="line"><a id="l00521" name="l00521"></a><span class="lineno">  521</span><span class="comment">/// @brief Whether the binder of @p T can tell, before anything is bound, that a value of @p T holds a date or</span></div>
-<div class="line"><a id="l00522" name="l00522"></a><span class="lineno">  522</span><span class="comment">/// timestamp whose year cannot be written (see detail::IsWritableYear()): the dates themselves and the</span></div>
-<div class="line"><a id="l00523" name="l00523"></a><span class="lineno">  523</span><span class="comment">/// wrappers that bind through them. A batch that executes row by row checks every row through it first, so</span></div>
-<div class="line"><a id="l00524" name="l00524"></a><span class="lineno">  524</span><span class="comment">/// that no row is stored when one would be refused; a type without it costs nothing.</span></div>
-<div class="line"><a id="l00525" name="l00525"></a><span class="lineno">  525</span><span class="comment"></span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
-<div class="foldopen" id="foldopen00526" data-start="{" data-end="}">
-<div class="line"><a id="l00526" name="l00526"></a><span class="lineno"><a class="line" href="../../d3/dd9/conceptLightweight_1_1SqlBinderChecksYear.html">  526</a></span><span class="keyword">concept </span><a class="code hl_concept" href="../../d3/dd9/conceptLightweight_1_1SqlBinderChecksYear.html">SqlBinderChecksYear</a> = <span class="keyword">requires</span>(T <span class="keyword">const</span>&amp; value) {</div>
-<div class="line"><a id="l00527" name="l00527"></a><span class="lineno">  527</span>    { SqlDataBinder&lt;T&gt;::UnwritableYear(value) } -&gt; std::same_as&lt;std::optional&lt;SQLSMALLINT&gt;&gt;;</div>
-<div class="line"><a id="l00528" name="l00528"></a><span class="lineno">  528</span>};</div>
-</div>
-<div class="line"><a id="l00529" name="l00529"></a><span class="lineno">  529</span> </div>
-<div class="line"><a id="l00530" name="l00530"></a><span class="lineno">  530</span><span class="comment">// Default traits for output string parameters</span></div>
-<div class="line"><a id="l00531" name="l00531"></a><span class="lineno">  531</span><span class="comment">// This needs to be implemented for each string type that should be used as output parameter via</span></div>
-<div class="line"><a id="l00532" name="l00532"></a><span class="lineno">  532</span><span class="comment">// SqlDataBinder&lt;&gt;. An std::string specialization is provided below. Feel free to add more specializations for</span></div>
-<div class="line"><a id="l00533" name="l00533"></a><span class="lineno">  533</span><span class="comment">// other string types, such as CString, etc.</span></div>
-<div class="line"><a id="l00534" name="l00534"></a><span class="lineno">  534</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span>&gt;</div>
-<div class="line"><a id="l00535" name="l00535"></a><span class="lineno">  535</span><span class="keyword">struct </span>SqlBasicStringOperations;</div>
-<div class="line"><a id="l00536" name="l00536"></a><span class="lineno">  536</span> </div>
-<div class="line"><a id="l00537" name="l00537"></a><span class="lineno">  537</span><span class="comment">// -----------------------------------------------------------------------------------------------</span></div>
-<div class="line"><a id="l00538" name="l00538"></a><span class="lineno">  538</span> </div>
-<div class="line"><a id="l00539" name="l00539"></a><span class="lineno">  539</span><span class="keyword">namespace </span>detail</div>
-<div class="line"><a id="l00540" name="l00540"></a><span class="lineno">  540</span>{</div>
-<div class="line"><a id="l00541" name="l00541"></a><span class="lineno">  541</span><span class="comment"></span> </div>
-<div class="line"><a id="l00542" name="l00542"></a><span class="lineno">  542</span><span class="comment">    /// @brief Column size to declare for a variable-length parameter of @p length characters or bytes.</span></div>
-<div class="line"><a id="l00543" name="l00543"></a><span class="lineno">  543</span><span class="comment">    ///</span></div>
-<div class="line"><a id="l00544" name="l00544"></a><span class="lineno">  544</span><span class="comment">    /// ODBC defines a column size of 0 as invalid; strict drivers reject it with HY104 when an empty</span></div>
-<div class="line"><a id="l00545" name="l00545"></a><span class="lineno">  545</span><span class="comment">    /// string or binary is bound, so the declared size never drops below 1. The bound data length is unaffected.</span></div>
-<div class="line"><a id="l00546" name="l00546"></a><span class="lineno">  546</span><span class="comment"></span>    [[nodiscard]] <span class="keyword">constexpr</span> SQLULEN NonZeroColumnSize(std::size_t length) <span class="keyword">noexcept</span></div>
-<div class="line"><a id="l00547" name="l00547"></a><span class="lineno">  547</span>    {</div>
-<div class="line"><a id="l00548" name="l00548"></a><span class="lineno">  548</span>        <span class="keywordflow">return</span> std::max&lt;SQLULEN&gt;(<span class="keyword">static_cast&lt;</span>SQLULEN<span class="keyword">&gt;</span>(length), 1);</div>
-<div class="line"><a id="l00549" name="l00549"></a><span class="lineno">  549</span>    }</div>
-<div class="line"><a id="l00550" name="l00550"></a><span class="lineno">  550</span><span class="comment"></span> </div>
-<div class="line"><a id="l00551" name="l00551"></a><span class="lineno">  551</span><span class="comment">    /// @brief Satisfied when @p T is the same type as at least one of @p Us.</span></div>
-<div class="line"><a id="l00552" name="l00552"></a><span class="lineno">  552</span><span class="comment">    ///</span></div>
-<div class="line"><a id="l00553" name="l00553"></a><span class="lineno">  553</span><span class="comment">    /// Mirrors @c Lightweight::detail::OneOf, but lives in the DataBinder layer so the low-level binder</span></div>
-<div class="line"><a id="l00554" name="l00554"></a><span class="lineno">  554</span><span class="comment">    /// headers can use it without reaching up to the higher-level Utils.hpp.</span></div>
-<div class="line"><a id="l00555" name="l00555"></a><span class="lineno">  555</span><span class="comment"></span>    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> T, <span class="keyword">typename</span>... Us&gt;</div>
-<div class="line"><a id="l00556" name="l00556"></a><span class="lineno">  556</span>    <span class="keyword">concept </span>IsAnyOf = (std::same_as&lt;T, Us&gt; || ...);</div>
-<div class="line"><a id="l00557" name="l00557"></a><span class="lineno">  557</span><span class="comment"></span> </div>
-<div class="line"><a id="l00558" name="l00558"></a><span class="lineno">  558</span><span class="comment">    /// @brief Buffer operations of a contiguous container exposing @c data(), @c size() and</span></div>
-<div class="line"><a id="l00559" name="l00559"></a><span class="lineno">  559</span><span class="comment">    /// @c resize() (e.g. @c SqlBinary), shaped like the @c SqlBasicStringOperations traits.</span></div>
-<div class="line"><a id="l00560" name="l00560"></a><span class="lineno">  560</span><span class="comment"></span>    <span class="keyword">struct </span>ContainerBufferOperations</div>
-<div class="line"><a id="l00561" name="l00561"></a><span class="lineno">  561</span>    {<span class="comment"></span></div>
-<div class="line"><a id="l00562" name="l00562"></a><span class="lineno">  562</span><span class="comment">        /// @return The container&#39;s storage.</span></div>
-<div class="line"><a id="l00563" name="l00563"></a><span class="lineno">  563</span><span class="comment"></span>        <span class="keyword">template</span> &lt;<span class="keyword">typename</span> Container&gt;</div>
-<div class="line"><a id="l00564" name="l00564"></a><span class="lineno">  564</span>        <span class="keyword">static</span> <span class="keyword">auto</span>* Data(Container* container) <span class="keyword">noexcept</span></div>
-<div class="line"><a id="l00565" name="l00565"></a><span class="lineno">  565</span>        {</div>
-<div class="line"><a id="l00566" name="l00566"></a><span class="lineno">  566</span>            <span class="keywordflow">return</span> container-&gt;data();</div>
-<div class="line"><a id="l00567" name="l00567"></a><span class="lineno">  567</span>        }</div>
-<div class="line"><a id="l00568" name="l00568"></a><span class="lineno">  568</span><span class="comment"></span> </div>
-<div class="line"><a id="l00569" name="l00569"></a><span class="lineno">  569</span><span class="comment">        /// @return The container&#39;s element count.</span></div>
-<div class="line"><a id="l00570" name="l00570"></a><span class="lineno">  570</span><span class="comment"></span>        <span class="keyword">template</span> &lt;<span class="keyword">typename</span> Container&gt;</div>
-<div class="line"><a id="l00571" name="l00571"></a><span class="lineno">  571</span>        <span class="keyword">static</span> std::size_t Size(Container <span class="keyword">const</span>* container) <span class="keyword">noexcept</span></div>
-<div class="line"><a id="l00572" name="l00572"></a><span class="lineno">  572</span>        {</div>
-<div class="line"><a id="l00573" name="l00573"></a><span class="lineno">  573</span>            <span class="keywordflow">return</span> container-&gt;size();</div>
-<div class="line"><a id="l00574" name="l00574"></a><span class="lineno">  574</span>        }</div>
-<div class="line"><a id="l00575" name="l00575"></a><span class="lineno">  575</span><span class="comment"></span> </div>
-<div class="line"><a id="l00576" name="l00576"></a><span class="lineno">  576</span><span class="comment">        /// Resizes the container to @p size elements.</span></div>
-<div class="line"><a id="l00577" name="l00577"></a><span class="lineno">  577</span><span class="comment"></span>        <span class="keyword">template</span> &lt;<span class="keyword">typename</span> Container&gt;</div>
-<div class="line"><a id="l00578" name="l00578"></a><span class="lineno">  578</span>        <span class="keyword">static</span> <span class="keywordtype">void</span> Resize(Container* container, SQLLEN size)</div>
-<div class="line"><a id="l00579" name="l00579"></a><span class="lineno">  579</span>        {</div>
-<div class="line"><a id="l00580" name="l00580"></a><span class="lineno">  580</span>            container-&gt;resize(<span class="keyword">static_cast&lt;</span>std::size_t<span class="keyword">&gt;</span>(size));</div>
-<div class="line"><a id="l00581" name="l00581"></a><span class="lineno">  581</span>        }</div>
-<div class="line"><a id="l00582" name="l00582"></a><span class="lineno">  582</span>    };</div>
-<div class="line"><a id="l00583" name="l00583"></a><span class="lineno">  583</span><span class="comment"></span> </div>
-<div class="line"><a id="l00584" name="l00584"></a><span class="lineno">  584</span><span class="comment">    /// @brief The pre-fetch step of @ref PlanBoundBufferRestore: grows the container back to the bound size</span></div>
-<div class="line"><a id="l00585" name="l00585"></a><span class="lineno">  585</span><span class="comment">    /// and re-binds the column if its storage moved.</span></div>
-<div class="line"><a id="l00586" name="l00586"></a><span class="lineno">  586</span><span class="comment">    /// @tparam Ops @c SqlBasicStringOperations-shaped buffer operations of @p Container.</span></div>
-<div class="line"><a id="l00587" name="l00587"></a><span class="lineno">  587</span><span class="comment">    /// @tparam UnitBytes Bytes per element of the bound buffer.</span></div>
-<div class="line"><a id="l00588" name="l00588"></a><span class="lineno">  588</span><span class="comment">    /// @tparam TerminatorUnits Elements the bound buffer has beyond its size for the driver&#39;s terminator.</span></div>
-<div class="line"><a id="l00589" name="l00589"></a><span class="lineno">  589</span><span class="comment">    /// @param step The planned step.</span></div>
-<div class="line"><a id="l00590" name="l00590"></a><span class="lineno">  590</span><span class="comment">    /// @param stmt The statement handle the column is bound on.</span></div>
-<div class="line"><a id="l00591" name="l00591"></a><span class="lineno">  591</span><span class="comment">    /// @return @c SQL_SUCCESS, or the result of re-binding the column.</span></div>
-<div class="line"><a id="l00592" name="l00592"></a><span class="lineno">  592</span><span class="comment">    /// @throws std::bad_alloc When growing the container back allocates (its storage was moved out); the</span></div>
-<div class="line"><a id="l00593" name="l00593"></a><span class="lineno">  593</span><span class="comment">    ///         fetch reports that as HY001.</span></div>
-<div class="line"><a id="l00594" name="l00594"></a><span class="lineno">  594</span><span class="comment"></span>    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> Ops, <span class="keyword">typename</span> Container, std::<span class="keywordtype">size_t</span> UnitBytes, std::<span class="keywordtype">size_t</span> TerminatorUnits&gt;</div>
-<div class="line"><a id="l00595" name="l00595"></a><span class="lineno">  595</span>    SQLRETURN RestoreBoundBuffer(SqlOutputColumnPreFetch&amp; step, SQLHSTMT stmt)</div>
-<div class="line"><a id="l00596" name="l00596"></a><span class="lineno">  596</span>    {</div>
-<div class="line"><a id="l00597" name="l00597"></a><span class="lineno">  597</span>        <span class="keyword">auto</span>* <span class="keyword">const</span> result = <span class="keyword">static_cast&lt;</span>Container*<span class="keyword">&gt;</span>(step.target);</div>
-<div class="line"><a id="l00598" name="l00598"></a><span class="lineno">  598</span>        <span class="keyword">auto</span> <span class="keyword">const</span> size = <span class="keyword">static_cast&lt;</span>std::size_t<span class="keyword">&gt;</span>(Ops::Size(result));</div>
-<div class="line"><a id="l00599" name="l00599"></a><span class="lineno">  599</span>        <span class="keywordflow">if</span> (<span class="keyword">static_cast&lt;</span><span class="keywordtype">void</span> const*<span class="keyword">&gt;</span>(Ops::Data(result)) != step.boundData)</div>
-<div class="line"><a id="l00600" name="l00600"></a><span class="lineno">  600</span>            step.boundSize = (std::max) (step.boundSize, size);</div>
-<div class="line"><a id="l00601" name="l00601"></a><span class="lineno">  601</span>        <span class="keywordflow">if</span> (size != step.boundSize)</div>
+<div class="line"><a id="l00520" name="l00520"></a><span class="lineno">  520</span> </div>
+<div class="line"><a id="l00521" name="l00521"></a><span class="lineno">  521</span><span class="keyword">namespace </span>detail</div>
+<div class="line"><a id="l00522" name="l00522"></a><span class="lineno">  522</span>{<span class="comment"></span></div>
+<div class="line"><a id="l00523" name="l00523"></a><span class="lineno">  523</span><span class="comment">    /// @brief Whether @c SqlDataBinder&lt;T&gt; declares a member named @c UnwritableYear, whatever its signature.</span></div>
+<div class="line"><a id="l00524" name="l00524"></a><span class="lineno">  524</span><span class="comment"></span>    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
+<div class="line"><a id="l00525" name="l00525"></a><span class="lineno">  525</span>    <span class="keyword">concept </span>SqlBinderDeclaresUnwritableYear = <span class="keyword">requires</span> { &amp;SqlDataBinder&lt;T&gt;::UnwritableYear; }</div>
+<div class="line"><a id="l00526" name="l00526"></a><span class="lineno">  526</span>                                              || <span class="keyword">requires</span>(T <span class="keyword">const</span>&amp; value) { SqlDataBinder&lt;T&gt;::UnwritableYear(value); };</div>
+<div class="line"><a id="l00527" name="l00527"></a><span class="lineno">  527</span><span class="comment"></span> </div>
+<div class="line"><a id="l00528" name="l00528"></a><span class="lineno">  528</span><span class="comment">    /// @brief Whether @c SqlDataBinder&lt;T&gt; has the @c UnwritableYear hook with the signature it is called with,</span></div>
+<div class="line"><a id="l00529" name="l00529"></a><span class="lineno">  529</span><span class="comment">    /// @c noexcept included.</span></div>
+<div class="line"><a id="l00530" name="l00530"></a><span class="lineno">  530</span><span class="comment"></span>    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
+<div class="line"><a id="l00531" name="l00531"></a><span class="lineno">  531</span>    <span class="keyword">concept </span>SqlBinderHasUnwritableYearHook = <span class="keyword">requires</span>(T <span class="keyword">const</span>&amp; value) {</div>
+<div class="line"><a id="l00532" name="l00532"></a><span class="lineno">  532</span>        { SqlDataBinder&lt;T&gt;::UnwritableYear(value) } <span class="keyword">noexcept</span> -&gt; std::same_as&lt;std::optional&lt;SQLSMALLINT&gt;&gt;;</div>
+<div class="line"><a id="l00533" name="l00533"></a><span class="lineno">  533</span>    };</div>
+<div class="line"><a id="l00534" name="l00534"></a><span class="lineno">  534</span><span class="comment"></span> </div>
+<div class="line"><a id="l00535" name="l00535"></a><span class="lineno">  535</span><span class="comment">    /// @brief Whether @c SqlDataBinder&lt;T&gt; has the @c UnwritableYear hook; a member of that name with another</span></div>
+<div class="line"><a id="l00536" name="l00536"></a><span class="lineno">  536</span><span class="comment">    /// signature fails to compile rather than being skipped, which would store the rows before a refused one.</span></div>
+<div class="line"><a id="l00537" name="l00537"></a><span class="lineno">  537</span><span class="comment">    /// @return @c true if the hook is there.</span></div>
+<div class="line"><a id="l00538" name="l00538"></a><span class="lineno">  538</span><span class="comment"></span>    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
+<div class="line"><a id="l00539" name="l00539"></a><span class="lineno">  539</span>    <span class="keyword">consteval</span> <span class="keywordtype">bool</span> CheckedUnwritableYearHook() noexcept</div>
+<div class="line"><a id="l00540" name="l00540"></a><span class="lineno">  540</span>    {</div>
+<div class="line"><a id="l00541" name="l00541"></a><span class="lineno">  541</span>        <span class="keyword">static_assert</span>(SqlBinderHasUnwritableYearHook&lt;T&gt; || !SqlBinderDeclaresUnwritableYear&lt;T&gt;,</div>
+<div class="line"><a id="l00542" name="l00542"></a><span class="lineno">  542</span>                      <span class="stringliteral">&quot;SqlDataBinder&lt;T&gt;::UnwritableYear must be declared as &quot;</span></div>
+<div class="line"><a id="l00543" name="l00543"></a><span class="lineno">  543</span>                      <span class="stringliteral">&quot;static std::optional&lt;SQLSMALLINT&gt; UnwritableYear(T const&amp; value) noexcept &quot;</span></div>
+<div class="line"><a id="l00544" name="l00544"></a><span class="lineno">  544</span>                      <span class="stringliteral">&quot;(see docs/data-binder.md)&quot;</span>);</div>
+<div class="line"><a id="l00545" name="l00545"></a><span class="lineno">  545</span>        <span class="keywordflow">return</span> SqlBinderHasUnwritableYearHook&lt;T&gt;;</div>
+<div class="line"><a id="l00546" name="l00546"></a><span class="lineno">  546</span>    }</div>
+<div class="line"><a id="l00547" name="l00547"></a><span class="lineno">  547</span>} <span class="comment">// namespace detail</span></div>
+<div class="line"><a id="l00548" name="l00548"></a><span class="lineno">  548</span><span class="comment"></span> </div>
+<div class="line"><a id="l00549" name="l00549"></a><span class="lineno">  549</span><span class="comment">/// @brief Whether the binder of @p T can tell, before anything is bound, that a value of @p T holds a date or</span></div>
+<div class="line"><a id="l00550" name="l00550"></a><span class="lineno">  550</span><span class="comment">/// timestamp whose year cannot be written (see detail::IsWritableYear()): the dates themselves and the</span></div>
+<div class="line"><a id="l00551" name="l00551"></a><span class="lineno">  551</span><span class="comment">/// wrappers that bind through them. A batch that executes row by row checks every row through it first, so</span></div>
+<div class="line"><a id="l00552" name="l00552"></a><span class="lineno">  552</span><span class="comment">/// that no row is stored when one would be refused; a type without it costs nothing.</span></div>
+<div class="line"><a id="l00553" name="l00553"></a><span class="lineno">  553</span><span class="comment">///</span></div>
+<div class="line"><a id="l00554" name="l00554"></a><span class="lineno">  554</span><span class="comment">/// The hook is @c static @c std::optional&lt;SQLSMALLINT&gt; @c UnwritableYear(T const&amp; value) @c noexcept. A binder</span></div>
+<div class="line"><a id="l00555" name="l00555"></a><span class="lineno">  555</span><span class="comment">/// that declares a member of that name with another signature (another return type, or one that is not</span></div>
+<div class="line"><a id="l00556" name="l00556"></a><span class="lineno">  556</span><span class="comment">/// @c noexcept) fails to compile.</span></div>
+<div class="line"><a id="l00557" name="l00557"></a><span class="lineno">  557</span><span class="comment"></span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
+<div class="line"><a id="l00558" name="l00558"></a><span class="lineno"><a class="line" href="../../d3/dd9/conceptLightweight_1_1SqlBinderChecksYear.html">  558</a></span><span class="keyword">concept </span><a class="code hl_concept" href="../../d3/dd9/conceptLightweight_1_1SqlBinderChecksYear.html">SqlBinderChecksYear</a> = detail::CheckedUnwritableYearHook&lt;T&gt;();</div>
+<div class="line"><a id="l00559" name="l00559"></a><span class="lineno">  559</span> </div>
+<div class="line"><a id="l00560" name="l00560"></a><span class="lineno">  560</span><span class="comment">// Default traits for output string parameters</span></div>
+<div class="line"><a id="l00561" name="l00561"></a><span class="lineno">  561</span><span class="comment">// This needs to be implemented for each string type that should be used as output parameter via</span></div>
+<div class="line"><a id="l00562" name="l00562"></a><span class="lineno">  562</span><span class="comment">// SqlDataBinder&lt;&gt;. An std::string specialization is provided below. Feel free to add more specializations for</span></div>
+<div class="line"><a id="l00563" name="l00563"></a><span class="lineno">  563</span><span class="comment">// other string types, such as CString, etc.</span></div>
+<div class="line"><a id="l00564" name="l00564"></a><span class="lineno">  564</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span>&gt;</div>
+<div class="line"><a id="l00565" name="l00565"></a><span class="lineno">  565</span><span class="keyword">struct </span>SqlBasicStringOperations;</div>
+<div class="line"><a id="l00566" name="l00566"></a><span class="lineno">  566</span> </div>
+<div class="line"><a id="l00567" name="l00567"></a><span class="lineno">  567</span><span class="comment">// -----------------------------------------------------------------------------------------------</span></div>
+<div class="line"><a id="l00568" name="l00568"></a><span class="lineno">  568</span> </div>
+<div class="line"><a id="l00569" name="l00569"></a><span class="lineno">  569</span><span class="keyword">namespace </span>detail</div>
+<div class="line"><a id="l00570" name="l00570"></a><span class="lineno">  570</span>{</div>
+<div class="line"><a id="l00571" name="l00571"></a><span class="lineno">  571</span><span class="comment"></span> </div>
+<div class="line"><a id="l00572" name="l00572"></a><span class="lineno">  572</span><span class="comment">    /// @brief Column size to declare for a variable-length parameter of @p length characters or bytes.</span></div>
+<div class="line"><a id="l00573" name="l00573"></a><span class="lineno">  573</span><span class="comment">    ///</span></div>
+<div class="line"><a id="l00574" name="l00574"></a><span class="lineno">  574</span><span class="comment">    /// ODBC defines a column size of 0 as invalid; strict drivers reject it with HY104 when an empty</span></div>
+<div class="line"><a id="l00575" name="l00575"></a><span class="lineno">  575</span><span class="comment">    /// string or binary is bound, so the declared size never drops below 1. The bound data length is unaffected.</span></div>
+<div class="line"><a id="l00576" name="l00576"></a><span class="lineno">  576</span><span class="comment"></span>    [[nodiscard]] <span class="keyword">constexpr</span> SQLULEN NonZeroColumnSize(std::size_t length) <span class="keyword">noexcept</span></div>
+<div class="line"><a id="l00577" name="l00577"></a><span class="lineno">  577</span>    {</div>
+<div class="line"><a id="l00578" name="l00578"></a><span class="lineno">  578</span>        <span class="keywordflow">return</span> std::max&lt;SQLULEN&gt;(<span class="keyword">static_cast&lt;</span>SQLULEN<span class="keyword">&gt;</span>(length), 1);</div>
+<div class="line"><a id="l00579" name="l00579"></a><span class="lineno">  579</span>    }</div>
+<div class="line"><a id="l00580" name="l00580"></a><span class="lineno">  580</span><span class="comment"></span> </div>
+<div class="line"><a id="l00581" name="l00581"></a><span class="lineno">  581</span><span class="comment">    /// @brief Satisfied when @p T is the same type as at least one of @p Us.</span></div>
+<div class="line"><a id="l00582" name="l00582"></a><span class="lineno">  582</span><span class="comment">    ///</span></div>
+<div class="line"><a id="l00583" name="l00583"></a><span class="lineno">  583</span><span class="comment">    /// Mirrors @c Lightweight::detail::OneOf, but lives in the DataBinder layer so the low-level binder</span></div>
+<div class="line"><a id="l00584" name="l00584"></a><span class="lineno">  584</span><span class="comment">    /// headers can use it without reaching up to the higher-level Utils.hpp.</span></div>
+<div class="line"><a id="l00585" name="l00585"></a><span class="lineno">  585</span><span class="comment"></span>    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> T, <span class="keyword">typename</span>... Us&gt;</div>
+<div class="line"><a id="l00586" name="l00586"></a><span class="lineno">  586</span>    <span class="keyword">concept </span>IsAnyOf = (std::same_as&lt;T, Us&gt; || ...);</div>
+<div class="line"><a id="l00587" name="l00587"></a><span class="lineno">  587</span><span class="comment"></span> </div>
+<div class="line"><a id="l00588" name="l00588"></a><span class="lineno">  588</span><span class="comment">    /// @brief Buffer operations of a contiguous container exposing @c data(), @c size() and</span></div>
+<div class="line"><a id="l00589" name="l00589"></a><span class="lineno">  589</span><span class="comment">    /// @c resize() (e.g. @c SqlBinary), shaped like the @c SqlBasicStringOperations traits.</span></div>
+<div class="line"><a id="l00590" name="l00590"></a><span class="lineno">  590</span><span class="comment"></span>    <span class="keyword">struct </span>ContainerBufferOperations</div>
+<div class="line"><a id="l00591" name="l00591"></a><span class="lineno">  591</span>    {<span class="comment"></span></div>
+<div class="line"><a id="l00592" name="l00592"></a><span class="lineno">  592</span><span class="comment">        /// @return The container&#39;s storage.</span></div>
+<div class="line"><a id="l00593" name="l00593"></a><span class="lineno">  593</span><span class="comment"></span>        <span class="keyword">template</span> &lt;<span class="keyword">typename</span> Container&gt;</div>
+<div class="line"><a id="l00594" name="l00594"></a><span class="lineno">  594</span>        <span class="keyword">static</span> <span class="keyword">auto</span>* Data(Container* container) <span class="keyword">noexcept</span></div>
+<div class="line"><a id="l00595" name="l00595"></a><span class="lineno">  595</span>        {</div>
+<div class="line"><a id="l00596" name="l00596"></a><span class="lineno">  596</span>            <span class="keywordflow">return</span> container-&gt;data();</div>
+<div class="line"><a id="l00597" name="l00597"></a><span class="lineno">  597</span>        }</div>
+<div class="line"><a id="l00598" name="l00598"></a><span class="lineno">  598</span><span class="comment"></span> </div>
+<div class="line"><a id="l00599" name="l00599"></a><span class="lineno">  599</span><span class="comment">        /// @return The container&#39;s element count.</span></div>
+<div class="line"><a id="l00600" name="l00600"></a><span class="lineno">  600</span><span class="comment"></span>        <span class="keyword">template</span> &lt;<span class="keyword">typename</span> Container&gt;</div>
+<div class="line"><a id="l00601" name="l00601"></a><span class="lineno">  601</span>        <span class="keyword">static</span> std::size_t Size(Container <span class="keyword">const</span>* container) <span class="keyword">noexcept</span></div>
 <div class="line"><a id="l00602" name="l00602"></a><span class="lineno">  602</span>        {</div>
-<div class="line"><a id="l00603" name="l00603"></a><span class="lineno">  603</span>            <span class="comment">// The driver overwrites the regrown part, so where the container can skip initializing it</span></div>
-<div class="line"><a id="l00604" name="l00604"></a><span class="lineno">  604</span>            <span class="comment">// (std::basic_string), it does: a long value grows the bound size, and every later row would</span></div>
-<div class="line"><a id="l00605" name="l00605"></a><span class="lineno">  605</span>            <span class="comment">// otherwise zero-fill up to it. A vector (binary) zero-fills up to the bound size.</span></div>
-<div class="line"><a id="l00606" name="l00606"></a><span class="lineno">  606</span>            <span class="keywordflow">if</span> <span class="keyword">constexpr</span> (<span class="keyword">requires</span> { Ops::ResizeForOverwrite(result, step.boundSize); })</div>
-<div class="line"><a id="l00607" name="l00607"></a><span class="lineno">  607</span>                Ops::ResizeForOverwrite(result, step.boundSize);</div>
-<div class="line"><a id="l00608" name="l00608"></a><span class="lineno">  608</span>            <span class="keywordflow">else</span></div>
-<div class="line"><a id="l00609" name="l00609"></a><span class="lineno">  609</span>                Ops::Resize(result, <span class="keyword">static_cast&lt;</span>SQLLEN<span class="keyword">&gt;</span>(step.boundSize));</div>
-<div class="line"><a id="l00610" name="l00610"></a><span class="lineno">  610</span>        }</div>
-<div class="line"><a id="l00611" name="l00611"></a><span class="lineno">  611</span>        <span class="keyword">auto</span>* <span class="keyword">const</span> data = Ops::Data(result);</div>
-<div class="line"><a id="l00612" name="l00612"></a><span class="lineno">  612</span>        <span class="keywordflow">if</span> (<span class="keyword">static_cast&lt;</span><span class="keywordtype">void</span> const*<span class="keyword">&gt;</span>(data) == step.boundData)</div>
-<div class="line"><a id="l00613" name="l00613"></a><span class="lineno">  613</span>            <span class="keywordflow">return</span> SQL_SUCCESS;</div>
-<div class="line"><a id="l00614" name="l00614"></a><span class="lineno">  614</span>        <span class="keyword">auto</span> <span class="keyword">const</span> rc = SQLBindCol(stmt,</div>
-<div class="line"><a id="l00615" name="l00615"></a><span class="lineno">  615</span>                                   step.column,</div>
-<div class="line"><a id="l00616" name="l00616"></a><span class="lineno">  616</span>                                   step.cType,</div>
-<div class="line"><a id="l00617" name="l00617"></a><span class="lineno">  617</span>                                   <span class="keyword">static_cast&lt;</span>SQLPOINTER<span class="keyword">&gt;</span>(data),</div>
-<div class="line"><a id="l00618" name="l00618"></a><span class="lineno">  618</span>                                   <span class="keyword">static_cast&lt;</span>SQLLEN<span class="keyword">&gt;</span>((step.boundSize + TerminatorUnits) * UnitBytes),</div>
-<div class="line"><a id="l00619" name="l00619"></a><span class="lineno">  619</span>                                   step.indicator);</div>
-<div class="line"><a id="l00620" name="l00620"></a><span class="lineno">  620</span>        <span class="comment">// Recorded only once bound: after a failed bind the next fetch must try again, not fetch through the</span></div>
-<div class="line"><a id="l00621" name="l00621"></a><span class="lineno">  621</span>        <span class="comment">// binding of the storage that moved away.</span></div>
-<div class="line"><a id="l00622" name="l00622"></a><span class="lineno">  622</span>        <span class="keywordflow">if</span> (SQL_SUCCEEDED(rc))</div>
-<div class="line"><a id="l00623" name="l00623"></a><span class="lineno">  623</span>            step.boundData = data;</div>
-<div class="line"><a id="l00624" name="l00624"></a><span class="lineno">  624</span>        <span class="keywordflow">return</span> rc;</div>
-<div class="line"><a id="l00625" name="l00625"></a><span class="lineno">  625</span>    }</div>
-<div class="line"><a id="l00626" name="l00626"></a><span class="lineno">  626</span><span class="comment"></span> </div>
-<div class="line"><a id="l00627" name="l00627"></a><span class="lineno">  627</span><span class="comment">    /// @brief The largest declared column length a growable container is grown to when bound: SQL</span></div>
-<div class="line"><a id="l00628" name="l00628"></a><span class="lineno">  628</span><span class="comment">    /// Server&#39;s largest VARCHAR / VARBINARY short of MAX. A longer or MAX column starts at</span></div>
-<div class="line"><a id="l00629" name="l00629"></a><span class="lineno">  629</span><span class="comment">    /// @ref DefaultBoundColumnSize.</span></div>
-<div class="line"><a id="l00630" name="l00630"></a><span class="lineno">  630</span><span class="comment"></span>    <span class="keyword">inline</span> <span class="keyword">constexpr</span> std::size_t MaxDeclaredBoundColumnSize = 8000;</div>
-<div class="line"><a id="l00631" name="l00631"></a><span class="lineno">  631</span><span class="comment"></span> </div>
-<div class="line"><a id="l00632" name="l00632"></a><span class="lineno">  632</span><span class="comment">    /// @brief The declared length of output column @p column as a bound buffer size: between</span></div>
-<div class="line"><a id="l00633" name="l00633"></a><span class="lineno">  633</span><span class="comment">    /// @ref DefaultBoundColumnSize and @ref MaxDeclaredBoundColumnSize, and @ref DefaultBoundColumnSize</span></div>
-<div class="line"><a id="l00634" name="l00634"></a><span class="lineno">  634</span><span class="comment">    /// for a length the driver does not report or one above the maximum (a MAX or LONG column). One</span></div>
-<div class="line"><a id="l00635" name="l00635"></a><span class="lineno">  635</span><span class="comment">    /// @c SQLColAttribute call.</span></div>
-<div class="line"><a id="l00636" name="l00636"></a><span class="lineno">  636</span><span class="comment">    ///</span></div>
-<div class="line"><a id="l00637" name="l00637"></a><span class="lineno">  637</span><span class="comment">    /// @param stmt The statement holding the result set.</span></div>
-<div class="line"><a id="l00638" name="l00638"></a><span class="lineno">  638</span><span class="comment">    /// @param column The 1-based column index.</span></div>
-<div class="line"><a id="l00639" name="l00639"></a><span class="lineno">  639</span><span class="comment">    /// @param length Which declared length to ask for.</span></div>
-<div class="line"><a id="l00640" name="l00640"></a><span class="lineno">  640</span><span class="comment">    /// @return The number of elements to bind, without a terminator.</span></div>
-<div class="line"><a id="l00641" name="l00641"></a><span class="lineno">  641</span><span class="comment"></span>    <span class="keyword">inline</span> std::size_t DeclaredBoundColumnSize(SQLHSTMT stmt, SQLUSMALLINT column, SqlOutputColumnLength length) <span class="keyword">noexcept</span></div>
-<div class="line"><a id="l00642" name="l00642"></a><span class="lineno">  642</span>    {</div>
-<div class="line"><a id="l00643" name="l00643"></a><span class="lineno">  643</span>        <span class="keyword">auto</span> <span class="keyword">const</span> field =</div>
-<div class="line"><a id="l00644" name="l00644"></a><span class="lineno">  644</span>            <span class="keyword">static_cast&lt;</span>SQLUSMALLINT<span class="keyword">&gt;</span>(length == SqlOutputColumnLength::Octets ? SQL_DESC_OCTET_LENGTH : SQL_DESC_LENGTH);</div>
-<div class="line"><a id="l00645" name="l00645"></a><span class="lineno">  645</span>        SQLLEN declared {};</div>
-<div class="line"><a id="l00646" name="l00646"></a><span class="lineno">  646</span>        <span class="keywordflow">if</span> (!SQL_SUCCEEDED(SQLColAttribute(stmt, column, field, <span class="keyword">nullptr</span>, 0, <span class="keyword">nullptr</span>, &amp;declared)) || declared &lt;= 0</div>
-<div class="line"><a id="l00647" name="l00647"></a><span class="lineno">  647</span>            || std::cmp_greater(declared, MaxDeclaredBoundColumnSize))</div>
-<div class="line"><a id="l00648" name="l00648"></a><span class="lineno">  648</span>            <span class="keywordflow">return</span> DefaultBoundColumnSize;</div>
-<div class="line"><a id="l00649" name="l00649"></a><span class="lineno">  649</span>        <span class="keywordflow">return</span> (std::max) (DefaultBoundColumnSize, <span class="keyword">static_cast&lt;</span>std::size_t<span class="keyword">&gt;</span>(declared));</div>
-<div class="line"><a id="l00650" name="l00650"></a><span class="lineno">  650</span>    }</div>
-<div class="line"><a id="l00651" name="l00651"></a><span class="lineno">  651</span><span class="comment"></span> </div>
-<div class="line"><a id="l00652" name="l00652"></a><span class="lineno">  652</span><span class="comment">    /// @brief Fails the fetch of a bound value longer than its buffer that the driver cannot read again.</span></div>
-<div class="line"><a id="l00653" name="l00653"></a><span class="lineno">  653</span><span class="comment">    ///</span></div>
-<div class="line"><a id="l00654" name="l00654"></a><span class="lineno">  654</span><span class="comment">    /// The binders&#39; post-processing reads such a value with @c SQLGetData; a driver without</span></div>
-<div class="line"><a id="l00655" name="l00655"></a><span class="lineno">  655</span><span class="comment">    /// @c SQL_GD_BOUND (MS SQL Server) refuses that for a bound column. Rather than return the value</span></div>
-<div class="line"><a id="l00656" name="l00656"></a><span class="lineno">  656</span><span class="comment">    /// truncated to the buffer, the fetch fails with this error (SQLSTATE 22001).</span></div>
-<div class="line"><a id="l00657" name="l00657"></a><span class="lineno">  657</span><span class="comment">    ///</span></div>
-<div class="line"><a id="l00658" name="l00658"></a><span class="lineno">  658</span><span class="comment">    /// @param stmt The statement the column is bound on (its diagnostic names the driver&#39;s reason).</span></div>
-<div class="line"><a id="l00659" name="l00659"></a><span class="lineno">  659</span><span class="comment">    /// @param column The 1-based column index.</span></div>
-<div class="line"><a id="l00660" name="l00660"></a><span class="lineno">  660</span><span class="comment">    /// @param totalLength The value&#39;s length as the driver reported it, in bytes, or @c SQL_NO_TOTAL.</span></div>
-<div class="line"><a id="l00661" name="l00661"></a><span class="lineno">  661</span><span class="comment"></span>    [[noreturn]] <span class="keyword">inline</span> <span class="keywordtype">void</span> ThrowBoundValueNotReadable(SQLHSTMT stmt, SQLUSMALLINT column, SQLLEN totalLength)</div>
-<div class="line"><a id="l00662" name="l00662"></a><span class="lineno">  662</span>    {</div>
-<div class="line"><a id="l00663" name="l00663"></a><span class="lineno">  663</span>        <span class="keyword">auto</span> info = <a class="code hl_function" href="../../d8/d5b/structLightweight_1_1SqlErrorInfo.html#a8c5df558d7e9cd5263d15c3b13461944">SqlErrorInfo::FromStatementHandle</a>(stmt);</div>
-<div class="line"><a id="l00664" name="l00664"></a><span class="lineno">  664</span>        <span class="comment">// 22001 (string data, right truncation) names what happened to the value; the driver&#39;s own</span></div>
-<div class="line"><a id="l00665" name="l00665"></a><span class="lineno">  665</span>        <span class="comment">// state for the refused re-read (e.g. 07009 on SQL Server) only says why it could not be avoided.</span></div>
-<div class="line"><a id="l00666" name="l00666"></a><span class="lineno">  666</span>        info.sqlState = <span class="stringliteral">&quot;22001&quot;</span>;</div>
-<div class="line"><a id="l00667" name="l00667"></a><span class="lineno">  667</span>        info.nativeErrorCode = 0;</div>
-<div class="line"><a id="l00668" name="l00668"></a><span class="lineno">  668</span>        <span class="keyword">auto</span> <span class="keyword">const</span> length =</div>
-<div class="line"><a id="l00669" name="l00669"></a><span class="lineno">  669</span>            totalLength == SQL_NO_TOTAL ? std::string { <span class="stringliteral">&quot;length unknown&quot;</span> } : std::format(<span class="stringliteral">&quot;{} bytes&quot;</span>, totalLength);</div>
-<div class="line"><a id="l00670" name="l00670"></a><span class="lineno">  670</span>        info.message = std::format(<span class="stringliteral">&quot;Column {}: the value ({}) is longer than its bound buffer, and the driver cannot &quot;</span></div>
-<div class="line"><a id="l00671" name="l00671"></a><span class="lineno">  671</span>                                   <span class="stringliteral">&quot;read a bound column again (no SQL_GD_BOUND). Read the column with GetColumn(), or &quot;</span></div>
-<div class="line"><a id="l00672" name="l00672"></a><span class="lineno">  672</span>                                   <span class="stringliteral">&quot;size the bound variable to the longest value before binding it. ({})&quot;</span>,</div>
-<div class="line"><a id="l00673" name="l00673"></a><span class="lineno">  673</span>                                   column,</div>
-<div class="line"><a id="l00674" name="l00674"></a><span class="lineno">  674</span>                                   length,</div>
-<div class="line"><a id="l00675" name="l00675"></a><span class="lineno">  675</span>                                   info.message);</div>
-<div class="line"><a id="l00676" name="l00676"></a><span class="lineno">  676</span>        <span class="keywordflow">throw</span> SqlException(std::move(info));</div>
-<div class="line"><a id="l00677" name="l00677"></a><span class="lineno">  677</span>    }</div>
-<div class="line"><a id="l00678" name="l00678"></a><span class="lineno">  678</span><span class="comment"></span> </div>
-<div class="line"><a id="l00679" name="l00679"></a><span class="lineno">  679</span><span class="comment">    /// @brief Fails the fetch of a bound value whose re-read the driver reported inconsistently, or that grew</span></div>
-<div class="line"><a id="l00680" name="l00680"></a><span class="lineno">  680</span><span class="comment">    /// beyond @ref MaxUnknownLengthValueBytes.</span></div>
-<div class="line"><a id="l00681" name="l00681"></a><span class="lineno">  681</span><span class="comment">    ///</span></div>
-<div class="line"><a id="l00682" name="l00682"></a><span class="lineno">  682</span><span class="comment">    /// @param column The 1-based column index.</span></div>
-<div class="line"><a id="l00683" name="l00683"></a><span class="lineno">  683</span><span class="comment">    /// @param sqlState 22001 for a value too long to read, HY000 for a driver report that contradicts itself.</span></div>
-<div class="line"><a id="l00684" name="l00684"></a><span class="lineno">  684</span><span class="comment">    /// @param reason What went wrong, for the message.</span></div>
-<div class="line"><a id="l00685" name="l00685"></a><span class="lineno">  685</span><span class="comment"></span>    [[noreturn]] <span class="keyword">inline</span> <span class="keywordtype">void</span> ThrowBoundValueMisread(SQLUSMALLINT column, std::string_view sqlState, std::string_view reason)</div>
-<div class="line"><a id="l00686" name="l00686"></a><span class="lineno">  686</span>    {</div>
-<div class="line"><a id="l00687" name="l00687"></a><span class="lineno">  687</span>        <span class="keywordflow">throw</span> SqlException(SqlErrorInfo {</div>
-<div class="line"><a id="l00688" name="l00688"></a><span class="lineno">  688</span>            .nativeErrorCode = 0,</div>
-<div class="line"><a id="l00689" name="l00689"></a><span class="lineno">  689</span>            .sqlState = std::string { sqlState },</div>
-<div class="line"><a id="l00690" name="l00690"></a><span class="lineno">  690</span>            .message = std::format(<span class="stringliteral">&quot;Column {}: the bound value could not be read in full: {}&quot;</span>, column, reason),</div>
-<div class="line"><a id="l00691" name="l00691"></a><span class="lineno">  691</span>        });</div>
-<div class="line"><a id="l00692" name="l00692"></a><span class="lineno">  692</span>    }</div>
-<div class="line"><a id="l00693" name="l00693"></a><span class="lineno">  693</span><span class="comment"></span> </div>
-<div class="line"><a id="l00694" name="l00694"></a><span class="lineno">  694</span><span class="comment">    /// @brief The most bytes a bound value of unknown length (@c SQL_NO_TOTAL) is grown to while it is read</span></div>
-<div class="line"><a id="l00695" name="l00695"></a><span class="lineno">  695</span><span class="comment">    /// again; a longer value fails the fetch with 22001 instead of exhausting memory.</span></div>
-<div class="line"><a id="l00696" name="l00696"></a><span class="lineno">  696</span><span class="comment"></span>    <span class="keyword">inline</span> <span class="keyword">constexpr</span> std::size_t MaxUnknownLengthValueBytes = std::size_t { 1 } &lt;&lt; 30;</div>
-<div class="line"><a id="l00697" name="l00697"></a><span class="lineno">  697</span><span class="comment"></span> </div>
-<div class="line"><a id="l00698" name="l00698"></a><span class="lineno">  698</span><span class="comment">    /// @brief Reads a bound value again in full that the driver reported longer than its buffer without</span></div>
-<div class="line"><a id="l00699" name="l00699"></a><span class="lineno">  699</span><span class="comment">    /// saying how long (@c SQL_NO_TOTAL), in chunks through @p getData, doubling @p result as it goes.</span></div>
-<div class="line"><a id="l00700" name="l00700"></a><span class="lineno">  700</span><span class="comment">    ///</span></div>
-<div class="line"><a id="l00701" name="l00701"></a><span class="lineno">  701</span><span class="comment">    /// Only a row whose value overflowed its bound buffer gets here. The container keeps its grown size, so</span></div>
-<div class="line"><a id="l00702" name="l00702"></a><span class="lineno">  702</span><span class="comment">    /// the caller decides what the value&#39;s length means for it, and re-binds the column if the container&#39;s</span></div>
-<div class="line"><a id="l00703" name="l00703"></a><span class="lineno">  703</span><span class="comment">    /// storage moved (see @ref PlanBoundBufferRestore), also when this throws.</span></div>
-<div class="line"><a id="l00704" name="l00704"></a><span class="lineno">  704</span><span class="comment">    ///</span></div>
-<div class="line"><a id="l00705" name="l00705"></a><span class="lineno">  705</span><span class="comment">    /// @tparam Ops @c SqlBasicStringOperations-shaped buffer operations of @p Container.</span></div>
-<div class="line"><a id="l00706" name="l00706"></a><span class="lineno">  706</span><span class="comment">    /// @tparam UnitBytes Bytes per element of the buffer.</span></div>
-<div class="line"><a id="l00707" name="l00707"></a><span class="lineno">  707</span><span class="comment">    /// @tparam TerminatorUnits Elements the bound buffer has beyond its size for the driver&#39;s terminator.</span></div>
-<div class="line"><a id="l00708" name="l00708"></a><span class="lineno">  708</span><span class="comment">    /// @param stmt The statement the column is bound on (for the driver&#39;s diagnostic).</span></div>
-<div class="line"><a id="l00709" name="l00709"></a><span class="lineno">  709</span><span class="comment">    /// @param column The 1-based column index.</span></div>
-<div class="line"><a id="l00710" name="l00710"></a><span class="lineno">  710</span><span class="comment">    /// @param cType The C data type the column is bound as; a character type takes one element of each</span></div>
-<div class="line"><a id="l00711" name="l00711"></a><span class="lineno">  711</span><span class="comment">    ///              chunk for its terminator.</span></div>
-<div class="line"><a id="l00712" name="l00712"></a><span class="lineno">  712</span><span class="comment">    /// @param result The bound container.</span></div>
-<div class="line"><a id="l00713" name="l00713"></a><span class="lineno">  713</span><span class="comment">    /// @param indicator The column&#39;s length/indicator buffer; set to the value&#39;s length in bytes.</span></div>
-<div class="line"><a id="l00714" name="l00714"></a><span class="lineno">  714</span><span class="comment">    /// @param getData Reads the next chunk: @c SQLGetData of the column as @p cType, given the target, its</span></div>
-<div class="line"><a id="l00715" name="l00715"></a><span class="lineno">  715</span><span class="comment">    ///                length in bytes and the indicator.</span></div>
-<div class="line"><a id="l00716" name="l00716"></a><span class="lineno">  716</span><span class="comment">    /// @param maxBytes The most bytes the container grows to.</span></div>
-<div class="line"><a id="l00717" name="l00717"></a><span class="lineno">  717</span><span class="comment">    /// @return The value&#39;s length in elements; 0 for a NULL, which leaves @p indicator at @c SQL_NULL_DATA (a</span></div>
-<div class="line"><a id="l00718" name="l00718"></a><span class="lineno">  718</span><span class="comment">    ///         column unbound after a failed re-bind is read through here, NULL rows included).</span></div>
-<div class="line"><a id="l00719" name="l00719"></a><span class="lineno">  719</span><span class="comment">    /// @throws SqlException 22001 when the driver cannot read the bound column again (see</span></div>
-<div class="line"><a id="l00720" name="l00720"></a><span class="lineno">  720</span><span class="comment">    ///         @ref ThrowBoundValueNotReadable) or the value exceeds @p maxBytes; HY000 when the driver reports</span></div>
-<div class="line"><a id="l00721" name="l00721"></a><span class="lineno">  721</span><span class="comment">    ///         a length that contradicts the call.</span></div>
-<div class="line"><a id="l00722" name="l00722"></a><span class="lineno">  722</span><span class="comment"></span>    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> Ops, std::<span class="keywordtype">size_t</span> UnitBytes, std::<span class="keywordtype">size_t</span> TerminatorUnits, <span class="keyword">typename</span> Container, <span class="keyword">typename</span> GetData&gt;</div>
-<div class="line"><a id="l00723" name="l00723"></a><span class="lineno">  723</span>    std::size_t ReadBoundValueOfUnknownLength(SQLHSTMT stmt,</div>
-<div class="line"><a id="l00724" name="l00724"></a><span class="lineno">  724</span>                                              SQLUSMALLINT column,</div>
-<div class="line"><a id="l00725" name="l00725"></a><span class="lineno">  725</span>                                              SQLSMALLINT cType,</div>
-<div class="line"><a id="l00726" name="l00726"></a><span class="lineno">  726</span>                                              Container* result,</div>
-<div class="line"><a id="l00727" name="l00727"></a><span class="lineno">  727</span>                                              SQLLEN* indicator,</div>
-<div class="line"><a id="l00728" name="l00728"></a><span class="lineno">  728</span>                                              GetData <span class="keyword">const</span>&amp; getData,</div>
-<div class="line"><a id="l00729" name="l00729"></a><span class="lineno">  729</span>                                              std::size_t maxBytes = MaxUnknownLengthValueBytes)</div>
-<div class="line"><a id="l00730" name="l00730"></a><span class="lineno">  730</span>    {</div>
-<div class="line"><a id="l00731" name="l00731"></a><span class="lineno">  731</span>        <span class="keyword">auto</span> <span class="keyword">const</span> terminatorUnits = std::size_t { cType == SQL_C_BINARY ? 0U : 1U };</div>
-<div class="line"><a id="l00732" name="l00732"></a><span class="lineno">  732</span>        <span class="keywordflow">if</span> (Ops::Size(result) &lt; DefaultBoundColumnSize)</div>
-<div class="line"><a id="l00733" name="l00733"></a><span class="lineno">  733</span>            Ops::Resize(result, <span class="keyword">static_cast&lt;</span>SQLLEN<span class="keyword">&gt;</span>(DefaultBoundColumnSize));</div>
-<div class="line"><a id="l00734" name="l00734"></a><span class="lineno">  734</span>        <span class="keyword">auto</span> read = std::size_t { 0 };</div>
-<div class="line"><a id="l00735" name="l00735"></a><span class="lineno">  735</span>        <span class="keyword">auto</span> first = <span class="keyword">true</span>;</div>
-<div class="line"><a id="l00736" name="l00736"></a><span class="lineno">  736</span>        <span class="keywordflow">while</span> (<span class="keyword">true</span>)</div>
-<div class="line"><a id="l00737" name="l00737"></a><span class="lineno">  737</span>        {</div>
-<div class="line"><a id="l00738" name="l00738"></a><span class="lineno">  738</span>            <span class="keyword">auto</span> <span class="keyword">const</span> units = Ops::Size(result) - read + TerminatorUnits;</div>
-<div class="line"><a id="l00739" name="l00739"></a><span class="lineno">  739</span>            <span class="keyword">auto</span> <span class="keyword">const</span> rv = getData(</div>
-<div class="line"><a id="l00740" name="l00740"></a><span class="lineno">  740</span>                <span class="keyword">static_cast&lt;</span>SQLPOINTER<span class="keyword">&gt;</span>(Ops::Data(result) + read), <span class="keyword">static_cast&lt;</span>SQLLEN<span class="keyword">&gt;</span>(units * UnitBytes), indicator);</div>
-<div class="line"><a id="l00741" name="l00741"></a><span class="lineno">  741</span>            <span class="keywordflow">if</span> (rv == SQL_NO_DATA)</div>
-<div class="line"><a id="l00742" name="l00742"></a><span class="lineno">  742</span>            {</div>
-<div class="line"><a id="l00743" name="l00743"></a><span class="lineno">  743</span>                <span class="comment">// All of it was delivered by the previous chunk. On the first call nothing was: the driver</span></div>
-<div class="line"><a id="l00744" name="l00744"></a><span class="lineno">  744</span>                <span class="comment">// does not read the bound column again.</span></div>
-<div class="line"><a id="l00745" name="l00745"></a><span class="lineno">  745</span>                <span class="keywordflow">if</span> (first)</div>
-<div class="line"><a id="l00746" name="l00746"></a><span class="lineno">  746</span>                    ThrowBoundValueNotReadable(stmt, column, SQL_NO_TOTAL);</div>
-<div class="line"><a id="l00747" name="l00747"></a><span class="lineno">  747</span>                <span class="keywordflow">break</span>;</div>
-<div class="line"><a id="l00748" name="l00748"></a><span class="lineno">  748</span>            }</div>
-<div class="line"><a id="l00749" name="l00749"></a><span class="lineno">  749</span>            <span class="keywordflow">if</span> (!SQL_SUCCEEDED(rv))</div>
-<div class="line"><a id="l00750" name="l00750"></a><span class="lineno">  750</span>                ThrowBoundValueNotReadable(stmt, column, SQL_NO_TOTAL);</div>
-<div class="line"><a id="l00751" name="l00751"></a><span class="lineno">  751</span>            <span class="keywordflow">if</span> (first &amp;&amp; *indicator == SQL_NULL_DATA)</div>
-<div class="line"><a id="l00752" name="l00752"></a><span class="lineno">  752</span>                <span class="keywordflow">return</span> 0; <span class="comment">// a NULL: nothing to read, the indicator says so</span></div>
-<div class="line"><a id="l00753" name="l00753"></a><span class="lineno">  753</span>            first = <span class="keyword">false</span>;</div>
-<div class="line"><a id="l00754" name="l00754"></a><span class="lineno">  754</span>            <span class="keywordflow">if</span> (rv == SQL_SUCCESS)</div>
-<div class="line"><a id="l00755" name="l00755"></a><span class="lineno">  755</span>            {</div>
-<div class="line"><a id="l00756" name="l00756"></a><span class="lineno">  756</span>                <span class="comment">// The last chunk: its indicator is its length, which fits what was offered.</span></div>
-<div class="line"><a id="l00757" name="l00757"></a><span class="lineno">  757</span>                <span class="keywordflow">if</span> (*indicator &lt; 0 || std::cmp_greater(*indicator, (units - terminatorUnits) * UnitBytes))</div>
-<div class="line"><a id="l00758" name="l00758"></a><span class="lineno">  758</span>                    ThrowBoundValueMisread(column, <span class="stringliteral">&quot;HY000&quot;</span>, std::format(<span class="stringliteral">&quot;the driver reported {} bytes&quot;</span>, *indicator));</div>
-<div class="line"><a id="l00759" name="l00759"></a><span class="lineno">  759</span>                read += <span class="keyword">static_cast&lt;</span>std::size_t<span class="keyword">&gt;</span>(*indicator) / UnitBytes;</div>
-<div class="line"><a id="l00760" name="l00760"></a><span class="lineno">  760</span>                <span class="keywordflow">break</span>;</div>
-<div class="line"><a id="l00761" name="l00761"></a><span class="lineno">  761</span>            }</div>
-<div class="line"><a id="l00762" name="l00762"></a><span class="lineno">  762</span>            read += units - terminatorUnits; <span class="comment">// a full chunk: there is more</span></div>
-<div class="line"><a id="l00763" name="l00763"></a><span class="lineno">  763</span>            <span class="keywordflow">if</span> (Ops::Size(result) * 2 * UnitBytes &gt; maxBytes)</div>
-<div class="line"><a id="l00764" name="l00764"></a><span class="lineno">  764</span>                ThrowBoundValueMisread(column, <span class="stringliteral">&quot;22001&quot;</span>, std::format(<span class="stringliteral">&quot;it is longer than {} bytes&quot;</span>, maxBytes));</div>
-<div class="line"><a id="l00765" name="l00765"></a><span class="lineno">  765</span>            Ops::Resize(result, <span class="keyword">static_cast&lt;</span>SQLLEN<span class="keyword">&gt;</span>(Ops::Size(result) * 2));</div>
-<div class="line"><a id="l00766" name="l00766"></a><span class="lineno">  766</span>        }</div>
-<div class="line"><a id="l00767" name="l00767"></a><span class="lineno">  767</span>        *indicator = <span class="keyword">static_cast&lt;</span>SQLLEN<span class="keyword">&gt;</span>(read * UnitBytes);</div>
-<div class="line"><a id="l00768" name="l00768"></a><span class="lineno">  768</span>        <span class="keywordflow">return</span> read;</div>
-<div class="line"><a id="l00769" name="l00769"></a><span class="lineno">  769</span>    }</div>
-<div class="line"><a id="l00770" name="l00770"></a><span class="lineno">  770</span><span class="comment"></span> </div>
-<div class="line"><a id="l00771" name="l00771"></a><span class="lineno">  771</span><span class="comment">    /// @brief @ref ReadBoundValueOfUnknownLength reading through @c SQLGetData.</span></div>
-<div class="line"><a id="l00772" name="l00772"></a><span class="lineno">  772</span><span class="comment">    /// @return The value&#39;s length in elements.</span></div>
-<div class="line"><a id="l00773" name="l00773"></a><span class="lineno">  773</span><span class="comment"></span>    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> Ops, std::<span class="keywordtype">size_t</span> UnitBytes, std::<span class="keywordtype">size_t</span> TerminatorUnits, <span class="keyword">typename</span> Container&gt;</div>
-<div class="line"><a id="l00774" name="l00774"></a><span class="lineno">  774</span>    std::size_t ReadBoundValueOfUnknownLength(</div>
-<div class="line"><a id="l00775" name="l00775"></a><span class="lineno">  775</span>        SQLHSTMT stmt, SQLUSMALLINT column, SQLSMALLINT cType, Container* result, SQLLEN* indicator)</div>
-<div class="line"><a id="l00776" name="l00776"></a><span class="lineno">  776</span>    {</div>
-<div class="line"><a id="l00777" name="l00777"></a><span class="lineno">  777</span>        <span class="keywordflow">return</span> ReadBoundValueOfUnknownLength&lt;Ops, UnitBytes, TerminatorUnits&gt;(</div>
-<div class="line"><a id="l00778" name="l00778"></a><span class="lineno">  778</span>            stmt, column, cType, result, indicator, [&amp;](SQLPOINTER target, SQLLEN length, SQLLEN* lengthIndicator) {</div>
-<div class="line"><a id="l00779" name="l00779"></a><span class="lineno">  779</span>                <span class="keywordflow">return</span> SQLGetData(stmt, column, cType, target, length, lengthIndicator);</div>
-<div class="line"><a id="l00780" name="l00780"></a><span class="lineno">  780</span>            });</div>
-<div class="line"><a id="l00781" name="l00781"></a><span class="lineno">  781</span>    }</div>
-<div class="line"><a id="l00782" name="l00782"></a><span class="lineno">  782</span><span class="comment"></span> </div>
-<div class="line"><a id="l00783" name="l00783"></a><span class="lineno">  783</span><span class="comment">    /// @brief Keeps an output column that is bound straight into a growable container bound for every</span></div>
-<div class="line"><a id="l00784" name="l00784"></a><span class="lineno">  784</span><span class="comment">    /// fetch of the result set.</span></div>
-<div class="line"><a id="l00785" name="l00785"></a><span class="lineno">  785</span><span class="comment">    ///</span></div>
-<div class="line"><a id="l00786" name="l00786"></a><span class="lineno">  786</span><span class="comment">    /// The binder&#39;s post-processing shrinks the container to each row&#39;s length, so before the next</span></div>
-<div class="line"><a id="l00787" name="l00787"></a><span class="lineno">  787</span><span class="comment">    /// fetch it is grown back to the bound size. When its storage moved — a truncation re-fetch grew it,</span></div>
-<div class="line"><a id="l00788" name="l00788"></a><span class="lineno">  788</span><span class="comment">    /// or the caller moved the value out — the column is re-bound to the new storage, at the larger of</span></div>
-<div class="line"><a id="l00789" name="l00789"></a><span class="lineno">  789</span><span class="comment">    /// the old bound size and the container&#39;s current size. Per row this is a size compare and a pointer</span></div>
-<div class="line"><a id="l00790" name="l00790"></a><span class="lineno">  790</span><span class="comment">    /// compare when nothing changed; growing back within the retained capacity allocates nothing, and</span></div>
-<div class="line"><a id="l00791" name="l00791"></a><span class="lineno">  791</span><span class="comment">    /// planning the step allocates nothing either (see @ref SqlOutputColumnPreFetch).</span></div>
-<div class="line"><a id="l00792" name="l00792"></a><span class="lineno">  792</span><span class="comment">    ///</span></div>
-<div class="line"><a id="l00793" name="l00793"></a><span class="lineno">  793</span><span class="comment">    /// @tparam Ops @c SqlBasicStringOperations-shaped buffer operations of @p Container.</span></div>
-<div class="line"><a id="l00794" name="l00794"></a><span class="lineno">  794</span><span class="comment">    /// @tparam UnitBytes Bytes per element of the bound buffer.</span></div>
-<div class="line"><a id="l00795" name="l00795"></a><span class="lineno">  795</span><span class="comment">    /// @tparam TerminatorUnits Elements the bound buffer has beyond its size for the driver&#39;s terminator.</span></div>
-<div class="line"><a id="l00796" name="l00796"></a><span class="lineno">  796</span><span class="comment">    /// @param column The 1-based column index.</span></div>
-<div class="line"><a id="l00797" name="l00797"></a><span class="lineno">  797</span><span class="comment">    /// @param cType The C data type the column is bound as.</span></div>
-<div class="line"><a id="l00798" name="l00798"></a><span class="lineno">  798</span><span class="comment">    /// @param result The bound container.</span></div>
-<div class="line"><a id="l00799" name="l00799"></a><span class="lineno">  799</span><span class="comment">    /// @param indicator The column&#39;s length/indicator buffer.</span></div>
-<div class="line"><a id="l00800" name="l00800"></a><span class="lineno">  800</span><span class="comment">    /// @param cb The binder callback the step is planned on.</span></div>
-<div class="line"><a id="l00801" name="l00801"></a><span class="lineno">  801</span><span class="comment"></span>    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> Ops, std::<span class="keywordtype">size_t</span> UnitBytes, std::<span class="keywordtype">size_t</span> TerminatorUnits, <span class="keyword">typename</span> Container&gt;</div>
-<div class="line"><a id="l00802" name="l00802"></a><span class="lineno">  802</span>    <span class="keywordtype">void</span> PlanBoundBufferRestore(</div>
-<div class="line"><a id="l00803" name="l00803"></a><span class="lineno">  803</span>        SQLUSMALLINT column, SQLSMALLINT cType, Container* result, SQLLEN* indicator, SqlDataBinderCallback&amp; cb)</div>
-<div class="line"><a id="l00804" name="l00804"></a><span class="lineno">  804</span>    {</div>
-<div class="line"><a id="l00805" name="l00805"></a><span class="lineno">  805</span>        <span class="keyword">auto</span> step = SqlOutputColumnPreFetch {</div>
-<div class="line"><a id="l00806" name="l00806"></a><span class="lineno">  806</span>            .run = &amp;RestoreBoundBuffer&lt;Ops, Container, UnitBytes, TerminatorUnits&gt;,</div>
-<div class="line"><a id="l00807" name="l00807"></a><span class="lineno">  807</span>            .target = result,</div>
-<div class="line"><a id="l00808" name="l00808"></a><span class="lineno">  808</span>            .boundData = <span class="keyword">static_cast&lt;</span><span class="keywordtype">void</span> const*<span class="keyword">&gt;</span>(Ops::Data(result)),</div>
-<div class="line"><a id="l00809" name="l00809"></a><span class="lineno">  809</span>            .boundSize = <span class="keyword">static_cast&lt;</span>std::size_t<span class="keyword">&gt;</span>(Ops::Size(result)),</div>
-<div class="line"><a id="l00810" name="l00810"></a><span class="lineno">  810</span>            .column = column,</div>
-<div class="line"><a id="l00811" name="l00811"></a><span class="lineno">  811</span>            .cType = cType,</div>
-<div class="line"><a id="l00812" name="l00812"></a><span class="lineno">  812</span>        };</div>
-<div class="line"><a id="l00813" name="l00813"></a><span class="lineno">  813</span>        step.indicator = indicator; <span class="comment">// the driver writes through it: the step re-binds the column with it</span></div>
-<div class="line"><a id="l00814" name="l00814"></a><span class="lineno">  814</span>        cb.PlanPreFetchOutputColumn(step);</div>
-<div class="line"><a id="l00815" name="l00815"></a><span class="lineno">  815</span>    }</div>
-<div class="line"><a id="l00816" name="l00816"></a><span class="lineno">  816</span><span class="comment"></span> </div>
-<div class="line"><a id="l00817" name="l00817"></a><span class="lineno">  817</span><span class="comment">    /// @brief Byte offset of the contained value within a @c std::optional&lt;T&gt;.</span></div>
-<div class="line"><a id="l00818" name="l00818"></a><span class="lineno">  818</span><span class="comment">    ///</span></div>
-<div class="line"><a id="l00819" name="l00819"></a><span class="lineno">  819</span><span class="comment">    /// Used by the row-wise batch binders to address the inner value of each row&#39;s optional in place. The</span></div>
-<div class="line"><a id="l00820" name="l00820"></a><span class="lineno">  820</span><span class="comment">    /// offset is 0 on all known standard libraries, but is computed rather than assumed so the address</span></div>
-<div class="line"><a id="l00821" name="l00821"></a><span class="lineno">  821</span><span class="comment">    /// arithmetic does not bake in that assumption. It is derived from the integer addresses of a probe</span></div>
-<div class="line"><a id="l00822" name="l00822"></a><span class="lineno">  822</span><span class="comment">    /// optional and its contained value (rather than @c byte* subtraction) to keep the computation defined.</span></div>
-<div class="line"><a id="l00823" name="l00823"></a><span class="lineno">  823</span><span class="comment">    ///</span></div>
-<div class="line"><a id="l00824" name="l00824"></a><span class="lineno">  824</span><span class="comment">    /// @tparam T The contained value type.</span></div>
-<div class="line"><a id="l00825" name="l00825"></a><span class="lineno">  825</span><span class="comment">    /// @return The offset, in bytes, of the contained value within the optional.</span></div>
-<div class="line"><a id="l00826" name="l00826"></a><span class="lineno">  826</span><span class="comment"></span>    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
-<div class="line"><a id="l00827" name="l00827"></a><span class="lineno">  827</span>    [[nodiscard]] <span class="keyword">inline</span> std::size_t OptionalValueOffset() noexcept</div>
-<div class="line"><a id="l00828" name="l00828"></a><span class="lineno">  828</span>    {</div>
-<div class="line"><a id="l00829" name="l00829"></a><span class="lineno">  829</span>        std::optional&lt;T&gt; <span class="keyword">const</span> probe { T {} };</div>
-<div class="line"><a id="l00830" name="l00830"></a><span class="lineno">  830</span>        <span class="keywordflow">return</span> <span class="keyword">static_cast&lt;</span>std::size_t<span class="keyword">&gt;</span>(<span class="keyword">reinterpret_cast&lt;</span>std::uintptr_t<span class="keyword">&gt;</span>(std::addressof(*probe))</div>
-<div class="line"><a id="l00831" name="l00831"></a><span class="lineno">  831</span>                                        - <span class="keyword">reinterpret_cast&lt;</span>std::uintptr_t<span class="keyword">&gt;</span>(std::addressof(probe)));</div>
-<div class="line"><a id="l00832" name="l00832"></a><span class="lineno">  832</span>    }</div>
-<div class="line"><a id="l00833" name="l00833"></a><span class="lineno">  833</span> </div>
-<div class="line"><a id="l00834" name="l00834"></a><span class="lineno">  834</span>    <span class="comment">// clang-format off</span></div>
-<div class="line"><a id="l00835" name="l00835"></a><span class="lineno">  835</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
-<div class="line"><a id="l00836" name="l00836"></a><span class="lineno">  836</span><span class="keyword">concept </span>HasGetStringAndGetLength = <span class="keyword">requires</span>(T <span class="keyword">const</span>&amp; t) {</div>
-<div class="line"><a id="l00837" name="l00837"></a><span class="lineno">  837</span>    { t.GetLength() } -&gt; std::same_as&lt;int&gt;;</div>
-<div class="line"><a id="l00838" name="l00838"></a><span class="lineno">  838</span>    { t.GetString() } -&gt; std::same_as&lt;char const*&gt;;</div>
-<div class="line"><a id="l00839" name="l00839"></a><span class="lineno">  839</span>};</div>
-<div class="line"><a id="l00840" name="l00840"></a><span class="lineno">  840</span> </div>
-<div class="line"><a id="l00841" name="l00841"></a><span class="lineno">  841</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
-<div class="line"><a id="l00842" name="l00842"></a><span class="lineno">  842</span><span class="keyword">concept </span>HasGetStringAndLength = <span class="keyword">requires</span>(T <span class="keyword">const</span>&amp; t)</div>
-<div class="line"><a id="l00843" name="l00843"></a><span class="lineno">  843</span>{</div>
-<div class="line"><a id="l00844" name="l00844"></a><span class="lineno">  844</span>    { t.Length() } -&gt; std::same_as&lt;int&gt;;</div>
-<div class="line"><a id="l00845" name="l00845"></a><span class="lineno">  845</span>    { t.GetString() } -&gt; std::same_as&lt;char const*&gt;;</div>
-<div class="line"><a id="l00846" name="l00846"></a><span class="lineno">  846</span>};</div>
-<div class="line"><a id="l00847" name="l00847"></a><span class="lineno">  847</span>    <span class="comment">// clang-format on</span></div>
-<div class="line"><a id="l00848" name="l00848"></a><span class="lineno">  848</span> </div>
-<div class="line"><a id="l00849" name="l00849"></a><span class="lineno">  849</span>    <span class="keyword">template</span> &lt;<span class="keyword">typename</span>&gt;</div>
-<div class="line"><a id="l00850" name="l00850"></a><span class="lineno">  850</span>    <span class="keyword">struct </span>SqlViewHelper;</div>
-<div class="line"><a id="l00851" name="l00851"></a><span class="lineno">  851</span> </div>
-<div class="line"><a id="l00852" name="l00852"></a><span class="lineno">  852</span>    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
-<div class="line"><a id="l00853" name="l00853"></a><span class="lineno">  853</span>    <span class="keyword">concept </span>HasSqlViewHelper = <span class="keyword">requires</span>(T <span class="keyword">const</span>&amp; t) {</div>
-<div class="line"><a id="l00854" name="l00854"></a><span class="lineno">  854</span>        { SqlViewHelper&lt;T&gt;::View(t) } -&gt; std::convertible_to&lt;std::string_view&gt;;</div>
-<div class="line"><a id="l00855" name="l00855"></a><span class="lineno">  855</span>    };</div>
-<div class="line"><a id="l00856" name="l00856"></a><span class="lineno">  856</span> </div>
-<div class="line"><a id="l00857" name="l00857"></a><span class="lineno">  857</span>    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> CharT&gt;</div>
-<div class="line"><a id="l00858" name="l00858"></a><span class="lineno">  858</span>    <span class="keyword">struct </span>SqlViewHelper&lt;std::basic_string&lt;CharT&gt;&gt;</div>
-<div class="line"><a id="l00859" name="l00859"></a><span class="lineno">  859</span>    {</div>
-<div class="line"><a id="l00860" name="l00860"></a><span class="lineno">  860</span>        <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE std::basic_string_view&lt;CharT&gt; View(std::basic_string&lt;CharT&gt; <span class="keyword">const</span>&amp; str) <span class="keyword">noexcept</span></div>
-<div class="line"><a id="l00861" name="l00861"></a><span class="lineno">  861</span>        {</div>
-<div class="line"><a id="l00862" name="l00862"></a><span class="lineno">  862</span>            <span class="keywordflow">return</span> { str.data(), str.size() };</div>
-<div class="line"><a id="l00863" name="l00863"></a><span class="lineno">  863</span>        }</div>
-<div class="line"><a id="l00864" name="l00864"></a><span class="lineno">  864</span>    };</div>
-<div class="line"><a id="l00865" name="l00865"></a><span class="lineno">  865</span> </div>
-<div class="line"><a id="l00866" name="l00866"></a><span class="lineno">  866</span>    <span class="keyword">template</span> &lt;detail::HasGetStringAndGetLength CStringLike&gt;</div>
-<div class="line"><a id="l00867" name="l00867"></a><span class="lineno">  867</span>    <span class="keyword">struct </span>SqlViewHelper&lt;CStringLike&gt;</div>
-<div class="line"><a id="l00868" name="l00868"></a><span class="lineno">  868</span>    {</div>
-<div class="line"><a id="l00869" name="l00869"></a><span class="lineno">  869</span>        <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE std::string_view View(CStringLike <span class="keyword">const</span>&amp; str) <span class="keyword">noexcept</span></div>
-<div class="line"><a id="l00870" name="l00870"></a><span class="lineno">  870</span>        {</div>
-<div class="line"><a id="l00871" name="l00871"></a><span class="lineno">  871</span>            <span class="keywordflow">return</span> { str.GetString(), <span class="keyword">static_cast&lt;</span><span class="keywordtype">size_t</span><span class="keyword">&gt;</span>(str.GetLength()) };</div>
-<div class="line"><a id="l00872" name="l00872"></a><span class="lineno">  872</span>        }</div>
-<div class="line"><a id="l00873" name="l00873"></a><span class="lineno">  873</span>    };</div>
-<div class="line"><a id="l00874" name="l00874"></a><span class="lineno">  874</span> </div>
-<div class="line"><a id="l00875" name="l00875"></a><span class="lineno">  875</span>    <span class="keyword">template</span> &lt;detail::HasGetStringAndLength StringLike&gt;</div>
-<div class="line"><a id="l00876" name="l00876"></a><span class="lineno">  876</span>    <span class="keyword">struct </span>SqlViewHelper&lt;StringLike&gt;</div>
-<div class="line"><a id="l00877" name="l00877"></a><span class="lineno">  877</span>    {</div>
-<div class="line"><a id="l00878" name="l00878"></a><span class="lineno">  878</span>        <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE std::string_view View(StringLike <span class="keyword">const</span>&amp; str) <span class="keyword">noexcept</span></div>
-<div class="line"><a id="l00879" name="l00879"></a><span class="lineno">  879</span>        {</div>
-<div class="line"><a id="l00880" name="l00880"></a><span class="lineno">  880</span>            <span class="keywordflow">return</span> { str.GetString(), <span class="keyword">static_cast&lt;</span><span class="keywordtype">size_t</span><span class="keyword">&gt;</span>(str.Length()) };</div>
-<div class="line"><a id="l00881" name="l00881"></a><span class="lineno">  881</span>        }</div>
-<div class="line"><a id="l00882" name="l00882"></a><span class="lineno">  882</span>    };</div>
-<div class="line"><a id="l00883" name="l00883"></a><span class="lineno">  883</span> </div>
-<div class="line"><a id="l00884" name="l00884"></a><span class="lineno">  884</span>} <span class="comment">// namespace detail</span></div>
-<div class="line"><a id="l00885" name="l00885"></a><span class="lineno">  885</span> </div>
-<div class="line"><a id="l00886" name="l00886"></a><span class="lineno">  886</span><span class="comment">// -----------------------------------------------------------------------------------------------</span></div>
-<div class="line"><a id="l00887" name="l00887"></a><span class="lineno">  887</span> </div>
-<div class="line"><a id="l00888" name="l00888"></a><span class="lineno">  888</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
-<div class="line"><a id="l00889" name="l00889"></a><span class="lineno">  889</span><span class="keyword">concept </span>SqlInputParameterBinder = <span class="keyword">requires</span>(SQLHSTMT hStmt, SQLUSMALLINT column, T <span class="keyword">const</span>&amp; value, SqlDataBinderCallback&amp; cb) {</div>
-<div class="line"><a id="l00890" name="l00890"></a><span class="lineno">  890</span>    { SqlDataBinder&lt;T&gt;::InputParameter(hStmt, column, value, cb) } -&gt; std::same_as&lt;SQLRETURN&gt;;</div>
-<div class="line"><a id="l00891" name="l00891"></a><span class="lineno">  891</span>};</div>
-<div class="line"><a id="l00892" name="l00892"></a><span class="lineno">  892</span> </div>
-<div class="line"><a id="l00893" name="l00893"></a><span class="lineno">  893</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
-<div class="line"><a id="l00894" name="l00894"></a><span class="lineno">  894</span><span class="keyword">concept </span>SqlOutputColumnBinder =</div>
-<div class="line"><a id="l00895" name="l00895"></a><span class="lineno">  895</span>    <span class="keyword">requires</span>(SQLHSTMT hStmt, SQLUSMALLINT column, T* result, SQLLEN* indicator, SqlDataBinderCallback&amp; cb) {</div>
-<div class="line"><a id="l00896" name="l00896"></a><span class="lineno">  896</span>        { SqlDataBinder&lt;T&gt;::OutputColumn(hStmt, column, result, indicator, cb) } -&gt; std::same_as&lt;SQLRETURN&gt;;</div>
-<div class="line"><a id="l00897" name="l00897"></a><span class="lineno">  897</span>    };</div>
-<div class="line"><a id="l00898" name="l00898"></a><span class="lineno">  898</span> </div>
-<div class="line"><a id="l00899" name="l00899"></a><span class="lineno">  899</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
-<div class="line"><a id="l00900" name="l00900"></a><span class="lineno">  900</span><span class="keyword">concept </span>SqlInputParameterBatchBinder =</div>
-<div class="line"><a id="l00901" name="l00901"></a><span class="lineno">  901</span>    <span class="keyword">requires</span>(SQLHSTMT hStmt, SQLUSMALLINT column, std::ranges::range_value_t&lt;T&gt;* result, SqlDataBinderCallback&amp; cb) {</div>
-<div class="line"><a id="l00902" name="l00902"></a><span class="lineno">  902</span>        {</div>
-<div class="line"><a id="l00903" name="l00903"></a><span class="lineno">  903</span>            SqlDataBinder&lt;std::ranges::range_value_t&lt;T&gt;&gt;::InputParameter(</div>
-<div class="line"><a id="l00904" name="l00904"></a><span class="lineno">  904</span>                hStmt, column, std::declval&lt;std::ranges::range_value_t&lt;T&gt;&gt;(), cb)</div>
-<div class="line"><a id="l00905" name="l00905"></a><span class="lineno">  905</span>        } -&gt; std::same_as&lt;SQLRETURN&gt;;</div>
-<div class="line"><a id="l00906" name="l00906"></a><span class="lineno">  906</span>    };</div>
-<div class="line"><a id="l00907" name="l00907"></a><span class="lineno">  907</span><span class="comment"></span> </div>
-<div class="line"><a id="l00908" name="l00908"></a><span class="lineno">  908</span><span class="comment">/// @brief Opt-in trait marking a value type as bindable in a native ODBC row-wise parameter array.</span></div>
-<div class="line"><a id="l00909" name="l00909"></a><span class="lineno">  909</span><span class="comment">///</span></div>
-<div class="line"><a id="l00910" name="l00910"></a><span class="lineno">  910</span><span class="comment">/// A type qualifies when it is fixed-width, stored inline, bound via a plain @c SQLBindParameter with</span></div>
-<div class="line"><a id="l00911" name="l00911"></a><span class="lineno">  911</span><span class="comment">/// no per-call heap conversion, and identically across all supported backends — so its address can be</span></div>
-<div class="line"><a id="l00912" name="l00912"></a><span class="lineno">  912</span><span class="comment">/// handed to ODBC and strided by @c SQL_ATTR_PARAM_BIND_TYPE. The primary template is @c false; each</span></div>
-<div class="line"><a id="l00913" name="l00913"></a><span class="lineno">  913</span><span class="comment">/// eligible binder header specializes it to @c true (primitives, date/time/datetime, numeric).</span></div>
-<div class="line"><a id="l00914" name="l00914"></a><span class="lineno">  914</span><span class="comment">///</span></div>
-<div class="line"><a id="l00915" name="l00915"></a><span class="lineno">  915</span><span class="comment">/// @note @c SqlGuid is intentionally NOT marked: on SQLite it is bound via a per-value text conversion,</span></div>
-<div class="line"><a id="l00916" name="l00916"></a><span class="lineno">  916</span><span class="comment">/// which cannot be expressed as a zero-copy row-wise array — GUID columns use the soft batch path.</span></div>
-<div class="line"><a id="l00917" name="l00917"></a><span class="lineno">  917</span><span class="comment"></span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
-<div class="line"><a id="l00918" name="l00918"></a><span class="lineno">  918</span><span class="keyword">inline</span> <span class="keyword">constexpr</span> <span class="keywordtype">bool</span> SqlIsNativeRowBindableValue = <span class="keyword">false</span>;</div>
-<div class="line"><a id="l00919" name="l00919"></a><span class="lineno">  919</span><span class="comment"></span> </div>
-<div class="line"><a id="l00920" name="l00920"></a><span class="lineno">  920</span><span class="comment">/// @brief Opt-in trait marking a value type as an @c SqlNumeric specialization.</span></div>
-<div class="line"><a id="l00921" name="l00921"></a><span class="lineno">  921</span><span class="comment">///</span></div>
-<div class="line"><a id="l00922" name="l00922"></a><span class="lineno">  922</span><span class="comment">/// Numeric values are row-wise bindable, but @c std::optional&lt;SqlNumeric&gt; is not (the contained value</span></div>
-<div class="line"><a id="l00923" name="l00923"></a><span class="lineno">  923</span><span class="comment">/// is not bound at a uniform offset/representation across backends), so the optional batch path</span></div>
-<div class="line"><a id="l00924" name="l00924"></a><span class="lineno">  924</span><span class="comment">/// excludes them via this trait.</span></div>
-<div class="line"><a id="l00925" name="l00925"></a><span class="lineno">  925</span><span class="comment"></span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
-<div class="line"><a id="l00926" name="l00926"></a><span class="lineno">  926</span><span class="keyword">inline</span> <span class="keyword">constexpr</span> <span class="keywordtype">bool</span> SqlIsNumericValue = <span class="keyword">false</span>;</div>
-<div class="line"><a id="l00927" name="l00927"></a><span class="lineno">  927</span><span class="comment"></span> </div>
-<div class="line"><a id="l00928" name="l00928"></a><span class="lineno">  928</span><span class="comment">/// @brief Whether @p T is a @c std::optional specialization.</span></div>
-<div class="line"><a id="l00929" name="l00929"></a><span class="lineno">  929</span><span class="comment">///</span></div>
-<div class="line"><a id="l00930" name="l00930"></a><span class="lineno">  930</span><span class="comment">/// Defined locally rather than reusing @c Lightweight::IsSpecializationOf (Utils.hpp) or the DataMapper</span></div>
-<div class="line"><a id="l00931" name="l00931"></a><span class="lineno">  931</span><span class="comment">/// @c IsStdOptional (Field.hpp): this low-level binder header is deliberately kept free of dependencies on</span></div>
-<div class="line"><a id="l00932" name="l00932"></a><span class="lineno">  932</span><span class="comment">/// those higher-level headers, so it carries its own minimal optional traits.</span></div>
-<div class="line"><a id="l00933" name="l00933"></a><span class="lineno">  933</span><span class="comment"></span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
-<div class="line"><a id="l00934" name="l00934"></a><span class="lineno">  934</span><span class="keyword">inline</span> <span class="keyword">constexpr</span> <span class="keywordtype">bool</span> SqlIsStdOptional = <span class="keyword">false</span>;</div>
-<div class="line"><a id="l00935" name="l00935"></a><span class="lineno">  935</span> </div>
-<div class="line"><a id="l00936" name="l00936"></a><span class="lineno">  936</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
-<div class="line"><a id="l00937" name="l00937"></a><span class="lineno">  937</span><span class="keyword">inline</span> <span class="keyword">constexpr</span> <span class="keywordtype">bool</span> SqlIsStdOptional&lt;std::optional&lt;T&gt;&gt; = <span class="keyword">true</span>;</div>
-<div class="line"><a id="l00938" name="l00938"></a><span class="lineno">  938</span> </div>
-<div class="line"><a id="l00939" name="l00939"></a><span class="lineno">  939</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
-<div class="line"><a id="l00940" name="l00940"></a><span class="lineno">  940</span><span class="keyword">concept </span>SqlGetColumnNativeType =</div>
-<div class="line"><a id="l00941" name="l00941"></a><span class="lineno">  941</span>    <span class="keyword">requires</span>(SQLHSTMT hStmt, SQLUSMALLINT column, T* result, SQLLEN* indicator, SqlDataBinderCallback <span class="keyword">const</span>&amp; cb) {</div>
-<div class="line"><a id="l00942" name="l00942"></a><span class="lineno">  942</span>        { SqlDataBinder&lt;T&gt;::GetColumn(hStmt, column, result, indicator, cb) } -&gt; std::same_as&lt;SQLRETURN&gt;;</div>
-<div class="line"><a id="l00943" name="l00943"></a><span class="lineno">  943</span>    };</div>
-<div class="line"><a id="l00944" name="l00944"></a><span class="lineno">  944</span> </div>
-<div class="line"><a id="l00945" name="l00945"></a><span class="lineno">  945</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
-<div class="line"><a id="l00946" name="l00946"></a><span class="lineno">  946</span><span class="keyword">concept </span>SqlDataBinderSupportsInspect = <span class="keyword">requires</span>(T <span class="keyword">const</span>&amp; value) {</div>
-<div class="line"><a id="l00947" name="l00947"></a><span class="lineno">  947</span>    { SqlDataBinder&lt;std::remove_cvref_t&lt;T&gt;&gt;::Inspect(value) } -&gt; std::convertible_to&lt;std::string&gt;;</div>
-<div class="line"><a id="l00948" name="l00948"></a><span class="lineno">  948</span>};</div>
-<div class="line"><a id="l00949" name="l00949"></a><span class="lineno">  949</span> </div>
-<div class="line"><a id="l00950" name="l00950"></a><span class="lineno">  950</span><span class="comment">// clang-format off</span></div>
-<div class="line"><a id="l00951" name="l00951"></a><span class="lineno">  951</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> StringType, <span class="keyword">typename</span> CharType&gt;</div>
-<div class="line"><a id="l00952" name="l00952"></a><span class="lineno">  952</span><span class="keyword">concept </span>SqlBasicStringBinderConcept = <span class="keyword">requires</span>(StringType* str) {</div>
-<div class="line"><a id="l00953" name="l00953"></a><span class="lineno">  953</span>    { SqlBasicStringOperations&lt;StringType&gt;::Data(str) } -&gt; std::same_as&lt;CharType*&gt;;</div>
-<div class="line"><a id="l00954" name="l00954"></a><span class="lineno">  954</span>    { SqlBasicStringOperations&lt;StringType&gt;::Size(str) } -&gt; std::same_as&lt;SQLULEN&gt;;</div>
-<div class="line"><a id="l00955" name="l00955"></a><span class="lineno">  955</span>    { SqlBasicStringOperations&lt;StringType&gt;::Reserve(str, <span class="keywordtype">size_t</span> {}) } -&gt; std::same_as&lt;void&gt;;</div>
-<div class="line"><a id="l00956" name="l00956"></a><span class="lineno">  956</span>    { SqlBasicStringOperations&lt;StringType&gt;::Resize(str, SQLLEN {}) } -&gt; std::same_as&lt;void&gt;;</div>
-<div class="line"><a id="l00957" name="l00957"></a><span class="lineno">  957</span>    { SqlBasicStringOperations&lt;StringType&gt;::Clear(str) } -&gt; std::same_as&lt;void&gt;;</div>
-<div class="line"><a id="l00958" name="l00958"></a><span class="lineno">  958</span>};</div>
-<div class="line"><a id="l00959" name="l00959"></a><span class="lineno">  959</span><span class="comment">// clang-format on</span></div>
-<div class="line"><a id="l00960" name="l00960"></a><span class="lineno">  960</span> </div>
-<div class="line"><a id="l00961" name="l00961"></a><span class="lineno">  961</span>} <span class="comment">// namespace Lightweight</span></div>
+<div class="line"><a id="l00603" name="l00603"></a><span class="lineno">  603</span>            <span class="keywordflow">return</span> container-&gt;size();</div>
+<div class="line"><a id="l00604" name="l00604"></a><span class="lineno">  604</span>        }</div>
+<div class="line"><a id="l00605" name="l00605"></a><span class="lineno">  605</span><span class="comment"></span> </div>
+<div class="line"><a id="l00606" name="l00606"></a><span class="lineno">  606</span><span class="comment">        /// Resizes the container to @p size elements.</span></div>
+<div class="line"><a id="l00607" name="l00607"></a><span class="lineno">  607</span><span class="comment"></span>        <span class="keyword">template</span> &lt;<span class="keyword">typename</span> Container&gt;</div>
+<div class="line"><a id="l00608" name="l00608"></a><span class="lineno">  608</span>        <span class="keyword">static</span> <span class="keywordtype">void</span> Resize(Container* container, SQLLEN size)</div>
+<div class="line"><a id="l00609" name="l00609"></a><span class="lineno">  609</span>        {</div>
+<div class="line"><a id="l00610" name="l00610"></a><span class="lineno">  610</span>            container-&gt;resize(<span class="keyword">static_cast&lt;</span>std::size_t<span class="keyword">&gt;</span>(size));</div>
+<div class="line"><a id="l00611" name="l00611"></a><span class="lineno">  611</span>        }</div>
+<div class="line"><a id="l00612" name="l00612"></a><span class="lineno">  612</span>    };</div>
+<div class="line"><a id="l00613" name="l00613"></a><span class="lineno">  613</span><span class="comment"></span> </div>
+<div class="line"><a id="l00614" name="l00614"></a><span class="lineno">  614</span><span class="comment">    /// @brief The pre-fetch step of @ref PlanBoundBufferRestore: grows the container back to the bound size</span></div>
+<div class="line"><a id="l00615" name="l00615"></a><span class="lineno">  615</span><span class="comment">    /// and re-binds the column if its storage moved.</span></div>
+<div class="line"><a id="l00616" name="l00616"></a><span class="lineno">  616</span><span class="comment">    /// @tparam Ops @c SqlBasicStringOperations-shaped buffer operations of @p Container.</span></div>
+<div class="line"><a id="l00617" name="l00617"></a><span class="lineno">  617</span><span class="comment">    /// @tparam UnitBytes Bytes per element of the bound buffer.</span></div>
+<div class="line"><a id="l00618" name="l00618"></a><span class="lineno">  618</span><span class="comment">    /// @tparam TerminatorUnits Elements the bound buffer has beyond its size for the driver&#39;s terminator.</span></div>
+<div class="line"><a id="l00619" name="l00619"></a><span class="lineno">  619</span><span class="comment">    /// @param step The planned step.</span></div>
+<div class="line"><a id="l00620" name="l00620"></a><span class="lineno">  620</span><span class="comment">    /// @param stmt The statement handle the column is bound on.</span></div>
+<div class="line"><a id="l00621" name="l00621"></a><span class="lineno">  621</span><span class="comment">    /// @return @c SQL_SUCCESS, or the result of re-binding the column.</span></div>
+<div class="line"><a id="l00622" name="l00622"></a><span class="lineno">  622</span><span class="comment">    /// @throws std::bad_alloc When growing the container back allocates (its storage was moved out); the</span></div>
+<div class="line"><a id="l00623" name="l00623"></a><span class="lineno">  623</span><span class="comment">    ///         fetch reports that as HY001.</span></div>
+<div class="line"><a id="l00624" name="l00624"></a><span class="lineno">  624</span><span class="comment"></span>    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> Ops, <span class="keyword">typename</span> Container, std::<span class="keywordtype">size_t</span> UnitBytes, std::<span class="keywordtype">size_t</span> TerminatorUnits&gt;</div>
+<div class="line"><a id="l00625" name="l00625"></a><span class="lineno">  625</span>    SQLRETURN RestoreBoundBuffer(SqlOutputColumnPreFetch&amp; step, SQLHSTMT stmt)</div>
+<div class="line"><a id="l00626" name="l00626"></a><span class="lineno">  626</span>    {</div>
+<div class="line"><a id="l00627" name="l00627"></a><span class="lineno">  627</span>        <span class="keyword">auto</span>* <span class="keyword">const</span> result = <span class="keyword">static_cast&lt;</span>Container*<span class="keyword">&gt;</span>(step.target);</div>
+<div class="line"><a id="l00628" name="l00628"></a><span class="lineno">  628</span>        <span class="keyword">auto</span> <span class="keyword">const</span> size = <span class="keyword">static_cast&lt;</span>std::size_t<span class="keyword">&gt;</span>(Ops::Size(result));</div>
+<div class="line"><a id="l00629" name="l00629"></a><span class="lineno">  629</span>        <span class="keywordflow">if</span> (<span class="keyword">static_cast&lt;</span><span class="keywordtype">void</span> const*<span class="keyword">&gt;</span>(Ops::Data(result)) != step.boundData)</div>
+<div class="line"><a id="l00630" name="l00630"></a><span class="lineno">  630</span>            step.boundSize = (std::max) (step.boundSize, size);</div>
+<div class="line"><a id="l00631" name="l00631"></a><span class="lineno">  631</span>        <span class="keywordflow">if</span> (size != step.boundSize)</div>
+<div class="line"><a id="l00632" name="l00632"></a><span class="lineno">  632</span>        {</div>
+<div class="line"><a id="l00633" name="l00633"></a><span class="lineno">  633</span>            <span class="comment">// The driver overwrites the regrown part, so where the container can skip initializing it</span></div>
+<div class="line"><a id="l00634" name="l00634"></a><span class="lineno">  634</span>            <span class="comment">// (std::basic_string), it does: a long value grows the bound size, and every later row would</span></div>
+<div class="line"><a id="l00635" name="l00635"></a><span class="lineno">  635</span>            <span class="comment">// otherwise zero-fill up to it. A vector (binary) zero-fills up to the bound size.</span></div>
+<div class="line"><a id="l00636" name="l00636"></a><span class="lineno">  636</span>            <span class="keywordflow">if</span> <span class="keyword">constexpr</span> (<span class="keyword">requires</span> { Ops::ResizeForOverwrite(result, step.boundSize); })</div>
+<div class="line"><a id="l00637" name="l00637"></a><span class="lineno">  637</span>                Ops::ResizeForOverwrite(result, step.boundSize);</div>
+<div class="line"><a id="l00638" name="l00638"></a><span class="lineno">  638</span>            <span class="keywordflow">else</span></div>
+<div class="line"><a id="l00639" name="l00639"></a><span class="lineno">  639</span>                Ops::Resize(result, <span class="keyword">static_cast&lt;</span>SQLLEN<span class="keyword">&gt;</span>(step.boundSize));</div>
+<div class="line"><a id="l00640" name="l00640"></a><span class="lineno">  640</span>        }</div>
+<div class="line"><a id="l00641" name="l00641"></a><span class="lineno">  641</span>        <span class="keyword">auto</span>* <span class="keyword">const</span> data = Ops::Data(result);</div>
+<div class="line"><a id="l00642" name="l00642"></a><span class="lineno">  642</span>        <span class="keywordflow">if</span> (<span class="keyword">static_cast&lt;</span><span class="keywordtype">void</span> const*<span class="keyword">&gt;</span>(data) == step.boundData)</div>
+<div class="line"><a id="l00643" name="l00643"></a><span class="lineno">  643</span>            <span class="keywordflow">return</span> SQL_SUCCESS;</div>
+<div class="line"><a id="l00644" name="l00644"></a><span class="lineno">  644</span>        <span class="keyword">auto</span> <span class="keyword">const</span> rc = SQLBindCol(stmt,</div>
+<div class="line"><a id="l00645" name="l00645"></a><span class="lineno">  645</span>                                   step.column,</div>
+<div class="line"><a id="l00646" name="l00646"></a><span class="lineno">  646</span>                                   step.cType,</div>
+<div class="line"><a id="l00647" name="l00647"></a><span class="lineno">  647</span>                                   <span class="keyword">static_cast&lt;</span>SQLPOINTER<span class="keyword">&gt;</span>(data),</div>
+<div class="line"><a id="l00648" name="l00648"></a><span class="lineno">  648</span>                                   <span class="keyword">static_cast&lt;</span>SQLLEN<span class="keyword">&gt;</span>((step.boundSize + TerminatorUnits) * UnitBytes),</div>
+<div class="line"><a id="l00649" name="l00649"></a><span class="lineno">  649</span>                                   step.indicator);</div>
+<div class="line"><a id="l00650" name="l00650"></a><span class="lineno">  650</span>        <span class="comment">// Recorded only once bound: after a failed bind the next fetch must try again, not fetch through the</span></div>
+<div class="line"><a id="l00651" name="l00651"></a><span class="lineno">  651</span>        <span class="comment">// binding of the storage that moved away.</span></div>
+<div class="line"><a id="l00652" name="l00652"></a><span class="lineno">  652</span>        <span class="keywordflow">if</span> (SQL_SUCCEEDED(rc))</div>
+<div class="line"><a id="l00653" name="l00653"></a><span class="lineno">  653</span>            step.boundData = data;</div>
+<div class="line"><a id="l00654" name="l00654"></a><span class="lineno">  654</span>        <span class="keywordflow">return</span> rc;</div>
+<div class="line"><a id="l00655" name="l00655"></a><span class="lineno">  655</span>    }</div>
+<div class="line"><a id="l00656" name="l00656"></a><span class="lineno">  656</span><span class="comment"></span> </div>
+<div class="line"><a id="l00657" name="l00657"></a><span class="lineno">  657</span><span class="comment">    /// @brief The largest declared column length a growable container is grown to when bound: SQL</span></div>
+<div class="line"><a id="l00658" name="l00658"></a><span class="lineno">  658</span><span class="comment">    /// Server&#39;s largest VARCHAR / VARBINARY short of MAX. A longer or MAX column starts at</span></div>
+<div class="line"><a id="l00659" name="l00659"></a><span class="lineno">  659</span><span class="comment">    /// @ref DefaultBoundColumnSize.</span></div>
+<div class="line"><a id="l00660" name="l00660"></a><span class="lineno">  660</span><span class="comment"></span>    <span class="keyword">inline</span> <span class="keyword">constexpr</span> std::size_t MaxDeclaredBoundColumnSize = 8000;</div>
+<div class="line"><a id="l00661" name="l00661"></a><span class="lineno">  661</span><span class="comment"></span> </div>
+<div class="line"><a id="l00662" name="l00662"></a><span class="lineno">  662</span><span class="comment">    /// @brief The declared length of output column @p column as a bound buffer size: between</span></div>
+<div class="line"><a id="l00663" name="l00663"></a><span class="lineno">  663</span><span class="comment">    /// @ref DefaultBoundColumnSize and @ref MaxDeclaredBoundColumnSize, and @ref DefaultBoundColumnSize</span></div>
+<div class="line"><a id="l00664" name="l00664"></a><span class="lineno">  664</span><span class="comment">    /// for a length the driver does not report or one above the maximum (a MAX or LONG column). One</span></div>
+<div class="line"><a id="l00665" name="l00665"></a><span class="lineno">  665</span><span class="comment">    /// @c SQLColAttribute call.</span></div>
+<div class="line"><a id="l00666" name="l00666"></a><span class="lineno">  666</span><span class="comment">    ///</span></div>
+<div class="line"><a id="l00667" name="l00667"></a><span class="lineno">  667</span><span class="comment">    /// @param stmt The statement holding the result set.</span></div>
+<div class="line"><a id="l00668" name="l00668"></a><span class="lineno">  668</span><span class="comment">    /// @param column The 1-based column index.</span></div>
+<div class="line"><a id="l00669" name="l00669"></a><span class="lineno">  669</span><span class="comment">    /// @param length Which declared length to ask for.</span></div>
+<div class="line"><a id="l00670" name="l00670"></a><span class="lineno">  670</span><span class="comment">    /// @return The number of elements to bind, without a terminator.</span></div>
+<div class="line"><a id="l00671" name="l00671"></a><span class="lineno">  671</span><span class="comment"></span>    <span class="keyword">inline</span> std::size_t DeclaredBoundColumnSize(SQLHSTMT stmt, SQLUSMALLINT column, SqlOutputColumnLength length) <span class="keyword">noexcept</span></div>
+<div class="line"><a id="l00672" name="l00672"></a><span class="lineno">  672</span>    {</div>
+<div class="line"><a id="l00673" name="l00673"></a><span class="lineno">  673</span>        <span class="keyword">auto</span> <span class="keyword">const</span> field =</div>
+<div class="line"><a id="l00674" name="l00674"></a><span class="lineno">  674</span>            <span class="keyword">static_cast&lt;</span>SQLUSMALLINT<span class="keyword">&gt;</span>(length == SqlOutputColumnLength::Octets ? SQL_DESC_OCTET_LENGTH : SQL_DESC_LENGTH);</div>
+<div class="line"><a id="l00675" name="l00675"></a><span class="lineno">  675</span>        SQLLEN declared {};</div>
+<div class="line"><a id="l00676" name="l00676"></a><span class="lineno">  676</span>        <span class="keywordflow">if</span> (!SQL_SUCCEEDED(SQLColAttribute(stmt, column, field, <span class="keyword">nullptr</span>, 0, <span class="keyword">nullptr</span>, &amp;declared)) || declared &lt;= 0</div>
+<div class="line"><a id="l00677" name="l00677"></a><span class="lineno">  677</span>            || std::cmp_greater(declared, MaxDeclaredBoundColumnSize))</div>
+<div class="line"><a id="l00678" name="l00678"></a><span class="lineno">  678</span>            <span class="keywordflow">return</span> DefaultBoundColumnSize;</div>
+<div class="line"><a id="l00679" name="l00679"></a><span class="lineno">  679</span>        <span class="keywordflow">return</span> (std::max) (DefaultBoundColumnSize, <span class="keyword">static_cast&lt;</span>std::size_t<span class="keyword">&gt;</span>(declared));</div>
+<div class="line"><a id="l00680" name="l00680"></a><span class="lineno">  680</span>    }</div>
+<div class="line"><a id="l00681" name="l00681"></a><span class="lineno">  681</span><span class="comment"></span> </div>
+<div class="line"><a id="l00682" name="l00682"></a><span class="lineno">  682</span><span class="comment">    /// @brief Fails the fetch of a bound value longer than its buffer that the driver cannot read again.</span></div>
+<div class="line"><a id="l00683" name="l00683"></a><span class="lineno">  683</span><span class="comment">    ///</span></div>
+<div class="line"><a id="l00684" name="l00684"></a><span class="lineno">  684</span><span class="comment">    /// The binders&#39; post-processing reads such a value with @c SQLGetData; a driver without</span></div>
+<div class="line"><a id="l00685" name="l00685"></a><span class="lineno">  685</span><span class="comment">    /// @c SQL_GD_BOUND (MS SQL Server) refuses that for a bound column. Rather than return the value</span></div>
+<div class="line"><a id="l00686" name="l00686"></a><span class="lineno">  686</span><span class="comment">    /// truncated to the buffer, the fetch fails with this error (SQLSTATE 22001).</span></div>
+<div class="line"><a id="l00687" name="l00687"></a><span class="lineno">  687</span><span class="comment">    ///</span></div>
+<div class="line"><a id="l00688" name="l00688"></a><span class="lineno">  688</span><span class="comment">    /// @param stmt The statement the column is bound on (its diagnostic names the driver&#39;s reason).</span></div>
+<div class="line"><a id="l00689" name="l00689"></a><span class="lineno">  689</span><span class="comment">    /// @param column The 1-based column index.</span></div>
+<div class="line"><a id="l00690" name="l00690"></a><span class="lineno">  690</span><span class="comment">    /// @param totalLength The value&#39;s length as the driver reported it, in bytes, or @c SQL_NO_TOTAL.</span></div>
+<div class="line"><a id="l00691" name="l00691"></a><span class="lineno">  691</span><span class="comment"></span>    [[noreturn]] <span class="keyword">inline</span> <span class="keywordtype">void</span> ThrowBoundValueNotReadable(SQLHSTMT stmt, SQLUSMALLINT column, SQLLEN totalLength)</div>
+<div class="line"><a id="l00692" name="l00692"></a><span class="lineno">  692</span>    {</div>
+<div class="line"><a id="l00693" name="l00693"></a><span class="lineno">  693</span>        <span class="keyword">auto</span> info = <a class="code hl_function" href="../../d8/d5b/structLightweight_1_1SqlErrorInfo.html#a8c5df558d7e9cd5263d15c3b13461944">SqlErrorInfo::FromStatementHandle</a>(stmt);</div>
+<div class="line"><a id="l00694" name="l00694"></a><span class="lineno">  694</span>        <span class="comment">// 22001 (string data, right truncation) names what happened to the value; the driver&#39;s own</span></div>
+<div class="line"><a id="l00695" name="l00695"></a><span class="lineno">  695</span>        <span class="comment">// state for the refused re-read (e.g. 07009 on SQL Server) only says why it could not be avoided.</span></div>
+<div class="line"><a id="l00696" name="l00696"></a><span class="lineno">  696</span>        info.sqlState = <span class="stringliteral">&quot;22001&quot;</span>;</div>
+<div class="line"><a id="l00697" name="l00697"></a><span class="lineno">  697</span>        info.nativeErrorCode = 0;</div>
+<div class="line"><a id="l00698" name="l00698"></a><span class="lineno">  698</span>        <span class="keyword">auto</span> <span class="keyword">const</span> length =</div>
+<div class="line"><a id="l00699" name="l00699"></a><span class="lineno">  699</span>            totalLength == SQL_NO_TOTAL ? std::string { <span class="stringliteral">&quot;length unknown&quot;</span> } : std::format(<span class="stringliteral">&quot;{} bytes&quot;</span>, totalLength);</div>
+<div class="line"><a id="l00700" name="l00700"></a><span class="lineno">  700</span>        info.message = std::format(<span class="stringliteral">&quot;Column {}: the value ({}) is longer than its bound buffer, and the driver cannot &quot;</span></div>
+<div class="line"><a id="l00701" name="l00701"></a><span class="lineno">  701</span>                                   <span class="stringliteral">&quot;read a bound column again (no SQL_GD_BOUND). Read the column with GetColumn(), or &quot;</span></div>
+<div class="line"><a id="l00702" name="l00702"></a><span class="lineno">  702</span>                                   <span class="stringliteral">&quot;size the bound variable to the longest value before binding it. ({})&quot;</span>,</div>
+<div class="line"><a id="l00703" name="l00703"></a><span class="lineno">  703</span>                                   column,</div>
+<div class="line"><a id="l00704" name="l00704"></a><span class="lineno">  704</span>                                   length,</div>
+<div class="line"><a id="l00705" name="l00705"></a><span class="lineno">  705</span>                                   info.message);</div>
+<div class="line"><a id="l00706" name="l00706"></a><span class="lineno">  706</span>        <span class="keywordflow">throw</span> SqlException(std::move(info));</div>
+<div class="line"><a id="l00707" name="l00707"></a><span class="lineno">  707</span>    }</div>
+<div class="line"><a id="l00708" name="l00708"></a><span class="lineno">  708</span><span class="comment"></span> </div>
+<div class="line"><a id="l00709" name="l00709"></a><span class="lineno">  709</span><span class="comment">    /// @brief Fails the fetch of a bound value whose re-read the driver reported inconsistently, or that grew</span></div>
+<div class="line"><a id="l00710" name="l00710"></a><span class="lineno">  710</span><span class="comment">    /// beyond @ref MaxUnknownLengthValueBytes.</span></div>
+<div class="line"><a id="l00711" name="l00711"></a><span class="lineno">  711</span><span class="comment">    ///</span></div>
+<div class="line"><a id="l00712" name="l00712"></a><span class="lineno">  712</span><span class="comment">    /// @param column The 1-based column index.</span></div>
+<div class="line"><a id="l00713" name="l00713"></a><span class="lineno">  713</span><span class="comment">    /// @param sqlState 22001 for a value too long to read, HY000 for a driver report that contradicts itself.</span></div>
+<div class="line"><a id="l00714" name="l00714"></a><span class="lineno">  714</span><span class="comment">    /// @param reason What went wrong, for the message.</span></div>
+<div class="line"><a id="l00715" name="l00715"></a><span class="lineno">  715</span><span class="comment"></span>    [[noreturn]] <span class="keyword">inline</span> <span class="keywordtype">void</span> ThrowBoundValueMisread(SQLUSMALLINT column, std::string_view sqlState, std::string_view reason)</div>
+<div class="line"><a id="l00716" name="l00716"></a><span class="lineno">  716</span>    {</div>
+<div class="line"><a id="l00717" name="l00717"></a><span class="lineno">  717</span>        <span class="keywordflow">throw</span> SqlException(SqlErrorInfo {</div>
+<div class="line"><a id="l00718" name="l00718"></a><span class="lineno">  718</span>            .nativeErrorCode = 0,</div>
+<div class="line"><a id="l00719" name="l00719"></a><span class="lineno">  719</span>            .sqlState = std::string { sqlState },</div>
+<div class="line"><a id="l00720" name="l00720"></a><span class="lineno">  720</span>            .message = std::format(<span class="stringliteral">&quot;Column {}: the bound value could not be read in full: {}&quot;</span>, column, reason),</div>
+<div class="line"><a id="l00721" name="l00721"></a><span class="lineno">  721</span>        });</div>
+<div class="line"><a id="l00722" name="l00722"></a><span class="lineno">  722</span>    }</div>
+<div class="line"><a id="l00723" name="l00723"></a><span class="lineno">  723</span><span class="comment"></span> </div>
+<div class="line"><a id="l00724" name="l00724"></a><span class="lineno">  724</span><span class="comment">    /// @brief The most bytes a bound value of unknown length (@c SQL_NO_TOTAL) is grown to while it is read</span></div>
+<div class="line"><a id="l00725" name="l00725"></a><span class="lineno">  725</span><span class="comment">    /// again; a longer value fails the fetch with 22001 instead of exhausting memory.</span></div>
+<div class="line"><a id="l00726" name="l00726"></a><span class="lineno">  726</span><span class="comment"></span>    <span class="keyword">inline</span> <span class="keyword">constexpr</span> std::size_t MaxUnknownLengthValueBytes = std::size_t { 1 } &lt;&lt; 30;</div>
+<div class="line"><a id="l00727" name="l00727"></a><span class="lineno">  727</span><span class="comment"></span> </div>
+<div class="line"><a id="l00728" name="l00728"></a><span class="lineno">  728</span><span class="comment">    /// @brief Reads a bound value again in full that the driver reported longer than its buffer without</span></div>
+<div class="line"><a id="l00729" name="l00729"></a><span class="lineno">  729</span><span class="comment">    /// saying how long (@c SQL_NO_TOTAL), in chunks through @p getData, doubling @p result as it goes.</span></div>
+<div class="line"><a id="l00730" name="l00730"></a><span class="lineno">  730</span><span class="comment">    ///</span></div>
+<div class="line"><a id="l00731" name="l00731"></a><span class="lineno">  731</span><span class="comment">    /// Only a row whose value overflowed its bound buffer gets here. The container keeps its grown size, so</span></div>
+<div class="line"><a id="l00732" name="l00732"></a><span class="lineno">  732</span><span class="comment">    /// the caller decides what the value&#39;s length means for it, and re-binds the column if the container&#39;s</span></div>
+<div class="line"><a id="l00733" name="l00733"></a><span class="lineno">  733</span><span class="comment">    /// storage moved (see @ref PlanBoundBufferRestore), also when this throws.</span></div>
+<div class="line"><a id="l00734" name="l00734"></a><span class="lineno">  734</span><span class="comment">    ///</span></div>
+<div class="line"><a id="l00735" name="l00735"></a><span class="lineno">  735</span><span class="comment">    /// @tparam Ops @c SqlBasicStringOperations-shaped buffer operations of @p Container.</span></div>
+<div class="line"><a id="l00736" name="l00736"></a><span class="lineno">  736</span><span class="comment">    /// @tparam UnitBytes Bytes per element of the buffer.</span></div>
+<div class="line"><a id="l00737" name="l00737"></a><span class="lineno">  737</span><span class="comment">    /// @tparam TerminatorUnits Elements the bound buffer has beyond its size for the driver&#39;s terminator.</span></div>
+<div class="line"><a id="l00738" name="l00738"></a><span class="lineno">  738</span><span class="comment">    /// @param stmt The statement the column is bound on (for the driver&#39;s diagnostic).</span></div>
+<div class="line"><a id="l00739" name="l00739"></a><span class="lineno">  739</span><span class="comment">    /// @param column The 1-based column index.</span></div>
+<div class="line"><a id="l00740" name="l00740"></a><span class="lineno">  740</span><span class="comment">    /// @param cType The C data type the column is bound as; a character type takes one element of each</span></div>
+<div class="line"><a id="l00741" name="l00741"></a><span class="lineno">  741</span><span class="comment">    ///              chunk for its terminator.</span></div>
+<div class="line"><a id="l00742" name="l00742"></a><span class="lineno">  742</span><span class="comment">    /// @param result The bound container.</span></div>
+<div class="line"><a id="l00743" name="l00743"></a><span class="lineno">  743</span><span class="comment">    /// @param indicator The column&#39;s length/indicator buffer; set to the value&#39;s length in bytes.</span></div>
+<div class="line"><a id="l00744" name="l00744"></a><span class="lineno">  744</span><span class="comment">    /// @param getData Reads the next chunk: @c SQLGetData of the column as @p cType, given the target, its</span></div>
+<div class="line"><a id="l00745" name="l00745"></a><span class="lineno">  745</span><span class="comment">    ///                length in bytes and the indicator.</span></div>
+<div class="line"><a id="l00746" name="l00746"></a><span class="lineno">  746</span><span class="comment">    /// @param maxBytes The most bytes the container grows to.</span></div>
+<div class="line"><a id="l00747" name="l00747"></a><span class="lineno">  747</span><span class="comment">    /// @return The value&#39;s length in elements; 0 for a NULL, which leaves @p indicator at @c SQL_NULL_DATA (a</span></div>
+<div class="line"><a id="l00748" name="l00748"></a><span class="lineno">  748</span><span class="comment">    ///         column unbound after a failed re-bind is read through here, NULL rows included).</span></div>
+<div class="line"><a id="l00749" name="l00749"></a><span class="lineno">  749</span><span class="comment">    /// @throws SqlException 22001 when the driver cannot read the bound column again (see</span></div>
+<div class="line"><a id="l00750" name="l00750"></a><span class="lineno">  750</span><span class="comment">    ///         @ref ThrowBoundValueNotReadable) or the value exceeds @p maxBytes; HY000 when the driver reports</span></div>
+<div class="line"><a id="l00751" name="l00751"></a><span class="lineno">  751</span><span class="comment">    ///         a length that contradicts the call.</span></div>
+<div class="line"><a id="l00752" name="l00752"></a><span class="lineno">  752</span><span class="comment"></span>    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> Ops, std::<span class="keywordtype">size_t</span> UnitBytes, std::<span class="keywordtype">size_t</span> TerminatorUnits, <span class="keyword">typename</span> Container, <span class="keyword">typename</span> GetData&gt;</div>
+<div class="line"><a id="l00753" name="l00753"></a><span class="lineno">  753</span>    std::size_t ReadBoundValueOfUnknownLength(SQLHSTMT stmt,</div>
+<div class="line"><a id="l00754" name="l00754"></a><span class="lineno">  754</span>                                              SQLUSMALLINT column,</div>
+<div class="line"><a id="l00755" name="l00755"></a><span class="lineno">  755</span>                                              SQLSMALLINT cType,</div>
+<div class="line"><a id="l00756" name="l00756"></a><span class="lineno">  756</span>                                              Container* result,</div>
+<div class="line"><a id="l00757" name="l00757"></a><span class="lineno">  757</span>                                              SQLLEN* indicator,</div>
+<div class="line"><a id="l00758" name="l00758"></a><span class="lineno">  758</span>                                              GetData <span class="keyword">const</span>&amp; getData,</div>
+<div class="line"><a id="l00759" name="l00759"></a><span class="lineno">  759</span>                                              std::size_t maxBytes = MaxUnknownLengthValueBytes)</div>
+<div class="line"><a id="l00760" name="l00760"></a><span class="lineno">  760</span>    {</div>
+<div class="line"><a id="l00761" name="l00761"></a><span class="lineno">  761</span>        <span class="keyword">auto</span> <span class="keyword">const</span> terminatorUnits = std::size_t { cType == SQL_C_BINARY ? 0U : 1U };</div>
+<div class="line"><a id="l00762" name="l00762"></a><span class="lineno">  762</span>        <span class="keywordflow">if</span> (Ops::Size(result) &lt; DefaultBoundColumnSize)</div>
+<div class="line"><a id="l00763" name="l00763"></a><span class="lineno">  763</span>            Ops::Resize(result, <span class="keyword">static_cast&lt;</span>SQLLEN<span class="keyword">&gt;</span>(DefaultBoundColumnSize));</div>
+<div class="line"><a id="l00764" name="l00764"></a><span class="lineno">  764</span>        <span class="keyword">auto</span> read = std::size_t { 0 };</div>
+<div class="line"><a id="l00765" name="l00765"></a><span class="lineno">  765</span>        <span class="keyword">auto</span> first = <span class="keyword">true</span>;</div>
+<div class="line"><a id="l00766" name="l00766"></a><span class="lineno">  766</span>        <span class="keywordflow">while</span> (<span class="keyword">true</span>)</div>
+<div class="line"><a id="l00767" name="l00767"></a><span class="lineno">  767</span>        {</div>
+<div class="line"><a id="l00768" name="l00768"></a><span class="lineno">  768</span>            <span class="keyword">auto</span> <span class="keyword">const</span> units = Ops::Size(result) - read + TerminatorUnits;</div>
+<div class="line"><a id="l00769" name="l00769"></a><span class="lineno">  769</span>            <span class="keyword">auto</span> <span class="keyword">const</span> rv = getData(</div>
+<div class="line"><a id="l00770" name="l00770"></a><span class="lineno">  770</span>                <span class="keyword">static_cast&lt;</span>SQLPOINTER<span class="keyword">&gt;</span>(Ops::Data(result) + read), <span class="keyword">static_cast&lt;</span>SQLLEN<span class="keyword">&gt;</span>(units * UnitBytes), indicator);</div>
+<div class="line"><a id="l00771" name="l00771"></a><span class="lineno">  771</span>            <span class="keywordflow">if</span> (rv == SQL_NO_DATA)</div>
+<div class="line"><a id="l00772" name="l00772"></a><span class="lineno">  772</span>            {</div>
+<div class="line"><a id="l00773" name="l00773"></a><span class="lineno">  773</span>                <span class="comment">// All of it was delivered by the previous chunk. On the first call nothing was: the driver</span></div>
+<div class="line"><a id="l00774" name="l00774"></a><span class="lineno">  774</span>                <span class="comment">// does not read the bound column again.</span></div>
+<div class="line"><a id="l00775" name="l00775"></a><span class="lineno">  775</span>                <span class="keywordflow">if</span> (first)</div>
+<div class="line"><a id="l00776" name="l00776"></a><span class="lineno">  776</span>                    ThrowBoundValueNotReadable(stmt, column, SQL_NO_TOTAL);</div>
+<div class="line"><a id="l00777" name="l00777"></a><span class="lineno">  777</span>                <span class="keywordflow">break</span>;</div>
+<div class="line"><a id="l00778" name="l00778"></a><span class="lineno">  778</span>            }</div>
+<div class="line"><a id="l00779" name="l00779"></a><span class="lineno">  779</span>            <span class="keywordflow">if</span> (!SQL_SUCCEEDED(rv))</div>
+<div class="line"><a id="l00780" name="l00780"></a><span class="lineno">  780</span>                ThrowBoundValueNotReadable(stmt, column, SQL_NO_TOTAL);</div>
+<div class="line"><a id="l00781" name="l00781"></a><span class="lineno">  781</span>            <span class="keywordflow">if</span> (first &amp;&amp; *indicator == SQL_NULL_DATA)</div>
+<div class="line"><a id="l00782" name="l00782"></a><span class="lineno">  782</span>                <span class="keywordflow">return</span> 0; <span class="comment">// a NULL: nothing to read, the indicator says so</span></div>
+<div class="line"><a id="l00783" name="l00783"></a><span class="lineno">  783</span>            first = <span class="keyword">false</span>;</div>
+<div class="line"><a id="l00784" name="l00784"></a><span class="lineno">  784</span>            <span class="keywordflow">if</span> (rv == SQL_SUCCESS)</div>
+<div class="line"><a id="l00785" name="l00785"></a><span class="lineno">  785</span>            {</div>
+<div class="line"><a id="l00786" name="l00786"></a><span class="lineno">  786</span>                <span class="comment">// The last chunk: its indicator is its length, which fits what was offered.</span></div>
+<div class="line"><a id="l00787" name="l00787"></a><span class="lineno">  787</span>                <span class="keywordflow">if</span> (*indicator &lt; 0 || std::cmp_greater(*indicator, (units - terminatorUnits) * UnitBytes))</div>
+<div class="line"><a id="l00788" name="l00788"></a><span class="lineno">  788</span>                    ThrowBoundValueMisread(column, <span class="stringliteral">&quot;HY000&quot;</span>, std::format(<span class="stringliteral">&quot;the driver reported {} bytes&quot;</span>, *indicator));</div>
+<div class="line"><a id="l00789" name="l00789"></a><span class="lineno">  789</span>                read += <span class="keyword">static_cast&lt;</span>std::size_t<span class="keyword">&gt;</span>(*indicator) / UnitBytes;</div>
+<div class="line"><a id="l00790" name="l00790"></a><span class="lineno">  790</span>                <span class="keywordflow">break</span>;</div>
+<div class="line"><a id="l00791" name="l00791"></a><span class="lineno">  791</span>            }</div>
+<div class="line"><a id="l00792" name="l00792"></a><span class="lineno">  792</span>            read += units - terminatorUnits; <span class="comment">// a full chunk: there is more</span></div>
+<div class="line"><a id="l00793" name="l00793"></a><span class="lineno">  793</span>            <span class="keywordflow">if</span> (Ops::Size(result) * 2 * UnitBytes &gt; maxBytes)</div>
+<div class="line"><a id="l00794" name="l00794"></a><span class="lineno">  794</span>                ThrowBoundValueMisread(column, <span class="stringliteral">&quot;22001&quot;</span>, std::format(<span class="stringliteral">&quot;it is longer than {} bytes&quot;</span>, maxBytes));</div>
+<div class="line"><a id="l00795" name="l00795"></a><span class="lineno">  795</span>            Ops::Resize(result, <span class="keyword">static_cast&lt;</span>SQLLEN<span class="keyword">&gt;</span>(Ops::Size(result) * 2));</div>
+<div class="line"><a id="l00796" name="l00796"></a><span class="lineno">  796</span>        }</div>
+<div class="line"><a id="l00797" name="l00797"></a><span class="lineno">  797</span>        *indicator = <span class="keyword">static_cast&lt;</span>SQLLEN<span class="keyword">&gt;</span>(read * UnitBytes);</div>
+<div class="line"><a id="l00798" name="l00798"></a><span class="lineno">  798</span>        <span class="keywordflow">return</span> read;</div>
+<div class="line"><a id="l00799" name="l00799"></a><span class="lineno">  799</span>    }</div>
+<div class="line"><a id="l00800" name="l00800"></a><span class="lineno">  800</span><span class="comment"></span> </div>
+<div class="line"><a id="l00801" name="l00801"></a><span class="lineno">  801</span><span class="comment">    /// @brief @ref ReadBoundValueOfUnknownLength reading through @c SQLGetData.</span></div>
+<div class="line"><a id="l00802" name="l00802"></a><span class="lineno">  802</span><span class="comment">    /// @return The value&#39;s length in elements.</span></div>
+<div class="line"><a id="l00803" name="l00803"></a><span class="lineno">  803</span><span class="comment"></span>    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> Ops, std::<span class="keywordtype">size_t</span> UnitBytes, std::<span class="keywordtype">size_t</span> TerminatorUnits, <span class="keyword">typename</span> Container&gt;</div>
+<div class="line"><a id="l00804" name="l00804"></a><span class="lineno">  804</span>    std::size_t ReadBoundValueOfUnknownLength(</div>
+<div class="line"><a id="l00805" name="l00805"></a><span class="lineno">  805</span>        SQLHSTMT stmt, SQLUSMALLINT column, SQLSMALLINT cType, Container* result, SQLLEN* indicator)</div>
+<div class="line"><a id="l00806" name="l00806"></a><span class="lineno">  806</span>    {</div>
+<div class="line"><a id="l00807" name="l00807"></a><span class="lineno">  807</span>        <span class="keywordflow">return</span> ReadBoundValueOfUnknownLength&lt;Ops, UnitBytes, TerminatorUnits&gt;(</div>
+<div class="line"><a id="l00808" name="l00808"></a><span class="lineno">  808</span>            stmt, column, cType, result, indicator, [&amp;](SQLPOINTER target, SQLLEN length, SQLLEN* lengthIndicator) {</div>
+<div class="line"><a id="l00809" name="l00809"></a><span class="lineno">  809</span>                <span class="keywordflow">return</span> SQLGetData(stmt, column, cType, target, length, lengthIndicator);</div>
+<div class="line"><a id="l00810" name="l00810"></a><span class="lineno">  810</span>            });</div>
+<div class="line"><a id="l00811" name="l00811"></a><span class="lineno">  811</span>    }</div>
+<div class="line"><a id="l00812" name="l00812"></a><span class="lineno">  812</span><span class="comment"></span> </div>
+<div class="line"><a id="l00813" name="l00813"></a><span class="lineno">  813</span><span class="comment">    /// @brief Keeps an output column that is bound straight into a growable container bound for every</span></div>
+<div class="line"><a id="l00814" name="l00814"></a><span class="lineno">  814</span><span class="comment">    /// fetch of the result set.</span></div>
+<div class="line"><a id="l00815" name="l00815"></a><span class="lineno">  815</span><span class="comment">    ///</span></div>
+<div class="line"><a id="l00816" name="l00816"></a><span class="lineno">  816</span><span class="comment">    /// The binder&#39;s post-processing shrinks the container to each row&#39;s length, so before the next</span></div>
+<div class="line"><a id="l00817" name="l00817"></a><span class="lineno">  817</span><span class="comment">    /// fetch it is grown back to the bound size. When its storage moved — a truncation re-fetch grew it,</span></div>
+<div class="line"><a id="l00818" name="l00818"></a><span class="lineno">  818</span><span class="comment">    /// or the caller moved the value out — the column is re-bound to the new storage, at the larger of</span></div>
+<div class="line"><a id="l00819" name="l00819"></a><span class="lineno">  819</span><span class="comment">    /// the old bound size and the container&#39;s current size. Per row this is a size compare and a pointer</span></div>
+<div class="line"><a id="l00820" name="l00820"></a><span class="lineno">  820</span><span class="comment">    /// compare when nothing changed; growing back within the retained capacity allocates nothing, and</span></div>
+<div class="line"><a id="l00821" name="l00821"></a><span class="lineno">  821</span><span class="comment">    /// planning the step allocates nothing either (see @ref SqlOutputColumnPreFetch).</span></div>
+<div class="line"><a id="l00822" name="l00822"></a><span class="lineno">  822</span><span class="comment">    ///</span></div>
+<div class="line"><a id="l00823" name="l00823"></a><span class="lineno">  823</span><span class="comment">    /// @tparam Ops @c SqlBasicStringOperations-shaped buffer operations of @p Container.</span></div>
+<div class="line"><a id="l00824" name="l00824"></a><span class="lineno">  824</span><span class="comment">    /// @tparam UnitBytes Bytes per element of the bound buffer.</span></div>
+<div class="line"><a id="l00825" name="l00825"></a><span class="lineno">  825</span><span class="comment">    /// @tparam TerminatorUnits Elements the bound buffer has beyond its size for the driver&#39;s terminator.</span></div>
+<div class="line"><a id="l00826" name="l00826"></a><span class="lineno">  826</span><span class="comment">    /// @param column The 1-based column index.</span></div>
+<div class="line"><a id="l00827" name="l00827"></a><span class="lineno">  827</span><span class="comment">    /// @param cType The C data type the column is bound as.</span></div>
+<div class="line"><a id="l00828" name="l00828"></a><span class="lineno">  828</span><span class="comment">    /// @param result The bound container.</span></div>
+<div class="line"><a id="l00829" name="l00829"></a><span class="lineno">  829</span><span class="comment">    /// @param indicator The column&#39;s length/indicator buffer.</span></div>
+<div class="line"><a id="l00830" name="l00830"></a><span class="lineno">  830</span><span class="comment">    /// @param cb The binder callback the step is planned on.</span></div>
+<div class="line"><a id="l00831" name="l00831"></a><span class="lineno">  831</span><span class="comment"></span>    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> Ops, std::<span class="keywordtype">size_t</span> UnitBytes, std::<span class="keywordtype">size_t</span> TerminatorUnits, <span class="keyword">typename</span> Container&gt;</div>
+<div class="line"><a id="l00832" name="l00832"></a><span class="lineno">  832</span>    <span class="keywordtype">void</span> PlanBoundBufferRestore(</div>
+<div class="line"><a id="l00833" name="l00833"></a><span class="lineno">  833</span>        SQLUSMALLINT column, SQLSMALLINT cType, Container* result, SQLLEN* indicator, SqlDataBinderCallback&amp; cb)</div>
+<div class="line"><a id="l00834" name="l00834"></a><span class="lineno">  834</span>    {</div>
+<div class="line"><a id="l00835" name="l00835"></a><span class="lineno">  835</span>        <span class="keyword">auto</span> step = SqlOutputColumnPreFetch {</div>
+<div class="line"><a id="l00836" name="l00836"></a><span class="lineno">  836</span>            .run = &amp;RestoreBoundBuffer&lt;Ops, Container, UnitBytes, TerminatorUnits&gt;,</div>
+<div class="line"><a id="l00837" name="l00837"></a><span class="lineno">  837</span>            .target = result,</div>
+<div class="line"><a id="l00838" name="l00838"></a><span class="lineno">  838</span>            .boundData = <span class="keyword">static_cast&lt;</span><span class="keywordtype">void</span> const*<span class="keyword">&gt;</span>(Ops::Data(result)),</div>
+<div class="line"><a id="l00839" name="l00839"></a><span class="lineno">  839</span>            .boundSize = <span class="keyword">static_cast&lt;</span>std::size_t<span class="keyword">&gt;</span>(Ops::Size(result)),</div>
+<div class="line"><a id="l00840" name="l00840"></a><span class="lineno">  840</span>            .column = column,</div>
+<div class="line"><a id="l00841" name="l00841"></a><span class="lineno">  841</span>            .cType = cType,</div>
+<div class="line"><a id="l00842" name="l00842"></a><span class="lineno">  842</span>        };</div>
+<div class="line"><a id="l00843" name="l00843"></a><span class="lineno">  843</span>        step.indicator = indicator; <span class="comment">// the driver writes through it: the step re-binds the column with it</span></div>
+<div class="line"><a id="l00844" name="l00844"></a><span class="lineno">  844</span>        cb.PlanPreFetchOutputColumn(step);</div>
+<div class="line"><a id="l00845" name="l00845"></a><span class="lineno">  845</span>    }</div>
+<div class="line"><a id="l00846" name="l00846"></a><span class="lineno">  846</span><span class="comment"></span> </div>
+<div class="line"><a id="l00847" name="l00847"></a><span class="lineno">  847</span><span class="comment">    /// @brief Byte offset of the contained value within a @c std::optional&lt;T&gt;.</span></div>
+<div class="line"><a id="l00848" name="l00848"></a><span class="lineno">  848</span><span class="comment">    ///</span></div>
+<div class="line"><a id="l00849" name="l00849"></a><span class="lineno">  849</span><span class="comment">    /// Used by the row-wise batch binders to address the inner value of each row&#39;s optional in place. The</span></div>
+<div class="line"><a id="l00850" name="l00850"></a><span class="lineno">  850</span><span class="comment">    /// offset is 0 on all known standard libraries, but is computed rather than assumed so the address</span></div>
+<div class="line"><a id="l00851" name="l00851"></a><span class="lineno">  851</span><span class="comment">    /// arithmetic does not bake in that assumption. It is derived from the integer addresses of a probe</span></div>
+<div class="line"><a id="l00852" name="l00852"></a><span class="lineno">  852</span><span class="comment">    /// optional and its contained value (rather than @c byte* subtraction) to keep the computation defined.</span></div>
+<div class="line"><a id="l00853" name="l00853"></a><span class="lineno">  853</span><span class="comment">    ///</span></div>
+<div class="line"><a id="l00854" name="l00854"></a><span class="lineno">  854</span><span class="comment">    /// @tparam T The contained value type.</span></div>
+<div class="line"><a id="l00855" name="l00855"></a><span class="lineno">  855</span><span class="comment">    /// @return The offset, in bytes, of the contained value within the optional.</span></div>
+<div class="line"><a id="l00856" name="l00856"></a><span class="lineno">  856</span><span class="comment"></span>    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
+<div class="line"><a id="l00857" name="l00857"></a><span class="lineno">  857</span>    [[nodiscard]] <span class="keyword">inline</span> std::size_t OptionalValueOffset() noexcept</div>
+<div class="line"><a id="l00858" name="l00858"></a><span class="lineno">  858</span>    {</div>
+<div class="line"><a id="l00859" name="l00859"></a><span class="lineno">  859</span>        std::optional&lt;T&gt; <span class="keyword">const</span> probe { T {} };</div>
+<div class="line"><a id="l00860" name="l00860"></a><span class="lineno">  860</span>        <span class="keywordflow">return</span> <span class="keyword">static_cast&lt;</span>std::size_t<span class="keyword">&gt;</span>(<span class="keyword">reinterpret_cast&lt;</span>std::uintptr_t<span class="keyword">&gt;</span>(std::addressof(*probe))</div>
+<div class="line"><a id="l00861" name="l00861"></a><span class="lineno">  861</span>                                        - <span class="keyword">reinterpret_cast&lt;</span>std::uintptr_t<span class="keyword">&gt;</span>(std::addressof(probe)));</div>
+<div class="line"><a id="l00862" name="l00862"></a><span class="lineno">  862</span>    }</div>
+<div class="line"><a id="l00863" name="l00863"></a><span class="lineno">  863</span> </div>
+<div class="line"><a id="l00864" name="l00864"></a><span class="lineno">  864</span>    <span class="comment">// clang-format off</span></div>
+<div class="line"><a id="l00865" name="l00865"></a><span class="lineno">  865</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
+<div class="line"><a id="l00866" name="l00866"></a><span class="lineno">  866</span><span class="keyword">concept </span>HasGetStringAndGetLength = <span class="keyword">requires</span>(T <span class="keyword">const</span>&amp; t) {</div>
+<div class="line"><a id="l00867" name="l00867"></a><span class="lineno">  867</span>    { t.GetLength() } -&gt; std::same_as&lt;int&gt;;</div>
+<div class="line"><a id="l00868" name="l00868"></a><span class="lineno">  868</span>    { t.GetString() } -&gt; std::same_as&lt;char const*&gt;;</div>
+<div class="line"><a id="l00869" name="l00869"></a><span class="lineno">  869</span>};</div>
+<div class="line"><a id="l00870" name="l00870"></a><span class="lineno">  870</span> </div>
+<div class="line"><a id="l00871" name="l00871"></a><span class="lineno">  871</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
+<div class="line"><a id="l00872" name="l00872"></a><span class="lineno">  872</span><span class="keyword">concept </span>HasGetStringAndLength = <span class="keyword">requires</span>(T <span class="keyword">const</span>&amp; t)</div>
+<div class="line"><a id="l00873" name="l00873"></a><span class="lineno">  873</span>{</div>
+<div class="line"><a id="l00874" name="l00874"></a><span class="lineno">  874</span>    { t.Length() } -&gt; std::same_as&lt;int&gt;;</div>
+<div class="line"><a id="l00875" name="l00875"></a><span class="lineno">  875</span>    { t.GetString() } -&gt; std::same_as&lt;char const*&gt;;</div>
+<div class="line"><a id="l00876" name="l00876"></a><span class="lineno">  876</span>};</div>
+<div class="line"><a id="l00877" name="l00877"></a><span class="lineno">  877</span>    <span class="comment">// clang-format on</span></div>
+<div class="line"><a id="l00878" name="l00878"></a><span class="lineno">  878</span> </div>
+<div class="line"><a id="l00879" name="l00879"></a><span class="lineno">  879</span>    <span class="keyword">template</span> &lt;<span class="keyword">typename</span>&gt;</div>
+<div class="line"><a id="l00880" name="l00880"></a><span class="lineno">  880</span>    <span class="keyword">struct </span>SqlViewHelper;</div>
+<div class="line"><a id="l00881" name="l00881"></a><span class="lineno">  881</span> </div>
+<div class="line"><a id="l00882" name="l00882"></a><span class="lineno">  882</span>    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
+<div class="line"><a id="l00883" name="l00883"></a><span class="lineno">  883</span>    <span class="keyword">concept </span>HasSqlViewHelper = <span class="keyword">requires</span>(T <span class="keyword">const</span>&amp; t) {</div>
+<div class="line"><a id="l00884" name="l00884"></a><span class="lineno">  884</span>        { SqlViewHelper&lt;T&gt;::View(t) } -&gt; std::convertible_to&lt;std::string_view&gt;;</div>
+<div class="line"><a id="l00885" name="l00885"></a><span class="lineno">  885</span>    };</div>
+<div class="line"><a id="l00886" name="l00886"></a><span class="lineno">  886</span> </div>
+<div class="line"><a id="l00887" name="l00887"></a><span class="lineno">  887</span>    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> CharT&gt;</div>
+<div class="line"><a id="l00888" name="l00888"></a><span class="lineno">  888</span>    <span class="keyword">struct </span>SqlViewHelper&lt;std::basic_string&lt;CharT&gt;&gt;</div>
+<div class="line"><a id="l00889" name="l00889"></a><span class="lineno">  889</span>    {</div>
+<div class="line"><a id="l00890" name="l00890"></a><span class="lineno">  890</span>        <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE std::basic_string_view&lt;CharT&gt; View(std::basic_string&lt;CharT&gt; <span class="keyword">const</span>&amp; str) <span class="keyword">noexcept</span></div>
+<div class="line"><a id="l00891" name="l00891"></a><span class="lineno">  891</span>        {</div>
+<div class="line"><a id="l00892" name="l00892"></a><span class="lineno">  892</span>            <span class="keywordflow">return</span> { str.data(), str.size() };</div>
+<div class="line"><a id="l00893" name="l00893"></a><span class="lineno">  893</span>        }</div>
+<div class="line"><a id="l00894" name="l00894"></a><span class="lineno">  894</span>    };</div>
+<div class="line"><a id="l00895" name="l00895"></a><span class="lineno">  895</span> </div>
+<div class="line"><a id="l00896" name="l00896"></a><span class="lineno">  896</span>    <span class="keyword">template</span> &lt;detail::HasGetStringAndGetLength CStringLike&gt;</div>
+<div class="line"><a id="l00897" name="l00897"></a><span class="lineno">  897</span>    <span class="keyword">struct </span>SqlViewHelper&lt;CStringLike&gt;</div>
+<div class="line"><a id="l00898" name="l00898"></a><span class="lineno">  898</span>    {</div>
+<div class="line"><a id="l00899" name="l00899"></a><span class="lineno">  899</span>        <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE std::string_view View(CStringLike <span class="keyword">const</span>&amp; str) <span class="keyword">noexcept</span></div>
+<div class="line"><a id="l00900" name="l00900"></a><span class="lineno">  900</span>        {</div>
+<div class="line"><a id="l00901" name="l00901"></a><span class="lineno">  901</span>            <span class="keywordflow">return</span> { str.GetString(), <span class="keyword">static_cast&lt;</span><span class="keywordtype">size_t</span><span class="keyword">&gt;</span>(str.GetLength()) };</div>
+<div class="line"><a id="l00902" name="l00902"></a><span class="lineno">  902</span>        }</div>
+<div class="line"><a id="l00903" name="l00903"></a><span class="lineno">  903</span>    };</div>
+<div class="line"><a id="l00904" name="l00904"></a><span class="lineno">  904</span> </div>
+<div class="line"><a id="l00905" name="l00905"></a><span class="lineno">  905</span>    <span class="keyword">template</span> &lt;detail::HasGetStringAndLength StringLike&gt;</div>
+<div class="line"><a id="l00906" name="l00906"></a><span class="lineno">  906</span>    <span class="keyword">struct </span>SqlViewHelper&lt;StringLike&gt;</div>
+<div class="line"><a id="l00907" name="l00907"></a><span class="lineno">  907</span>    {</div>
+<div class="line"><a id="l00908" name="l00908"></a><span class="lineno">  908</span>        <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE std::string_view View(StringLike <span class="keyword">const</span>&amp; str) <span class="keyword">noexcept</span></div>
+<div class="line"><a id="l00909" name="l00909"></a><span class="lineno">  909</span>        {</div>
+<div class="line"><a id="l00910" name="l00910"></a><span class="lineno">  910</span>            <span class="keywordflow">return</span> { str.GetString(), <span class="keyword">static_cast&lt;</span><span class="keywordtype">size_t</span><span class="keyword">&gt;</span>(str.Length()) };</div>
+<div class="line"><a id="l00911" name="l00911"></a><span class="lineno">  911</span>        }</div>
+<div class="line"><a id="l00912" name="l00912"></a><span class="lineno">  912</span>    };</div>
+<div class="line"><a id="l00913" name="l00913"></a><span class="lineno">  913</span> </div>
+<div class="line"><a id="l00914" name="l00914"></a><span class="lineno">  914</span>} <span class="comment">// namespace detail</span></div>
+<div class="line"><a id="l00915" name="l00915"></a><span class="lineno">  915</span> </div>
+<div class="line"><a id="l00916" name="l00916"></a><span class="lineno">  916</span><span class="comment">// -----------------------------------------------------------------------------------------------</span></div>
+<div class="line"><a id="l00917" name="l00917"></a><span class="lineno">  917</span> </div>
+<div class="line"><a id="l00918" name="l00918"></a><span class="lineno">  918</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
+<div class="line"><a id="l00919" name="l00919"></a><span class="lineno">  919</span><span class="keyword">concept </span>SqlInputParameterBinder = <span class="keyword">requires</span>(SQLHSTMT hStmt, SQLUSMALLINT column, T <span class="keyword">const</span>&amp; value, SqlDataBinderCallback&amp; cb) {</div>
+<div class="line"><a id="l00920" name="l00920"></a><span class="lineno">  920</span>    { SqlDataBinder&lt;T&gt;::InputParameter(hStmt, column, value, cb) } -&gt; std::same_as&lt;SQLRETURN&gt;;</div>
+<div class="line"><a id="l00921" name="l00921"></a><span class="lineno">  921</span>};</div>
+<div class="line"><a id="l00922" name="l00922"></a><span class="lineno">  922</span> </div>
+<div class="line"><a id="l00923" name="l00923"></a><span class="lineno">  923</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
+<div class="line"><a id="l00924" name="l00924"></a><span class="lineno">  924</span><span class="keyword">concept </span>SqlOutputColumnBinder =</div>
+<div class="line"><a id="l00925" name="l00925"></a><span class="lineno">  925</span>    <span class="keyword">requires</span>(SQLHSTMT hStmt, SQLUSMALLINT column, T* result, SQLLEN* indicator, SqlDataBinderCallback&amp; cb) {</div>
+<div class="line"><a id="l00926" name="l00926"></a><span class="lineno">  926</span>        { SqlDataBinder&lt;T&gt;::OutputColumn(hStmt, column, result, indicator, cb) } -&gt; std::same_as&lt;SQLRETURN&gt;;</div>
+<div class="line"><a id="l00927" name="l00927"></a><span class="lineno">  927</span>    };</div>
+<div class="line"><a id="l00928" name="l00928"></a><span class="lineno">  928</span> </div>
+<div class="line"><a id="l00929" name="l00929"></a><span class="lineno">  929</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
+<div class="line"><a id="l00930" name="l00930"></a><span class="lineno">  930</span><span class="keyword">concept </span>SqlInputParameterBatchBinder =</div>
+<div class="line"><a id="l00931" name="l00931"></a><span class="lineno">  931</span>    <span class="keyword">requires</span>(SQLHSTMT hStmt, SQLUSMALLINT column, std::ranges::range_value_t&lt;T&gt;* result, SqlDataBinderCallback&amp; cb) {</div>
+<div class="line"><a id="l00932" name="l00932"></a><span class="lineno">  932</span>        {</div>
+<div class="line"><a id="l00933" name="l00933"></a><span class="lineno">  933</span>            SqlDataBinder&lt;std::ranges::range_value_t&lt;T&gt;&gt;::InputParameter(</div>
+<div class="line"><a id="l00934" name="l00934"></a><span class="lineno">  934</span>                hStmt, column, std::declval&lt;std::ranges::range_value_t&lt;T&gt;&gt;(), cb)</div>
+<div class="line"><a id="l00935" name="l00935"></a><span class="lineno">  935</span>        } -&gt; std::same_as&lt;SQLRETURN&gt;;</div>
+<div class="line"><a id="l00936" name="l00936"></a><span class="lineno">  936</span>    };</div>
+<div class="line"><a id="l00937" name="l00937"></a><span class="lineno">  937</span><span class="comment"></span> </div>
+<div class="line"><a id="l00938" name="l00938"></a><span class="lineno">  938</span><span class="comment">/// @brief Opt-in trait marking a value type as bindable in a native ODBC row-wise parameter array.</span></div>
+<div class="line"><a id="l00939" name="l00939"></a><span class="lineno">  939</span><span class="comment">///</span></div>
+<div class="line"><a id="l00940" name="l00940"></a><span class="lineno">  940</span><span class="comment">/// A type qualifies when it is fixed-width, stored inline, bound via a plain @c SQLBindParameter with</span></div>
+<div class="line"><a id="l00941" name="l00941"></a><span class="lineno">  941</span><span class="comment">/// no per-call heap conversion, and identically across all supported backends — so its address can be</span></div>
+<div class="line"><a id="l00942" name="l00942"></a><span class="lineno">  942</span><span class="comment">/// handed to ODBC and strided by @c SQL_ATTR_PARAM_BIND_TYPE. The primary template is @c false; each</span></div>
+<div class="line"><a id="l00943" name="l00943"></a><span class="lineno">  943</span><span class="comment">/// eligible binder header specializes it to @c true (primitives, date/time/datetime, numeric).</span></div>
+<div class="line"><a id="l00944" name="l00944"></a><span class="lineno">  944</span><span class="comment">///</span></div>
+<div class="line"><a id="l00945" name="l00945"></a><span class="lineno">  945</span><span class="comment">/// @note @c SqlGuid is intentionally NOT marked: on SQLite it is bound via a per-value text conversion,</span></div>
+<div class="line"><a id="l00946" name="l00946"></a><span class="lineno">  946</span><span class="comment">/// which cannot be expressed as a zero-copy row-wise array — GUID columns use the soft batch path.</span></div>
+<div class="line"><a id="l00947" name="l00947"></a><span class="lineno">  947</span><span class="comment"></span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
+<div class="line"><a id="l00948" name="l00948"></a><span class="lineno">  948</span><span class="keyword">inline</span> <span class="keyword">constexpr</span> <span class="keywordtype">bool</span> SqlIsNativeRowBindableValue = <span class="keyword">false</span>;</div>
+<div class="line"><a id="l00949" name="l00949"></a><span class="lineno">  949</span><span class="comment"></span> </div>
+<div class="line"><a id="l00950" name="l00950"></a><span class="lineno">  950</span><span class="comment">/// @brief Opt-in trait marking a value type as an @c SqlNumeric specialization.</span></div>
+<div class="line"><a id="l00951" name="l00951"></a><span class="lineno">  951</span><span class="comment">///</span></div>
+<div class="line"><a id="l00952" name="l00952"></a><span class="lineno">  952</span><span class="comment">/// Numeric values are row-wise bindable, but @c std::optional&lt;SqlNumeric&gt; is not (the contained value</span></div>
+<div class="line"><a id="l00953" name="l00953"></a><span class="lineno">  953</span><span class="comment">/// is not bound at a uniform offset/representation across backends), so the optional batch path</span></div>
+<div class="line"><a id="l00954" name="l00954"></a><span class="lineno">  954</span><span class="comment">/// excludes them via this trait.</span></div>
+<div class="line"><a id="l00955" name="l00955"></a><span class="lineno">  955</span><span class="comment"></span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
+<div class="line"><a id="l00956" name="l00956"></a><span class="lineno">  956</span><span class="keyword">inline</span> <span class="keyword">constexpr</span> <span class="keywordtype">bool</span> SqlIsNumericValue = <span class="keyword">false</span>;</div>
+<div class="line"><a id="l00957" name="l00957"></a><span class="lineno">  957</span><span class="comment"></span> </div>
+<div class="line"><a id="l00958" name="l00958"></a><span class="lineno">  958</span><span class="comment">/// @brief Whether @p T is a @c std::optional specialization.</span></div>
+<div class="line"><a id="l00959" name="l00959"></a><span class="lineno">  959</span><span class="comment">///</span></div>
+<div class="line"><a id="l00960" name="l00960"></a><span class="lineno">  960</span><span class="comment">/// Defined locally rather than reusing @c Lightweight::IsSpecializationOf (Utils.hpp) or the DataMapper</span></div>
+<div class="line"><a id="l00961" name="l00961"></a><span class="lineno">  961</span><span class="comment">/// @c IsStdOptional (Field.hpp): this low-level binder header is deliberately kept free of dependencies on</span></div>
+<div class="line"><a id="l00962" name="l00962"></a><span class="lineno">  962</span><span class="comment">/// those higher-level headers, so it carries its own minimal optional traits.</span></div>
+<div class="line"><a id="l00963" name="l00963"></a><span class="lineno">  963</span><span class="comment"></span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
+<div class="line"><a id="l00964" name="l00964"></a><span class="lineno">  964</span><span class="keyword">inline</span> <span class="keyword">constexpr</span> <span class="keywordtype">bool</span> SqlIsStdOptional = <span class="keyword">false</span>;</div>
+<div class="line"><a id="l00965" name="l00965"></a><span class="lineno">  965</span> </div>
+<div class="line"><a id="l00966" name="l00966"></a><span class="lineno">  966</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
+<div class="line"><a id="l00967" name="l00967"></a><span class="lineno">  967</span><span class="keyword">inline</span> <span class="keyword">constexpr</span> <span class="keywordtype">bool</span> SqlIsStdOptional&lt;std::optional&lt;T&gt;&gt; = <span class="keyword">true</span>;</div>
+<div class="line"><a id="l00968" name="l00968"></a><span class="lineno">  968</span> </div>
+<div class="line"><a id="l00969" name="l00969"></a><span class="lineno">  969</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
+<div class="line"><a id="l00970" name="l00970"></a><span class="lineno">  970</span><span class="keyword">concept </span>SqlGetColumnNativeType =</div>
+<div class="line"><a id="l00971" name="l00971"></a><span class="lineno">  971</span>    <span class="keyword">requires</span>(SQLHSTMT hStmt, SQLUSMALLINT column, T* result, SQLLEN* indicator, SqlDataBinderCallback <span class="keyword">const</span>&amp; cb) {</div>
+<div class="line"><a id="l00972" name="l00972"></a><span class="lineno">  972</span>        { SqlDataBinder&lt;T&gt;::GetColumn(hStmt, column, result, indicator, cb) } -&gt; std::same_as&lt;SQLRETURN&gt;;</div>
+<div class="line"><a id="l00973" name="l00973"></a><span class="lineno">  973</span>    };</div>
+<div class="line"><a id="l00974" name="l00974"></a><span class="lineno">  974</span> </div>
+<div class="line"><a id="l00975" name="l00975"></a><span class="lineno">  975</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
+<div class="line"><a id="l00976" name="l00976"></a><span class="lineno">  976</span><span class="keyword">concept </span>SqlDataBinderSupportsInspect = <span class="keyword">requires</span>(T <span class="keyword">const</span>&amp; value) {</div>
+<div class="line"><a id="l00977" name="l00977"></a><span class="lineno">  977</span>    { SqlDataBinder&lt;std::remove_cvref_t&lt;T&gt;&gt;::Inspect(value) } -&gt; std::convertible_to&lt;std::string&gt;;</div>
+<div class="line"><a id="l00978" name="l00978"></a><span class="lineno">  978</span>};</div>
+<div class="line"><a id="l00979" name="l00979"></a><span class="lineno">  979</span> </div>
+<div class="line"><a id="l00980" name="l00980"></a><span class="lineno">  980</span><span class="comment">// clang-format off</span></div>
+<div class="line"><a id="l00981" name="l00981"></a><span class="lineno">  981</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> StringType, <span class="keyword">typename</span> CharType&gt;</div>
+<div class="line"><a id="l00982" name="l00982"></a><span class="lineno">  982</span><span class="keyword">concept </span>SqlBasicStringBinderConcept = <span class="keyword">requires</span>(StringType* str) {</div>
+<div class="line"><a id="l00983" name="l00983"></a><span class="lineno">  983</span>    { SqlBasicStringOperations&lt;StringType&gt;::Data(str) } -&gt; std::same_as&lt;CharType*&gt;;</div>
+<div class="line"><a id="l00984" name="l00984"></a><span class="lineno">  984</span>    { SqlBasicStringOperations&lt;StringType&gt;::Size(str) } -&gt; std::same_as&lt;SQLULEN&gt;;</div>
+<div class="line"><a id="l00985" name="l00985"></a><span class="lineno">  985</span>    { SqlBasicStringOperations&lt;StringType&gt;::Reserve(str, <span class="keywordtype">size_t</span> {}) } -&gt; std::same_as&lt;void&gt;;</div>
+<div class="line"><a id="l00986" name="l00986"></a><span class="lineno">  986</span>    { SqlBasicStringOperations&lt;StringType&gt;::Resize(str, SQLLEN {}) } -&gt; std::same_as&lt;void&gt;;</div>
+<div class="line"><a id="l00987" name="l00987"></a><span class="lineno">  987</span>    { SqlBasicStringOperations&lt;StringType&gt;::Clear(str) } -&gt; std::same_as&lt;void&gt;;</div>
+<div class="line"><a id="l00988" name="l00988"></a><span class="lineno">  988</span>};</div>
+<div class="line"><a id="l00989" name="l00989"></a><span class="lineno">  989</span><span class="comment">// clang-format on</span></div>
+<div class="line"><a id="l00990" name="l00990"></a><span class="lineno">  990</span> </div>
+<div class="line"><a id="l00991" name="l00991"></a><span class="lineno">  991</span>} <span class="comment">// namespace Lightweight</span></div>
 <div class="ttc" id="aclassLightweight_1_1SqlDataBinderCallback_html"><div class="ttname"><a href="../../d9/dbb/classLightweight_1_1SqlDataBinderCallback.html">Lightweight::SqlDataBinderCallback</a></div><div class="ttdef"><b>Definition</b> <a href="../../d7/d0f/DataBinder_2Core_8hpp_source.html#l00155">Core.hpp:156</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1SqlDataBinderCallback_html_a12843806ab1d89718143323141687b88"><div class="ttname"><a href="../../d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#a12843806ab1d89718143323141687b88">Lightweight::SqlDataBinderCallback::MinimumOutputColumnSize</a></div><div class="ttdeci">virtual std::size_t MinimumOutputColumnSize(SQLUSMALLINT column, SqlOutputColumnLength length)</div><div class="ttdef"><b>Definition</b> <a href="../../d7/d0f/DataBinder_2Core_8hpp_source.html#l00207">Core.hpp:207</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1SqlDataBinderCallback_html_a209f52c2128670486fa0df251261bf80"><div class="ttname"><a href="../../d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#a209f52c2128670486fa0df251261bf80">Lightweight::SqlDataBinderCallback::PlanPostExecuteCallback</a></div><div class="ttdeci">virtual void PlanPostExecuteCallback(std::function&lt; void()&gt; &amp;&amp;)=0</div></div>
@@ -1103,7 +1131,7 @@ $(document).ready(function(){initNavTree('d7/d0f/DataBinder_2Core_8hpp_source.ht
 <div class="ttc" id="aclassLightweight_1_1SqlDataBinderCallback_html_adf448d6fc9909e31a21a2f0fe66c761f"><div class="ttname"><a href="../../d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#adf448d6fc9909e31a21a2f0fe66c761f">Lightweight::SqlDataBinderCallback::ProvideOutputColumnStaging</a></div><div class="ttdeci">virtual SqlOutputColumnStaging * ProvideOutputColumnStaging(SQLUSMALLINT column)</div><div class="ttdef"><b>Definition</b> <a href="../../d7/d0f/DataBinder_2Core_8hpp_source.html#l00314">Core.hpp:314</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1SqlDataBinderCallback_html_aecb8ed9927ded35a8b35dd570bf53170"><div class="ttname"><a href="../../d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#aecb8ed9927ded35a8b35dd570bf53170">Lightweight::SqlDataBinderCallback::SqlDataBinderCallback</a></div><div class="ttdeci">SqlDataBinderCallback(SqlDataBinderCallback const &amp;)=default</div><div class="ttdoc">Default copy constructor.</div></div>
 <div class="ttc" id="aclassLightweight_1_1SqlDataBinderCallback_html_af7acc1d446fc49ea446f8ae20f58518c"><div class="ttname"><a href="../../d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#af7acc1d446fc49ea446f8ae20f58518c">Lightweight::SqlDataBinderCallback::ProvideBatchStagingBuffer</a></div><div class="ttdeci">virtual std::byte * ProvideBatchStagingBuffer(std::size_t byteCount)=0</div></div>
-<div class="ttc" id="aconceptLightweight_1_1SqlBinderChecksYear_html"><div class="ttname"><a href="../../d3/dd9/conceptLightweight_1_1SqlBinderChecksYear.html">Lightweight::SqlBinderChecksYear</a></div><div class="ttdoc">Whether the binder of T can tell, before anything is bound, that a value of T holds a date or timesta...</div><div class="ttdef"><b>Definition</b> <a href="../../d7/d0f/DataBinder_2Core_8hpp_source.html#l00526">Core.hpp:526</a></div></div>
+<div class="ttc" id="aconceptLightweight_1_1SqlBinderChecksYear_html"><div class="ttname"><a href="../../d3/dd9/conceptLightweight_1_1SqlBinderChecksYear.html">Lightweight::SqlBinderChecksYear</a></div><div class="ttdoc">Whether the binder of T can tell, before anything is bound, that a value of T holds a date or timesta...</div><div class="ttdef"><b>Definition</b> <a href="../../d7/d0f/DataBinder_2Core_8hpp_source.html#l00558">Core.hpp:558</a></div></div>
 <div class="ttc" id="astructLightweight_1_1SqlErrorInfo_html"><div class="ttname"><a href="../../d8/d5b/structLightweight_1_1SqlErrorInfo.html">Lightweight::SqlErrorInfo</a></div><div class="ttdoc">Represents an ODBC SQL error.</div><div class="ttdef"><b>Definition</b> <a href="../../d9/d02/SqlError_8hpp_source.html#l00033">SqlError.hpp:34</a></div></div>
 <div class="ttc" id="astructLightweight_1_1SqlErrorInfo_html_a073c9e1ed64ec6ad89d35571a6c41b21"><div class="ttname"><a href="../../d8/d5b/structLightweight_1_1SqlErrorInfo.html#a073c9e1ed64ec6ad89d35571a6c41b21">Lightweight::SqlErrorInfo::nativeErrorCode</a></div><div class="ttdeci">SQLINTEGER nativeErrorCode</div><div class="ttdoc">The native ODBC error code.</div><div class="ttdef"><b>Definition</b> <a href="../../d9/d02/SqlError_8hpp_source.html#l00036">SqlError.hpp:36</a></div></div>
 <div class="ttc" id="astructLightweight_1_1SqlErrorInfo_html_a8c5df558d7e9cd5263d15c3b13461944"><div class="ttname"><a href="../../d8/d5b/structLightweight_1_1SqlErrorInfo.html#a8c5df558d7e9cd5263d15c3b13461944">Lightweight::SqlErrorInfo::FromStatementHandle</a></div><div class="ttdeci">static SqlErrorInfo FromStatementHandle(SQLHSTMT hStmt)</div><div class="ttdoc">Constructs an ODBC error info object from the given ODBC statement handle.</div><div class="ttdef"><b>Definition</b> <a href="../../d9/d02/SqlError_8hpp_source.html#l00049">SqlError.hpp:49</a></div></div>

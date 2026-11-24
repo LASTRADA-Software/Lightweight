@@ -387,7 +387,7 @@ Static Public Attributes</h2></td></tr>
 </table>
 </div><div class="memdoc">
 <p>Binds <code>result</code> as the output column <code>column</code>, filled in on every fetch.</p>
-<p>The driver writes into a NUL-terminated staging buffer, which a post-process callback copies into <code>result</code>; a NULL leaves <code>result</code> untouched (<code>std::optional&lt;char&gt;</code> resets itself on it).</p>
+<p>The driver writes into a NUL-terminated staging buffer, which a post-process callback copies into <code>result</code>; a NULL leaves <code>result</code> untouched here (the statement resets a bound <code>char</code> to <code>'\0'</code> on it, see <code>SqlStatement::BindOutputColumnNow</code>, and <code>std::optional&lt;char&gt;</code> resets itself).</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">stmt</td><td>The ODBC statement handle. </td></tr>
@@ -400,7 +400,7 @@ Static Public Attributes</h2></td></tr>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The ODBC return code of <code>SQLBindCol</code>. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d2/d5e/Primitives_8hpp_source.html#l00552">552</a> of file <a class="el" href="../../d2/d5e/Primitives_8hpp_source.html">Primitives.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d2/d5e/Primitives_8hpp_source.html#l00553">553</a> of file <a class="el" href="../../d2/d5e/Primitives_8hpp_source.html">Primitives.hpp</a>.</p>
 
 </div>
 </div>
@@ -468,7 +468,7 @@ Static Public Attributes</h2></td></tr>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The ODBC return code of <code>SQLGetData</code>. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d2/d5e/Primitives_8hpp_source.html#l00583">583</a> of file <a class="el" href="../../d2/d5e/Primitives_8hpp_source.html">Primitives.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d2/d5e/Primitives_8hpp_source.html#l00584">584</a> of file <a class="el" href="../../d2/d5e/Primitives_8hpp_source.html">Primitives.hpp</a>.</p>
 
 </div>
 </div>
@@ -503,7 +503,7 @@ Static Public Attributes</h2></td></tr>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd><code>value</code> as a one-character string. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d2/d5e/Primitives_8hpp_source.html#l00604">604</a> of file <a class="el" href="../../d2/d5e/Primitives_8hpp_source.html">Primitives.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d2/d5e/Primitives_8hpp_source.html#l00605">605</a> of file <a class="el" href="../../d2/d5e/Primitives_8hpp_source.html">Primitives.hpp</a>.</p>
 
 </div>
 </div>

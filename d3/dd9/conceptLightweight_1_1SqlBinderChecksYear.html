@@ -100,14 +100,13 @@ $(document).ready(function(){initNavTree('d3/dd9/conceptLightweight_1_1SqlBinder
 <p><code>#include &lt;<a class="el" href="../../d7/d0f/DataBinder_2Core_8hpp_source.html">Core.hpp</a>&gt;</code></p>
 <h2 class="groupheader">Concept definition</h2>
 <div class="fragment"><div class="line"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> T&gt;</div>
-<div class="line"><span class="keyword">concept </span><a class="code hl_concept" href="../../d3/dd9/conceptLightweight_1_1SqlBinderChecksYear.html">Lightweight::SqlBinderChecksYear</a> =  <span class="keyword">requires</span>(T <span class="keyword">const</span>&amp; value) {</div>
-<div class="line">    { SqlDataBinder&lt;T&gt;::UnwritableYear(value) } -&gt; std::same_as&lt;std::optional&lt;SQLSMALLINT&gt;&gt;;</div>
-<div class="line">}</div>
-<div class="ttc" id="aconceptLightweight_1_1SqlBinderChecksYear_html"><div class="ttname"><a href="../../d3/dd9/conceptLightweight_1_1SqlBinderChecksYear.html">Lightweight::SqlBinderChecksYear</a></div><div class="ttdoc">Whether the binder of T can tell, before anything is bound, that a value of T holds a date or timesta...</div><div class="ttdef"><b>Definition</b> <a href="../../d7/d0f/DataBinder_2Core_8hpp_source.html#l00526">Core.hpp:526</a></div></div>
+<div class="line"><span class="keyword">concept </span><a class="code hl_concept" href="../../d3/dd9/conceptLightweight_1_1SqlBinderChecksYear.html">Lightweight::SqlBinderChecksYear</a> =  detail::CheckedUnwritableYearHook&lt;T&gt;()</div>
+<div class="ttc" id="aconceptLightweight_1_1SqlBinderChecksYear_html"><div class="ttname"><a href="../../d3/dd9/conceptLightweight_1_1SqlBinderChecksYear.html">Lightweight::SqlBinderChecksYear</a></div><div class="ttdoc">Whether the binder of T can tell, before anything is bound, that a value of T holds a date or timesta...</div><div class="ttdef"><b>Definition</b> <a href="../../d7/d0f/DataBinder_2Core_8hpp_source.html#l00558">Core.hpp:558</a></div></div>
 </div><!-- fragment --><a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Whether the binder of <code>T</code> can tell, before anything is bound, that a value of <code>T</code> holds a date or timestamp whose year cannot be written (see detail::IsWritableYear()): the dates themselves and the wrappers that bind through them. A batch that executes row by row checks every row through it first, so that no row is stored when one would be refused; a type without it costs nothing. </p>
+<p>The hook is <code>static</code> <code>std::optional&lt;SQLSMALLINT&gt;</code> <code>UnwritableYear(T const&amp; value)</code> <code>noexcept</code>. A binder that declares a member of that name with another signature (another return type, or one that is not <code>noexcept</code>) fails to compile. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/d0f/DataBinder_2Core_8hpp_source.html#l00526">526</a> of file <a class="el" href="../../d7/d0f/DataBinder_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/d0f/DataBinder_2Core_8hpp_source.html#l00558">558</a> of file <a class="el" href="../../d7/d0f/DataBinder_2Core_8hpp_source.html">Core.hpp</a>.</p>
 </div></div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->

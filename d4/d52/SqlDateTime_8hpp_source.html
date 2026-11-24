@@ -677,30 +677,31 @@ $(document).ready(function(){initNavTree('d4/d52/SqlDateTime_8hpp_source.html','
 <div class="line"><a id="l00523" name="l00523"></a><span class="lineno">  523</span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE SQLRETURN OutputColumn(</div>
 <div class="line"><a id="l00524" name="l00524"></a><span class="lineno">  524</span>        SQLHSTMT stmt, SQLUSMALLINT column, SqlDateTime* result, SQLLEN* indicator, SqlDataBinderCallback&amp; <span class="comment">/*cb*/</span>) <span class="keyword">noexcept</span></div>
 <div class="line"><a id="l00525" name="l00525"></a><span class="lineno">  525</span>    {</div>
-<div class="line"><a id="l00526" name="l00526"></a><span class="lineno">  526</span>        <span class="comment">// TODO: handle indicator to check for NULL values</span></div>
-<div class="line"><a id="l00527" name="l00527"></a><span class="lineno">  527</span>        *indicator = <span class="keyword">sizeof</span>(result-&gt;sqlValue);</div>
-<div class="line"><a id="l00528" name="l00528"></a><span class="lineno">  528</span>        <span class="keywordflow">return</span> SQLBindCol(stmt, column, SQL_C_TYPE_TIMESTAMP, &amp;result-&gt;sqlValue, 0, indicator);</div>
-<div class="line"><a id="l00529" name="l00529"></a><span class="lineno">  529</span>    }</div>
-<div class="line"><a id="l00530" name="l00530"></a><span class="lineno">  530</span> </div>
-<div class="line"><a id="l00531" name="l00531"></a><span class="lineno">  531</span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE SQLRETURN GetColumn(SQLHSTMT stmt,</div>
-<div class="line"><a id="l00532" name="l00532"></a><span class="lineno">  532</span>                                                        SQLUSMALLINT column,</div>
-<div class="line"><a id="l00533" name="l00533"></a><span class="lineno">  533</span>                                                        SqlDateTime* result,</div>
-<div class="line"><a id="l00534" name="l00534"></a><span class="lineno">  534</span>                                                        SQLLEN* indicator,</div>
-<div class="line"><a id="l00535" name="l00535"></a><span class="lineno">  535</span>                                                        SqlDataBinderCallback <span class="keyword">const</span>&amp; <span class="comment">/*cb*/</span>) <span class="keyword">noexcept</span></div>
-<div class="line"><a id="l00536" name="l00536"></a><span class="lineno">  536</span>    {</div>
-<div class="line"><a id="l00537" name="l00537"></a><span class="lineno">  537</span>        <span class="keywordflow">return</span> SQLGetData(stmt, column, SQL_C_TYPE_TIMESTAMP, &amp;result-&gt;sqlValue, <span class="keyword">sizeof</span>(result-&gt;sqlValue), indicator);</div>
-<div class="line"><a id="l00538" name="l00538"></a><span class="lineno">  538</span>    }</div>
-<div class="line"><a id="l00539" name="l00539"></a><span class="lineno">  539</span> </div>
-<div class="line"><a id="l00540" name="l00540"></a><span class="lineno">  540</span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE std::string Inspect(SqlDateTime <span class="keyword">const</span>&amp; value) <span class="keyword">noexcept</span></div>
-<div class="line"><a id="l00541" name="l00541"></a><span class="lineno">  541</span>    {</div>
-<div class="line"><a id="l00542" name="l00542"></a><span class="lineno">  542</span>        <span class="keywordflow">return</span> std::format(<span class="stringliteral">&quot;{}&quot;</span>, value);</div>
-<div class="line"><a id="l00543" name="l00543"></a><span class="lineno">  543</span>    }</div>
-<div class="line"><a id="l00544" name="l00544"></a><span class="lineno">  544</span>};</div>
-<div class="line"><a id="l00545" name="l00545"></a><span class="lineno">  545</span> </div>
-<div class="line"><a id="l00546" name="l00546"></a><span class="lineno">  546</span><span class="keyword">template</span> &lt;&gt;</div>
-<div class="line"><a id="l00547" name="l00547"></a><span class="lineno">  547</span><span class="keyword">inline</span> <span class="keyword">constexpr</span> <span class="keywordtype">bool</span> SqlIsNativeRowBindableValue&lt;SqlDateTime&gt; = <span class="keyword">true</span>;</div>
-<div class="line"><a id="l00548" name="l00548"></a><span class="lineno">  548</span> </div>
-<div class="line"><a id="l00549" name="l00549"></a><span class="lineno">  549</span>} <span class="comment">// namespace Lightweight</span></div>
+<div class="line"><a id="l00526" name="l00526"></a><span class="lineno">  526</span>        <span class="comment">// The driver leaves the value untouched on a NULL row; a bound variable is reset to SqlDateTime{} there by the</span></div>
+<div class="line"><a id="l00527" name="l00527"></a><span class="lineno">  527</span>        <span class="comment">// statement (see detail::ResetsBoundValueOnNull), as every value bound in place.</span></div>
+<div class="line"><a id="l00528" name="l00528"></a><span class="lineno">  528</span>        *indicator = <span class="keyword">sizeof</span>(result-&gt;sqlValue);</div>
+<div class="line"><a id="l00529" name="l00529"></a><span class="lineno">  529</span>        <span class="keywordflow">return</span> SQLBindCol(stmt, column, SQL_C_TYPE_TIMESTAMP, &amp;result-&gt;sqlValue, 0, indicator);</div>
+<div class="line"><a id="l00530" name="l00530"></a><span class="lineno">  530</span>    }</div>
+<div class="line"><a id="l00531" name="l00531"></a><span class="lineno">  531</span> </div>
+<div class="line"><a id="l00532" name="l00532"></a><span class="lineno">  532</span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE SQLRETURN GetColumn(SQLHSTMT stmt,</div>
+<div class="line"><a id="l00533" name="l00533"></a><span class="lineno">  533</span>                                                        SQLUSMALLINT column,</div>
+<div class="line"><a id="l00534" name="l00534"></a><span class="lineno">  534</span>                                                        SqlDateTime* result,</div>
+<div class="line"><a id="l00535" name="l00535"></a><span class="lineno">  535</span>                                                        SQLLEN* indicator,</div>
+<div class="line"><a id="l00536" name="l00536"></a><span class="lineno">  536</span>                                                        SqlDataBinderCallback <span class="keyword">const</span>&amp; <span class="comment">/*cb*/</span>) <span class="keyword">noexcept</span></div>
+<div class="line"><a id="l00537" name="l00537"></a><span class="lineno">  537</span>    {</div>
+<div class="line"><a id="l00538" name="l00538"></a><span class="lineno">  538</span>        <span class="keywordflow">return</span> SQLGetData(stmt, column, SQL_C_TYPE_TIMESTAMP, &amp;result-&gt;sqlValue, <span class="keyword">sizeof</span>(result-&gt;sqlValue), indicator);</div>
+<div class="line"><a id="l00539" name="l00539"></a><span class="lineno">  539</span>    }</div>
+<div class="line"><a id="l00540" name="l00540"></a><span class="lineno">  540</span> </div>
+<div class="line"><a id="l00541" name="l00541"></a><span class="lineno">  541</span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE std::string Inspect(SqlDateTime <span class="keyword">const</span>&amp; value) <span class="keyword">noexcept</span></div>
+<div class="line"><a id="l00542" name="l00542"></a><span class="lineno">  542</span>    {</div>
+<div class="line"><a id="l00543" name="l00543"></a><span class="lineno">  543</span>        <span class="keywordflow">return</span> std::format(<span class="stringliteral">&quot;{}&quot;</span>, value);</div>
+<div class="line"><a id="l00544" name="l00544"></a><span class="lineno">  544</span>    }</div>
+<div class="line"><a id="l00545" name="l00545"></a><span class="lineno">  545</span>};</div>
+<div class="line"><a id="l00546" name="l00546"></a><span class="lineno">  546</span> </div>
+<div class="line"><a id="l00547" name="l00547"></a><span class="lineno">  547</span><span class="keyword">template</span> &lt;&gt;</div>
+<div class="line"><a id="l00548" name="l00548"></a><span class="lineno">  548</span><span class="keyword">inline</span> <span class="keyword">constexpr</span> <span class="keywordtype">bool</span> SqlIsNativeRowBindableValue&lt;SqlDateTime&gt; = <span class="keyword">true</span>;</div>
+<div class="line"><a id="l00549" name="l00549"></a><span class="lineno">  549</span> </div>
+<div class="line"><a id="l00550" name="l00550"></a><span class="lineno">  550</span>} <span class="comment">// namespace Lightweight</span></div>
 <div class="ttc" id="astructLightweight_1_1SqlDateTime_html"><div class="ttname"><a href="../../d6/dfa/structLightweight_1_1SqlDateTime.html">Lightweight::SqlDateTime</a></div><div class="ttdef"><b>Definition</b> <a href="../../d4/d52/SqlDateTime_8hpp_source.html#l00032">SqlDateTime.hpp:33</a></div></div>
 <div class="ttc" id="astructLightweight_1_1SqlDateTime_html_a149ce3222ef3ab86a5bbcfe65ae08c13"><div class="ttname"><a href="../../d6/dfa/structLightweight_1_1SqlDateTime.html#a149ce3222ef3ab86a5bbcfe65ae08c13">Lightweight::SqlDateTime::year</a></div><div class="ttdeci">constexpr LIGHTWEIGHT_FORCE_INLINE std::chrono::year year() const noexcept</div><div class="ttdoc">Returns the year of this date-time object.</div><div class="ttdef"><b>Definition</b> <a href="../../d4/d52/SqlDateTime_8hpp_source.html#l00145">SqlDateTime.hpp:145</a></div></div>
 <div class="ttc" id="astructLightweight_1_1SqlDateTime_html_a16edb6ae12044818e69409d54b6f8afa"><div class="ttname"><a href="../../d6/dfa/structLightweight_1_1SqlDateTime.html#a16edb6ae12044818e69409d54b6f8afa">Lightweight::SqlDateTime::operator-=</a></div><div class="ttdeci">LIGHTWEIGHT_FORCE_INLINE constexpr SqlDateTime &amp; operator-=(duration_type duration) noexcept</div><div class="ttdoc">Subtracts a duration from this date-time, keeping the fraction's 100 ns digits (see operator+=()).</div><div class="ttdef"><b>Definition</b> <a href="../../d4/d52/SqlDateTime_8hpp_source.html#l00277">SqlDateTime.hpp:277</a></div></div>

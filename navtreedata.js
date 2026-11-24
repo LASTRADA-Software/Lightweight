@@ -150,6 +150,7 @@ var NAVTREE =
       ] ],
       [ "Inspect()", "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#inspect", null ],
       [ "UnwritableYear() (optional)", "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#unwritableyear-optional", null ],
+      [ "A NULL row in a bound variable", "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#a-null-row-in-a-bound-variable", null ],
       [ "<tt>SqlGuid</tt> and <tt>SqlTime</tt>: what a read returns", "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#sqlguid-and-sqltime-what-a-read-returns", null ],
       [ "Integer types: full range on every database", "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#integer-types-full-range-on-every-database", null ],
       [ "<tt>bool</tt>", "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#bool", null ],
@@ -453,7 +454,7 @@ var NAVTREEINDEX =
 "db/dad/classLightweight_1_1SqlStatement.html#a1dbd5345afd309378028c7ea6f455666",
 "dd/db3/classLightweight_1_1Async_1_1IAsyncBackend.html#a64ef8c995e4ed96b421f10144e9fe3c5",
 "de/dae/classLightweight_1_1SqlFixedString.html#a9da9b618656a2afc3a7748d302dc06e5",
-"functions_func.html"
+"functions_f.html"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';
