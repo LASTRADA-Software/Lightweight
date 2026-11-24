@@ -116,8 +116,12 @@ struct SqlNumeric
     // integer `value * 10^Scale`, and every accessor divides that by `10^Scale` again.
     static_assert(Scale <= Precision, "Scale counts digits after the decimal point and cannot exceed Precision.");
 
-    /// The SQL numeric struct for ODBC binding.
-    SQL_NUMERIC_STRUCT sqlValue {};
+    /// The SQL numeric struct for ODBC binding. A default-constructed numeric is zero with this type's
+    /// precision and scale: the accessors divide by @c sqlValue.scale, also where a driver fills only
+    /// @c nativeValue, such as in the rows a row-wise array fetch reads after the one it binds.
+    SQL_NUMERIC_STRUCT sqlValue {
+        .precision = static_cast<SQLCHAR>(Precision), .scale = static_cast<SQLSCHAR>(Scale), .sign = 1, .val = {}
+    };
 
     /// Cached native value for drivers without SQL_NUMERIC_STRUCT support.
     double nativeValue {};
@@ -330,8 +334,8 @@ struct SqlDataBinder<SqlNumeric<Precision, Scale>>
         }
 
         // Bind with the type's compile-time Precision/Scale rather than value.sqlValue.precision/scale:
-        // the latter is 0 for a default-constructed (never-assigned) value. On the native row-wise batch
-        // path a single bind descriptor (taken from row 0) governs the whole array, so a default-constructed
+        // the latter is 0 for a value built from an all-zero SQL_NUMERIC_STRUCT. On the native row-wise batch
+        // path a single bind descriptor (taken from row 0) governs the whole array, so such a
         // row 0 would otherwise mis-bind every row. The template constants are correct for every value of
         // SqlNumeric<Precision, Scale> by definition (assign() always sets these same values).
         return SQLBindParameter(stmt,
