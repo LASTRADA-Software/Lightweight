@@ -431,7 +431,8 @@ var NAVTREE =
         [ "Functions", "functions_func.html", "functions_func" ],
         [ "Variables", "functions_vars.html", "functions_vars" ],
         [ "Typedefs", "functions_type.html", null ],
-        [ "Enumerations", "functions_enum.html", null ]
+        [ "Enumerations", "functions_enum.html", null ],
+        [ "Related Symbols", "functions_rela.html", null ]
       ] ]
     ] ],
     [ "Files", "files.html", [
@@ -446,13 +447,13 @@ var NAVTREEINDEX =
 "d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html#a91bfca7ee0426ab2e20aa926dc627293",
 "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a48ed86737153cbf627f517f3b0d11322",
 "d6/d46/classLightweight_1_1Zip_1_1ZipEntry.html#a2299e18f28f3ace1f4f16512a58dcc7d",
-"d7/d53/structLightweight_1_1SqlTime.html#a9514703950ebb6f7ac3251976256813b",
-"d8/dd2/structLightweight_1_1SqlFieldExpression.html#afe87625542faab00a7af2b26a45849f5",
-"da/d07/structLightweight_1_1SqlRawColumnMetadata.html#a9437efb270ef1560d5cd08a1275d6d10",
-"db/dad/classLightweight_1_1SqlStatement.html#a2f51e2e203c890b25312deadcad244b1",
-"dd/dde/classLightweight_1_1SqlDiagnosticSource.html#a75629e57362de728f0356e35f838953a",
-"de/dae/classLightweight_1_1SqlFixedString.html#aa32ffd4a90d06f0ac4fa6d701712cded",
-"functions_func_c.html"
+"d7/d53/structLightweight_1_1SqlTime.html#a73c0290cf0447b30a69f3144853bb598",
+"d8/db2/SqlColumnTypeDefinitions_8hpp_source.html",
+"da/d07/structLightweight_1_1SqlRawColumnMetadata.html#a76a7fc936dc18d3af22496f7e3d88017",
+"db/dad/classLightweight_1_1SqlStatement.html#a1dbd5345afd309378028c7ea6f455666",
+"dd/db3/classLightweight_1_1Async_1_1IAsyncBackend.html#a64ef8c995e4ed96b421f10144e9fe3c5",
+"de/dae/classLightweight_1_1SqlFixedString.html#a9da9b618656a2afc3a7748d302dc06e5",
+"functions_func.html"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

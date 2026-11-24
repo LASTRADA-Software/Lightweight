@@ -1,5 +1,8 @@
 var NAVTREEINDEX7 =
 {
+"db/dad/classLightweight_1_1SqlStatement.html#a1dbd5345afd309378028c7ea6f455666":[20,6,9,41],
+"db/dad/classLightweight_1_1SqlStatement.html#a1e5572123ab0d006d3ae3defee9c4f89":[20,6,9,35],
+"db/dad/classLightweight_1_1SqlStatement.html#a29cec4857dff71c1d19a1c023fce84ed":[20,6,9,46],
 "db/dad/classLightweight_1_1SqlStatement.html#a2f51e2e203c890b25312deadcad244b1":[20,6,9,40],
 "db/dad/classLightweight_1_1SqlStatement.html#a3409545779372b6a14b213c8eab814b1":[20,6,9,37],
 "db/dad/classLightweight_1_1SqlStatement.html#a34c08cddca600ab42f61f92c3bef7d1a":[20,6,9,42],
@@ -246,8 +249,5 @@ var NAVTREEINDEX7 =
 "dd/da9/DataMapperAsync_8hpp_source.html":[23,0,1,0,5],
 "dd/dad/SqlText_8hpp_source.html":[23,0,1,1,15],
 "dd/db1/ManualExecutor_8hpp_source.html":[23,0,1,0,8],
-"dd/db3/classLightweight_1_1Async_1_1IAsyncBackend.html":[20,0,1],
-"dd/db3/classLightweight_1_1Async_1_1IAsyncBackend.html#a64ef8c995e4ed96b421f10144e9fe3c5":[20,0,1,1],
-"dd/db3/classLightweight_1_1Async_1_1IAsyncBackend.html#af16af5750032dc8798380d359167f065":[20,0,1,0],
-"dd/dde/classLightweight_1_1SqlDiagnosticSource.html":[22,0,0,48]
+"dd/db3/classLightweight_1_1Async_1_1IAsyncBackend.html":[20,0,1]
 };
