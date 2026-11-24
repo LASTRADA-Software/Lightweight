@@ -35,6 +35,17 @@ struct SqlDataBinder<std::optional<T>>
 
     static constexpr auto ColumnType = SqlDataBinder<T>::ColumnType;
 
+    /// The year of the engaged value of @p value if it cannot be written (see detail::IsWritableYear()).
+    /// @param value The value to write.
+    /// @return Its year if the value is refused, otherwise @c std::nullopt (also for @c std::nullopt).
+    [[nodiscard]] static constexpr std::optional<SQLSMALLINT> UnwritableYear(OptionalValue const& value) noexcept
+        requires SqlBinderChecksYear<T>
+    {
+        if (!value.has_value())
+            return std::nullopt;
+        return SqlDataBinder<T>::UnwritableYear(*value);
+    }
+
     static LIGHTWEIGHT_FORCE_INLINE SQLRETURN InputParameter(SQLHSTMT stmt,
                                                              SQLUSMALLINT column,
                                                              OptionalValue const& value,

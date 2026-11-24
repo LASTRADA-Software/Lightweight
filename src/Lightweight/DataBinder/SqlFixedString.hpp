@@ -118,7 +118,7 @@ class SqlFixedString
     LIGHTWEIGHT_FORCE_INLINE constexpr SqlFixedString(T const* s, T const* e) noexcept:
         _size { (std::min) (N, static_cast<std::size_t>(e - s)) }
     {
-        std::copy(s, e, _data);
+        std::copy_n(s, _size, _data); // a longer range is cut to the capacity
     }
 
     /// Reserves capacity for the string. Throws if capacity exceeds the maximum.
@@ -453,7 +453,7 @@ struct SqlBasicStringOperations<SqlFixedString<N, T, Mode>>
 
                 if constexpr (Mode == SqlFixedStringMode::FIXED_SIZE_RIGHT_TRIMMED)
                 {
-                    TrimRight(result, indicator);
+                    TrimRight(result);
                 }
                 else
                 {
@@ -473,13 +473,13 @@ struct SqlBasicStringOperations<SqlFixedString<N, T, Mode>>
         str->setsize(n);
     }
 
-    LIGHTWEIGHT_FORCE_INLINE static void TrimRight(ValueType* boundOutputString, SQLLEN indicator) noexcept
+    /// Strips trailing whitespace and NULs from the value already cut to the indicator's length.
+    /// @param boundOutputString The value read; its size is the read length in characters.
+    LIGHTWEIGHT_FORCE_INLINE static void TrimRight(ValueType* boundOutputString) noexcept
     {
-#if defined(_WIN32)
-        size_t n = (std::min) (static_cast<size_t>(indicator) / sizeof(CharType), N);
-#else
-        size_t n = std::min(static_cast<size_t>(indicator), N);
-#endif
+        // From the size the caller set from the indicator (bytes over the character width): taking the
+        // indicator itself as a character count kept the stale characters of a longer earlier value.
+        size_t n = boundOutputString->size();
         // Strip trailing whitespace and null characters. We only consider ASCII whitespace
         // here: ODBC CHAR(N) columns are padded with ASCII spaces, and feeding a non-ASCII
         // char/wchar_t/char16_t value to std::isspace is undefined behaviour because the
@@ -491,6 +491,16 @@ struct SqlBasicStringOperations<SqlFixedString<N, T, Mode>>
         while (n > 0 && (isAsciiWhitespace((*boundOutputString)[n - 1]) || (*boundOutputString)[n - 1] == CharType('\0')))
             --n;
         boundOutputString->setsize(n);
+    }
+
+    /// Kept for source compatibility: strips as the overload above does and ignores @p indicator, since the size
+    /// the caller set from it is the length (its former use as a character count was the defect).
+    /// @param boundOutputString The value read; its size is the read length in characters.
+    /// @param indicator Ignored.
+    LIGHTWEIGHT_FORCE_INLINE static void TrimRight(ValueType* boundOutputString, SQLLEN indicator) noexcept
+    {
+        (void) indicator;
+        TrimRight(boundOutputString);
     }
 };
 

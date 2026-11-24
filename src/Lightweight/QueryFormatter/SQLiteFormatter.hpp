@@ -52,6 +52,16 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
         return false;
     }
 
+    [[nodiscard]] bool ReportsUnconvertibleCellsAsNull() const noexcept override
+    {
+        return true;
+    }
+
+    [[nodiscard]] bool ConvertsNarrowIntegerCTypes() const noexcept override
+    {
+        return false;
+    }
+
     [[nodiscard]] bool BoundsBulkLoadTransactionSize() const noexcept override
     {
         return true;
@@ -697,6 +707,15 @@ ALTER TABLE {2} DROP COLUMN "{1}";)",
         return "SELECT sqlite_version()";
     }
 
+    /// A plain @c BEGIN, which the SQLite ODBC driver does not see as one (see the base) - but only as the
+    /// SQLite formatter itself: a dialect derived from this class answers none unless it overrides.
+    [[nodiscard]] std::string_view ResyncEndedTransactionStatement() const noexcept override
+    {
+        if (this != Get(SqlServerType::SQLITE))
+            return {};
+        return "BEGIN";
+    }
+
     /// Emits @c PRAGMA @c busy_timeout, followed by @c PRAGMA @c journal_mode unless the journal mode
     /// is to stay unchanged. The busy timeout goes first so that the journal-mode switch, which needs an
     /// exclusive lock on the database file, already waits on a contended file instead of failing.
@@ -710,6 +729,14 @@ ALTER TABLE {2} DROP COLUMN "{1}";)",
         if (auto const mode = JournalModeKeyword(settings.journalMode); !mode.empty())
             statements.emplace_back(std::format("PRAGMA journal_mode = {}", mode));
         return statements;
+    }
+
+    /// The SQLite ODBC driver's @c Timeout: the busy timeout in milliseconds, at least 1 (see the base).
+    [[nodiscard]] SqlConnectionStringMap DriverConnectionAttributes(SqliteConnectionSettings const& settings) const override
+    {
+        auto const busyTimeoutMs =
+            std::clamp<std::chrono::milliseconds::rep>(settings.busyTimeout.count(), 1, std::numeric_limits<int>::max());
+        return { { "TIMEOUT", std::to_string(busyTimeoutMs) } };
     }
 
     /// Maps a journal mode onto its @c PRAGMA @c journal_mode keyword.

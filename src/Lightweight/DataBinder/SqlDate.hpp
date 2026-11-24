@@ -110,11 +110,21 @@ struct SqlDataBinder<SqlDate>
 {
     static constexpr auto ColumnType = SqlColumnTypeDefinitions::Date {};
 
+    /// The year of @p value if it cannot be written (see detail::IsWritableYear()).
+    /// @param value The value to write.
+    /// @return Its year if the value is refused, otherwise @c std::nullopt.
+    [[nodiscard]] static constexpr std::optional<SQLSMALLINT> UnwritableYear(SqlDate const& value) noexcept
+    {
+        return detail::UnwritableYearOf(value.sqlValue.year);
+    }
+
     static LIGHTWEIGHT_FORCE_INLINE SQLRETURN InputParameter(SQLHSTMT stmt,
                                                              SQLUSMALLINT column,
                                                              SqlDate const& value,
-                                                             SqlDataBinderCallback& /*cb*/) noexcept
+                                                             SqlDataBinderCallback& cb) noexcept
     {
+        if (detail::RefuseUnwritableYear(value.sqlValue.year, cb))
+            return SQL_ERROR;
         return SQLBindParameter(
             stmt, column, SQL_PARAM_INPUT, SQL_C_TYPE_DATE, SQL_TYPE_DATE, 0, 0, (SQLPOINTER) &value.sqlValue, 0, nullptr);
     }
@@ -125,10 +135,17 @@ struct SqlDataBinder<SqlDate>
     static LIGHTWEIGHT_FORCE_INLINE SQLRETURN BatchInputParameter(SQLHSTMT stmt,
                                                                   SQLUSMALLINT column,
                                                                   SqlDate const* values,
-                                                                  size_t /*rowCount*/,
-                                                                  SqlDataBinderCallback& /*cb*/,
+                                                                  size_t rowCount,
+                                                                  SqlDataBinderCallback& cb,
                                                                   SQLLEN* indicators = nullptr) noexcept
     {
+        // Once per batch: the layout (column- or row-wise) comes from the statement.
+        if (detail::RefuseUnwritableYears(values,
+                                          detail::CurrentParameterArrayLayout(stmt, sizeof(*values), rowCount).rowStride,
+                                          rowCount,
+                                          indicators,
+                                          cb))
+            return SQL_ERROR;
         return SQLBindParameter(stmt,
                                 column,
                                 SQL_PARAM_INPUT,

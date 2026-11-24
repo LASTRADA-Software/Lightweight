@@ -11,8 +11,12 @@
 #include <atomic>
 #include <cstddef>
 #include <cstring>
+#include <limits>
 #include <map>
 #include <mutex>
+#include <optional>
+#include <ranges>
+#include <string>
 #include <string_view>
 
 namespace Lightweight
@@ -103,10 +107,10 @@ namespace
         return bytes.size() - (start - 1) >= Utf8SequenceLength(lead) ? bytes.size() : start - 1;
     }
 
-    /// Reads the first diagnostic record of @p handle through SQLGetDiagRec, for a driver that takes and
+    /// Reads diagnostic record @p record of @p handle through SQLGetDiagRec, for a driver that takes and
     /// returns text only through the ANSI entry points: its bytes are the driver's UTF-8, passed on
     /// unchanged, where the wide variant would widen each byte into a code unit of its own.
-    SqlErrorInfo FromHandleNarrow(SQLSMALLINT handleType, SQLHANDLE handle) noexcept
+    std::optional<SqlErrorInfo> FromHandleNarrow(SQLSMALLINT handleType, SQLHANDLE handle, SQLSMALLINT record) noexcept
     {
         SqlErrorInfo info {};
 
@@ -118,14 +122,14 @@ namespace
 
         auto const rc = SQLGetDiagRec(handleType,
                                       handle,
-                                      1,
+                                      record,
                                       sqlStateBuffer.data(),
                                       &info.nativeErrorCode,
                                       messageBuffer.data(),
                                       MessageBufferLen,
                                       &messageLength);
         if (!SQL_SUCCEEDED(rc))
-            return info;
+            return std::nullopt;
 
         try
         {
@@ -203,9 +207,31 @@ SqlErrorInfo SqlErrorInfo::FromHandle(SQLSMALLINT handleType, SQLHANDLE handle)
     // already failed - the success path never gets here.
     if (auto* const source = GetDiagnosticSource())
         return source->Diagnose(handleType, handle);
+    return FromRecord(handleType, handle, 1).value_or(SqlErrorInfo {});
+}
 
+SqlErrorInfo SqlErrorInfo::FirstErrorFromStatementHandle(SQLHSTMT hStmt)
+{
+    if (auto* const source = GetDiagnosticSource())
+        return source->Diagnose(SQL_HANDLE_STMT, hStmt);
+    auto first = std::optional<SqlErrorInfo> {};
+    for (auto const record: std::views::iota(SQLSMALLINT { 1 }, std::numeric_limits<SQLSMALLINT>::max()))
+    {
+        auto info = FromRecord(SQL_HANDLE_STMT, hStmt, record);
+        if (!info)
+            break;
+        if (!info->sqlState.starts_with("01"))
+            return std::move(*info);
+        if (!first)
+            first = std::move(info);
+    }
+    return std::move(first).value_or(SqlErrorInfo {});
+}
+
+std::optional<SqlErrorInfo> SqlErrorInfo::FromRecord(SQLSMALLINT handleType, SQLHANDLE handle, SQLSMALLINT record)
+{
     if (detail::IsAnsiOnlyHandle(handle))
-        return FromHandleNarrow(handleType, handle);
+        return FromHandleNarrow(handleType, handle, record);
 
     SqlErrorInfo info {};
 
@@ -217,14 +243,14 @@ SqlErrorInfo SqlErrorInfo::FromHandle(SQLSMALLINT handleType, SQLHANDLE handle)
 
     auto const rc = SQLGetDiagRecW(handleType,
                                    handle,
-                                   1,
+                                   record,
                                    sqlStateBuffer.data(),
                                    &info.nativeErrorCode,
                                    messageBuffer.data(),
                                    MessageBufferLen,
                                    &msgLen);
     if (!SQL_SUCCEEDED(rc))
-        return info;
+        return std::nullopt;
 
     // The SQLWCHAR ↔ char16_t layout invariant lives in SqlOdbcWide.hpp; the buffers
     // we just filled are reinterpretable as char16_t under that same assumption.

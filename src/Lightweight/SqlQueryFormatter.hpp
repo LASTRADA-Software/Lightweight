@@ -47,6 +47,13 @@ class [[nodiscard]] LIGHTWEIGHT_API SqlQueryFormatter
     /// Converts a binary value to a hex-encoded string literal.
     [[nodiscard]] virtual std::string BinaryLiteral(std::span<uint8_t const> data) const = 0;
 
+    /// Quotes @p name as an identifier: between double quotes, with every double quote it holds doubled -
+    /// the quoting every supported dialect accepts - so that any name, one taken from the catalog
+    /// included, can be spliced into statement text without ending the identifier early.
+    /// @param name The identifier, as the catalog spells it.
+    /// @return The quoted identifier.
+    [[nodiscard]] static std::string QuoteIdentifier(std::string_view name);
+
     /// Formats a qualified table name with proper quoting for this database.
     /// @param schema The schema name (can be empty for default schema)
     /// @param table The table name
@@ -315,6 +322,41 @@ class [[nodiscard]] LIGHTWEIGHT_API SqlQueryFormatter
         return {};
     }
 
+    /// @brief Returns a statement that opens a transaction on the database directly, bypassing the driver's
+    /// own transaction bookkeeping.
+    ///
+    /// Used after a failed rollback. The defect it works around belongs to one driver, not to a DBMS: the
+    /// SQLite ODBC driver keeps its own "in a transaction" flag, clears it only when a COMMIT or ROLLBACK
+    /// succeeds, and opens its transaction lazily (an implicit BEGIN before the first statement after
+    /// autocommit went off). When the database ended the transaction on its own (@c INSERT @c OR
+    /// @c ROLLBACK, @c RAISE(ROLLBACK)), both COMMIT and ROLLBACK are refused, the flag stays set, and
+    /// every later transaction on the connection gets no BEGIN and silently runs in autocommit mode.
+    /// Executing this statement opens a real transaction, which the driver then ends with @c SQLEndTran,
+    /// clearing its flag. The answer assumes that driver: on another driver for the same DBMS that
+    /// follows the database's state, the statement fails ("cannot start a transaction within a
+    /// transaction" once the driver opened its own) or opens a transaction that the following rollback
+    /// ends - either way the connection is left in manual-commit mode or rolled back, never committed.
+    ///
+    /// Only a formatter that answers for itself returns a statement: this base class returns none, and
+    /// the SQLite formatter returns one only as the SQLite formatter, not as the base of another dialect
+    /// (a BEGIN on MySQL or MariaDB would implicitly commit). A derived dialect opts in by overriding.
+    ///
+    /// @return The statement; empty for a dialect whose driver needs no such resynchronisation.
+    [[nodiscard]] virtual std::string_view ResyncEndedTransactionStatement() const noexcept
+    {
+        return {};
+    }
+
+    /// The statement ResyncEndedTransactionStatement() names for @p serverType, or none for a server type
+    /// without a formatter (MySQL, an unrecognised server).
+    /// @param serverType The connection's server type.
+    /// @return The statement, or empty.
+    [[nodiscard]] static std::string_view ResyncEndedTransactionStatementFor(SqlServerType serverType) noexcept
+    {
+        auto const* formatter = Get(serverType);
+        return formatter ? formatter->ResyncEndedTransactionStatement() : std::string_view {};
+    }
+
     /// @brief Returns the dialect-specific handler used by `SqlScopedLock` to
     /// acquire and release named cross-process advisory locks.
     ///
@@ -447,6 +489,56 @@ class [[nodiscard]] LIGHTWEIGHT_API SqlQueryFormatter
     ///
     /// @return `true` if a bulk load bounds the rows per transaction.
     [[nodiscard]] virtual bool BoundsBulkLoadTransactionSize() const noexcept
+    {
+        return false;
+    }
+
+    /// @brief Whether the driver converts an @c int8_t bound as @c SQL_C_STINYINT and a @c uint32_t bound as
+    /// @c SQL_C_ULONG over the type's full range.
+    ///
+    /// Defaults to `true`. SQLite returns `false`: its driver stores an @c SQL_C_STINYINT -1 as 255 and an
+    /// @c SQL_C_ULONG above @c INT32_MAX as a negative number, and reads such a value back as @c INT32_MAX.
+    /// The binders of those two types then stage each value through a wider C type.
+    ///
+    /// @return `true` if those C types round-trip their full range on this backend.
+    [[nodiscard]] virtual bool ConvertsNarrowIntegerCTypes() const noexcept
+    {
+        return true;
+    }
+
+    /// @brief Returns the connection-string attributes the driver needs to realise @p settings, which it
+    /// reads only when connecting.
+    ///
+    /// A connection merges each one into its connection string unless the string names that attribute
+    /// already. Every dialect but SQLite returns none. The SQLite ODBC driver waits on a locked database
+    /// through its own busy handler, with the @c Timeout attribute's limit (default 100000 ms), and keeps it
+    /// installed whatever @c PRAGMA @c busy_timeout says; a @c Timeout below 1 means 1000000 ms to it.
+    ///
+    /// @param settings The connection's SQLite settings.
+    /// @return The attributes by upper-case key; empty when the driver needs none.
+    [[nodiscard]] virtual SqlConnectionStringMap DriverConnectionAttributes(SqliteConnectionSettings const& settings) const
+    {
+        (void) settings;
+        return {};
+    }
+
+    /// @brief Whether the driver reports a cell whose stored value its declared column type cannot convert
+    /// (text in an INTEGER or DATE column) as NULL when the cell is read as that type.
+    ///
+    /// Defaults to `false`. SQLite returns `true`: its columns' types are declarations only, and its driver
+    /// answers such a typed read with @c SQL_NULL_DATA, so a SqlVariant reads the cell again as text.
+    /// @return `true` if a typed read's NULL may hide a value of another type.
+    [[nodiscard]] virtual bool ReportsUnconvertibleCellsAsNull() const noexcept
+    {
+        return false;
+    }
+
+    /// @brief Whether the driver may report a boolean true as -1.
+    ///
+    /// Defaults to `false`. PostgreSQL returns `true`: psqlODBC with the connection option `TrueIsMinus1=1` reports a
+    /// boolean true as -1 (through @c SQL_C_BIT the byte 0xFF), so a @c bool read there takes -1 as @c true.
+    /// @return `true` if -1 is a form of a boolean true on this backend.
+    [[nodiscard]] virtual bool BooleanTrueMayBeMinusOne() const noexcept
     {
         return false;
     }

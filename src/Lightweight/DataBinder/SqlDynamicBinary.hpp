@@ -8,6 +8,7 @@
 
 #include <cassert>
 #include <format>
+#include <initializer_list>
 #include <span>
 #include <string>
 
@@ -74,11 +75,13 @@ class SqlDynamicBinary final
     }
 
     /// Constructs the object from an initializer list of bytes.
-    template <std::size_t SourceSize>
+    ///
+    /// Like the pointer-range and view constructors, it takes the bytes as given.
+    /// @param data The bytes, at most @c N of them: the capacity (asserted in debug builds).
     constexpr LIGHTWEIGHT_FORCE_INLINE SqlDynamicBinary(std::initializer_list<value_type> data):
         _base { data }
     {
-        static_assert(SourceSize <= N + 1, "RHS string size must not exceed target string's capacity.");
+        assert(data.size() <= N && "the bytes must not exceed the binary's capacity");
     }
 
     /// Constructs a fixed-size string from a string pointer and end pointer.

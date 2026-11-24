@@ -9,6 +9,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
+#include <algorithm>
 #include <chrono>
 #include <optional>
 #include <ranges>
@@ -325,14 +326,15 @@ TEST_CASE_METHOD(SqlTestFixture,
                  "DataMapper.CreateAll: SqlNumeric binds with the column's precision/scale",
                  "[DataMapper][batch]")
 {
-    // Row 0 is a default-constructed (never-assigned) SqlNumeric, whose sqlValue.precision/scale are 0.
-    // The native row-wise batch binds a single descriptor (taken from row 0) for the whole array, so
-    // before the fix this corrupted/rejected the assigned values in rows 1..n on SQL_C_NUMERIC backends.
+    // Row 0 is a SqlNumeric whose sqlValue is the all-zero wire struct, so its precision/scale are 0 (a
+    // default-constructed one carries the type's own). The native row-wise batch binds a single descriptor
+    // (taken from row 0) for the whole array, so before the fix this corrupted/rejected the assigned values in
+    // rows 1..n on SQL_C_NUMERIC backends.
     auto dm = DataMapper {};
     dm.CreateTable<BatchNumericRecord>();
 
     auto records = std::vector<BatchNumericRecord> {};
-    records.push_back({ .id = 1, .amount = SqlNumeric<10, 2> {} }); // default-constructed
+    records.push_back({ .id = 1, .amount = SqlNumeric<10, 2> { SQL_NUMERIC_STRUCT {} } }); // precision/scale 0
     records.push_back({ .id = 2, .amount = SqlNumeric<10, 2> { 12.34 } });
     records.push_back({ .id = 3, .amount = SqlNumeric<10, 2> { 99.99 } });
 
@@ -343,6 +345,31 @@ TEST_CASE_METHOD(SqlTestFixture,
     CHECK(dm.QuerySingle<BatchNumericRecord>(2).value().amount.Value().ToString() == SqlNumeric<10, 2> { 12.34 }.ToString());
     CHECK(dm.QuerySingle<BatchNumericRecord>(3).value().amount.Value().ToString() == SqlNumeric<10, 2> { 99.99 }.ToString());
     REQUIRE(dm.QuerySingle<BatchNumericRecord>(1).has_value()); // default row present
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "DataMapper: SqlNumeric members read by a row-wise array fetch keep their scale on every row",
+                 "[DataMapper][batch]")
+{
+    // The row-wise fetch binds the block's row 0 and the driver strides through the rows; where it fills only the
+    // numeric's double (SQLite, SQL Server), every row must still carry the scale its accessors divide by.
+    auto dm = DataMapper {};
+    dm.CreateTable<BatchNumericRecord>();
+    auto const amounts = std::vector { 1.25, 2.5, 3.75, 12.34 };
+    auto records = std::vector<BatchNumericRecord> {};
+    for (auto const index: std::views::iota(std::size_t { 0 }, amounts.size()))
+        records.push_back({ .id = static_cast<int32_t>(index + 1), .amount = SqlNumeric<10, 2> { amounts[index] } });
+    dm.CreateAll(records);
+
+    auto all = dm.Query<BatchNumericRecord>().All();
+    std::ranges::sort(all, {}, [](BatchNumericRecord const& record) { return record.id.Value(); });
+    REQUIRE(all.size() == amounts.size());
+    for (auto const index: std::views::iota(std::size_t { 0 }, amounts.size()))
+    {
+        INFO("id " << all[index].id.Value());
+        CHECK_THAT(all[index].amount.Value().ToDouble(), Catch::Matchers::WithinAbs(amounts[index], 1e-9));
+        CHECK(all[index].amount.Value() == SqlNumeric<10, 2> { amounts[index] });
+    }
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "DataMapper.CreateAll: native temporal columns", "[DataMapper][batch]")

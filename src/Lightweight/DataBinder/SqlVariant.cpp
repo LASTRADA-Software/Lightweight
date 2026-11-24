@@ -8,9 +8,33 @@
 #include <charconv>
 #include <string>
 #include <string_view>
+#include <utility>
 
 namespace Lightweight
 {
+
+namespace
+{
+    /// Whether @p sqlType is read as text or bytes already, so a NULL from it is a real NULL.
+    constexpr bool IsCharacterOrBinaryType(SQLSMALLINT sqlType) noexcept
+    {
+        switch (sqlType)
+        {
+            case SQL_CHAR:
+            case SQL_VARCHAR:
+            case SQL_LONGVARCHAR:
+            case SQL_WCHAR:
+            case SQL_WVARCHAR:
+            case SQL_WLONGVARCHAR:
+            case SQL_BINARY:
+            case SQL_VARBINARY:
+            case SQL_LONGVARBINARY:
+                return true;
+            default:
+                return false;
+        }
+    }
+} // namespace
 
 SQLRETURN SqlDataBinder<SqlVariant>::InputParameter(SQLHSTMT stmt,
                                                     SQLUSMALLINT column,
@@ -27,17 +51,13 @@ SQLRETURN SqlDataBinder<SqlVariant>::InputParameter(SQLHSTMT stmt,
 SQLRETURN SqlDataBinder<SqlVariant>::GetColumn(
     SQLHSTMT stmt, SQLUSMALLINT column, SqlVariant* result, SQLLEN* indicator, SqlDataBinderCallback const& cb)
 {
-    SQLLEN columnType {};
-    // `SQL_DESC_CONCISE_TYPE` returns the concise SQL type code (e.g. SQL_TYPE_DATE,
-    // SQL_TYPE_TIME, SQL_TYPE_TIMESTAMP). The verbose `SQL_DESC_TYPE` collapses every
-    // datetime subtype to the single value `SQL_DATETIME` (9) and every interval
-    // subtype to `SQL_INTERVAL` (10), so it cannot distinguish DATE from TIME.
-    //
-    // SQLColAttributeW is used (over the ANSI variant) to keep the ODBC call surface
-    // on the Unicode-app path the rest of the library uses; the string buffer is
-    // unused — only the numeric attribute is fetched.
-    SQLRETURN returnCode = SQLColAttributeW(stmt, column, SQL_DESC_CONCISE_TYPE, nullptr, 0, nullptr, &columnType);
-    if (!SQL_SUCCEEDED(returnCode))
+    // The column's concise SQL type (see detail::DescribeResultColumnSqlType), which a statement asks the driver
+    // for once per result set and column; another callback leaves it to this read.
+    SQLSMALLINT columnType {};
+    SQLRETURN returnCode = SQL_SUCCESS;
+    if (auto const described = cb.DescribeResultColumnType(column))
+        columnType = *described;
+    else if (returnCode = detail::DescribeResultColumnSqlType(stmt, column, &columnType); !SQL_SUCCEEDED(returnCode))
         return returnCode;
 
     auto& variant = result->value;
@@ -60,9 +80,17 @@ SQLRETURN SqlDataBinder<SqlVariant>::GetColumn(
             // value is fetched. Use `short` so the full signed range round-trips.
             returnCode = SqlDataBinder<short>::GetColumn(stmt, column, &variant.emplace<short>(), indicator, cb);
             break;
-        case SQL_INTEGER:
-            returnCode = SqlDataBinder<int>::GetColumn(stmt, column, &variant.emplace<int>(), indicator, cb);
+        case SQL_INTEGER: {
+            // Read 64 bits: SQLite stores any integer in an INTEGER column, and its driver cuts a wider one to
+            // the 32-bit C type. A value that fits stays an int, as it always was.
+            auto wide = 0LL;
+            returnCode = SqlDataBinder<long long>::GetColumn(stmt, column, &wide, indicator, cb);
+            if (std::in_range<int>(wide))
+                variant = static_cast<int>(wide);
+            else
+                variant = wide;
             break;
+        }
         case SQL_BIGINT:
         // The SQLite ODBC driver reports `SQL_DESC_CONCISE_TYPE = SQL_C_SBIGINT (-25)` for
         // BIGINT columns instead of `SQL_BIGINT (-5)` — the C type leaks into the SQL type
@@ -248,7 +276,19 @@ SQLRETURN SqlDataBinder<SqlVariant>::GetColumn(
             returnCode = SQL_ERROR; // std::errc::invalid_argument;
     }
     if (indicator && *indicator == SQL_NULL_DATA)
+    {
         variant = SqlNullValue;
+        // A typed read's NULL may hide a value of another type where column types are declarations only
+        // (SQLite: text in an INTEGER or DATE column): read the cell again as text, which a real NULL stays.
+        if (SQL_SUCCEEDED(returnCode) && detail::ReportsUnconvertibleCellsAsNull(cb.ServerType())
+            && !IsCharacterOrBinaryType(columnType))
+        {
+            auto text = std::string {};
+            returnCode = SqlDataBinder<std::string>::GetColumn(stmt, column, &text, indicator, cb);
+            if (SQL_SUCCEEDED(returnCode) && *indicator != SQL_NULL_DATA)
+                variant = std::move(text);
+        }
+    }
     return returnCode;
 }
 

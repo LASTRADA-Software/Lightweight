@@ -4,6 +4,7 @@
 #include "BasicStringBinder.hpp"
 #include "SqlGuid.hpp"
 #include "StdString.hpp"
+#include "StdStringView.hpp"
 
 #if __has_include(<Windows.h>)
     #ifndef NOMINMAX
@@ -14,15 +15,18 @@
     #endif
     #include <Windows.h>
 #elif __has_include(<uuid/uuid.h>)
-    #include <cstring>
-
     #include <uuid/uuid.h>
 #endif
 
+#include <algorithm>
+#include <array>
+#include <cstddef>
+#include <cstring>
 #include <format>
 #include <memory>
 #include <random>
 #include <ranges>
+#include <span>
 #include <string_view>
 
 namespace Lightweight
@@ -92,6 +96,30 @@ std::optional<SqlGuid> SqlGuid::TryParse(std::string_view const& text) noexcept
     return UnsafeParse(text);
 }
 
+namespace
+{
+    /// Length of a GUID's text, `XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX`.
+    constexpr auto GuidTextLength = std::size_t { 36 };
+
+    /// Writes the text `std::formatter<SqlGuid>` renders, without allocating.
+    /// @param guid The GUID, in canonical byte order.
+    /// @param out Receives the 36 characters; not NUL-terminated.
+    void FormatGuidText(SqlGuid const& guid, std::span<char, GuidTextLength> out) noexcept
+    {
+        constexpr auto HexDigits = std::string_view { "0123456789ABCDEF" };
+        // The bytes a hyphen follows: the text groups the 16 bytes as 4-2-2-2-6.
+        constexpr auto HyphenAfterByte = std::array<std::size_t, 4> { 3, 5, 7, 9 };
+        auto position = out.begin();
+        for (auto const index: std::views::iota(std::size_t { 0 }, std::size(guid.data)))
+        {
+            *position++ = HexDigits[guid.data[index] >> 4];
+            *position++ = HexDigits[guid.data[index] & 0x0F];
+            if (std::ranges::contains(HyphenAfterByte, index))
+                *position++ = '-';
+        }
+    }
+} // namespace
+
 SQLRETURN SqlDataBinder<SqlGuid>::InputParameter(SQLHSTMT stmt,
                                                  SQLUSMALLINT column,
                                                  SqlGuid const& value,
@@ -100,33 +128,33 @@ SQLRETURN SqlDataBinder<SqlGuid>::InputParameter(SQLHSTMT stmt,
     switch (cb.ServerType())
     {
         case SqlServerType::SQLITE: {
-            // For SQlITE, we'll implement GUIDs as text
-            auto text = std::make_shared<std::string>(to_string(value));
-            auto rv = SqlDataBinder<std::string>::InputParameter(stmt, column, *text, cb);
-            if (SQL_SUCCEEDED(rv))
-                cb.PlanPostExecuteCallback([text = std::move(text)] {});
-            return rv;
+            // For SQlITE, we'll implement GUIDs as text, rendered into a statement slot that the next
+            // execute reuses, so binding a GUID allocates nothing per execute.
+            auto* const text = reinterpret_cast<char*>(cb.ProvideBatchStagingBuffer(GuidTextLength));
+            FormatGuidText(value, std::span<char, GuidTextLength> { text, GuidTextLength });
+            return SqlDataBinder<std::string_view>::InputParameter(
+                stmt, column, std::string_view { text, GuidTextLength }, cb);
         }
         case SqlServerType::MYSQL: // TODO
         case SqlServerType::POSTGRESQL:
         case SqlServerType::MICROSOFT_SQL:
         case SqlServerType::UNKNOWN: {
-            // Bind a wire-order copy so `value` itself stays canonical; see SwapGuidWireByteOrder().
-            auto wireGuid = std::make_shared<SqlGuid>(value);
-            detail::SwapGuidWireByteOrder(wireGuid->data);
-            auto const rv = SQLBindParameter(stmt,
-                                             column,
-                                             SQL_PARAM_INPUT,
-                                             SQL_C_GUID,
-                                             SQL_GUID,
-                                             sizeof(*wireGuid),
-                                             0,
-                                             (SQLPOINTER) wireGuid.get(),
-                                             0,
-                                             nullptr);
-            if (SQL_SUCCEEDED(rv))
-                cb.PlanPostExecuteCallback([wireGuid = std::move(wireGuid)] {});
-            return rv;
+            // Bind a wire-order copy so `value` itself stays canonical; see SwapGuidWireByteOrder(). The copy
+            // lives in a statement slot that the next execute reuses, so it allocates nothing per execute.
+            auto wireGuid = value;
+            detail::SwapGuidWireByteOrder(wireGuid.data);
+            auto* const staged = cb.ProvideBatchStagingBuffer(sizeof(wireGuid));
+            std::memcpy(staged, &wireGuid, sizeof(wireGuid));
+            return SQLBindParameter(stmt,
+                                    column,
+                                    SQL_PARAM_INPUT,
+                                    SQL_C_GUID,
+                                    SQL_GUID,
+                                    sizeof(wireGuid),
+                                    0,
+                                    static_cast<SQLPOINTER>(staged),
+                                    0,
+                                    nullptr);
         }
     }
     std::unreachable();
@@ -162,8 +190,8 @@ SQLRETURN SqlDataBinder<SqlGuid>::OutputColumn(
             auto rv = SqlDataBinder<std::string>::OutputColumn(stmt, column, text.get(), indicator, cb);
             if (SQL_SUCCEEDED(rv))
                 cb.PlanPostProcessOutputColumn([text = std::move(text), result, indicator, column] {
-                    if (*indicator != SQL_NULL_DATA)
-                        *result = ParseGuidColumnText(*text, column);
+                    // A NULL row reads as the all-zero GUID, as for every other bound type.
+                    *result = *indicator != SQL_NULL_DATA ? ParseGuidColumnText(*text, column) : SqlGuid {};
                 });
             return rv;
         }
@@ -171,8 +199,14 @@ SQLRETURN SqlDataBinder<SqlGuid>::OutputColumn(
         case SqlServerType::POSTGRESQL:
         case SqlServerType::MICROSOFT_SQL:
         case SqlServerType::UNKNOWN:
-            // The driver fills `result->data` in wire order; see SwapGuidWireByteOrder().
-            cb.PlanPostProcessOutputColumn([result] { detail::SwapGuidWireByteOrder(result->data); });
+            // The driver fills `result->data` in wire order (see SwapGuidWireByteOrder()), and leaves it untouched
+            // on a NULL row: that row reads as the all-zero GUID, and only a value the driver wrote is swapped.
+            cb.PlanPostProcessOutputColumn([result, indicator] {
+                if (*indicator == SQL_NULL_DATA)
+                    *result = SqlGuid {};
+                else
+                    detail::SwapGuidWireByteOrder(result->data);
+            });
             return SQLBindCol(stmt, column, SQL_C_GUID, (SQLPOINTER) result->data, sizeof(result->data), indicator);
     }
 
@@ -197,8 +231,8 @@ SQLRETURN SqlDataBinder<SqlGuid>::GetColumn(
         case SqlServerType::POSTGRESQL:
         case SqlServerType::UNKNOWN: {
             auto const rv = SQLGetData(stmt, column, SQL_C_GUID, result->data, sizeof(result->data), indicator);
-            if (SQL_SUCCEEDED(rv))
-                // The driver wrote wire order; see SwapGuidWireByteOrder().
+            if (SQL_SUCCEEDED(rv) && *indicator != SQL_NULL_DATA)
+                // The driver wrote wire order; see SwapGuidWireByteOrder(). On NULL it wrote nothing.
                 detail::SwapGuidWireByteOrder(result->data);
             return rv;
         }

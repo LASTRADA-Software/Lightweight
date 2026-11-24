@@ -23,6 +23,7 @@
 #include <algorithm>
 #include <atomic>
 #include <chrono>
+#include <concepts>
 #include <cstdint>
 #include <filesystem>
 #include <format>
@@ -1212,6 +1213,16 @@ inline bool IsGithubActions()
 #endif
 }
 
+/// @p value as it should print in a failure message: an int8_t or uint8_t as its number, not as a character.
+template <typename T>
+decltype(auto) StreamableValue(T const& value)
+{
+    if constexpr (std::same_as<T, signed char> || std::same_as<T, unsigned char>)
+        return static_cast<int>(value);
+    else
+        return (value);
+}
+
 namespace std
 {
 
@@ -1219,7 +1230,7 @@ template <typename T>
 ostream& operator<<(ostream& os, optional<T> const& opt)
 {
     if (opt.has_value())
-        return os << *opt;
+        return os << StreamableValue(*opt);
     else
         return os << "nullopt";
 }
@@ -1241,6 +1252,6 @@ std::ostream& operator<<(std::ostream& os, Lightweight::Field<std::optional<T>, 
 template <typename T, auto P1, auto P2>
 std::ostream& operator<<(std::ostream& os, Lightweight::Field<T, P1, P2> const& field)
 {
-    return os << std::format("Field<{}> {{ ", Reflection::TypeNameOf<T>) << "value: " << field.Value() << "; "
-              << (field.IsModified() ? "modified" : "not modified") << " }";
+    return os << std::format("Field<{}> {{ ", Reflection::TypeNameOf<T>) << "value: " << StreamableValue(field.Value())
+              << "; " << (field.IsModified() ? "modified" : "not modified") << " }";
 }

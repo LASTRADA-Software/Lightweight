@@ -145,13 +145,36 @@ namespace
             varbinary->legacyLob = true;
     }
 
+    /// Reads a string-valued @c SQLGetInfo item of the connection @p stmt runs on.
+    ///
+    /// @return The value, or an empty string when the driver does not report it.
+    std::string ConnectionInfoString(SqlStatement& stmt, SQLUSMALLINT infoType)
+    {
+        auto buffer = std::array<SQLCHAR, 32> {};
+        auto length = SQLSMALLINT {};
+        if (!SQL_SUCCEEDED(SQLGetInfo(stmt.Connection().NativeHandle(),
+                                      infoType,
+                                      buffer.data(),
+                                      static_cast<SQLSMALLINT>(buffer.size()),
+                                      &length)))
+            return {};
+        auto const size = std::min(static_cast<std::size_t>(std::max<SQLSMALLINT>(length, 0)), buffer.size() - 1);
+        return { reinterpret_cast<char const*>(buffer.data()), size };
+    }
+
     /// Calls @c SQLTables for the tables of @p database and @p schema, narrowed to the
     /// @p tableName search pattern when given.
+    ///
+    /// @p schema is a schema name, not a pattern: SQLTables reads its argument as a search pattern, so
+    /// '_' and '%' are escaped with the driver's escape, and a schema "a_b" does not also list the tables
+    /// of "aXb". A driver without an escape gets the name as it is.
     SQLRETURN CallSqlTables(SqlStatement& stmt,
                             std::string_view database,
                             std::string_view schema,
                             std::optional<std::string_view> tableName)
     {
+        auto const schemaPattern = detail::EscapeSearchPattern(schema, ConnectionInfoString(stmt, SQL_SEARCH_PATTERN_ESCAPE))
+                                       .value_or(std::string { schema });
         return CallWithOdbcText(
             stmt.Connection().AcceptsWideQueryText(),
             [&]<typename Text>(Text& catalogName, Text& schemaName, Text& tableNameText) {
@@ -166,7 +189,7 @@ namespace
                                                                      0);
             },
             database,
-            schema,
+            schemaPattern,
             tableName.value_or(std::string_view {}));
     }
 
@@ -210,23 +233,6 @@ namespace
         return FetchTables(stmt);
     }
 
-    /// Reads a string-valued @c SQLGetInfo item of the connection @p stmt runs on.
-    ///
-    /// @return The value, or an empty string when the driver does not report it.
-    std::string ConnectionInfoString(SqlStatement& stmt, SQLUSMALLINT infoType)
-    {
-        auto buffer = std::array<SQLCHAR, 32> {};
-        auto length = SQLSMALLINT {};
-        if (!SQL_SUCCEEDED(SQLGetInfo(stmt.Connection().NativeHandle(),
-                                      infoType,
-                                      buffer.data(),
-                                      static_cast<SQLSMALLINT>(buffer.size()),
-                                      &length)))
-            return {};
-        auto const size = std::min(static_cast<std::size_t>(std::max<SQLSMALLINT>(length, 0)), buffer.size() - 1);
-        return { reinterpret_cast<char const*>(buffer.data()), size };
-    }
-
     /// SQLite-specific path: the SQLite ODBC driver does not populate FK_NAME (column 12 of
     /// SQLForeignKeys), so two distinct FK constraints between the same pair of tables
     /// collapse into one entry — see the FK_NAME-keyed grouping below. PRAGMA
@@ -236,8 +242,11 @@ namespace
     [[nodiscard]] std::vector<ForeignKeyConstraint> AllForeignKeysFromSqlite(SqlStatement& stmt,
                                                                              FullyQualifiedTableName const& table)
     {
-        auto query = !table.schema.empty() ? std::format(R"(PRAGMA "{}".foreign_key_list("{}"))", table.schema, table.table)
-                                           : std::format(R"(PRAGMA foreign_key_list("{}"))", table.table);
+        auto query = !table.schema.empty()
+                         ? std::format(R"(PRAGMA {}.foreign_key_list({}))",
+                                       SqlQueryFormatter::QuoteIdentifier(table.schema),
+                                       SqlQueryFormatter::QuoteIdentifier(table.table))
+                         : std::format(R"(PRAGMA foreign_key_list({}))", SqlQueryFormatter::QuoteIdentifier(table.table));
 
         auto cursor = stmt.ExecuteDirect(query);
 
@@ -424,9 +433,11 @@ namespace
             // SQLite ODBC driver might return incorrect KEY_SEQ. Use PRAGMA table_info instead.
             std::string query;
             if (!table.schema.empty())
-                query = std::format(R"(PRAGMA "{}".table_info("{}"))", table.schema, table.table);
+                query = std::format("PRAGMA {}.table_info({})",
+                                    SqlQueryFormatter::QuoteIdentifier(table.schema),
+                                    SqlQueryFormatter::QuoteIdentifier(table.table));
             else
-                query = std::format("PRAGMA table_info(\"{}\")", table.table);
+                query = std::format("PRAGMA table_info({})", SqlQueryFormatter::QuoteIdentifier(table.table));
 
             auto cursor = stmt.ExecuteDirect(query);
 
@@ -1478,6 +1489,7 @@ namespace detail
     /// @param database Catalog the table belongs to; may be empty.
     /// @param tableSchema Schema the table belongs to; may be empty.
     /// @param tableName Table to describe.
+    /// @param searchPatternEscape The driver's @c SQL_SEARCH_PATTERN_ESCAPE, queried once by the caller.
     /// @param eventHandler Receives the primary keys, foreign keys, indexes and columns.
     /// @param scope With @ref TableReadScope::ColumnsAndPrimaryKey the foreign-key and index
     ///              queries are skipped and no foreign-key or index event is raised.
@@ -1486,6 +1498,7 @@ namespace detail
                             std::string_view database,
                             std::string const& tableSchema,
                             std::string const& tableName,
+                            std::string_view searchPatternEscape,
                             EventHandler& eventHandler,
                             TableReadScope scope)
     {
@@ -1518,6 +1531,12 @@ namespace detail
             eventHandler.OnIndexes(indexes);
         }
 
+        // SQLColumns takes the schema and table names as search patterns, in which '_' and '%' are
+        // wildcards: escaped, a table named "a_b" does not also report the columns of a table "aXb".
+        // A driver without an escape gets the names as they are.
+        auto const schemaPattern = EscapeSearchPattern(tableSchema, searchPatternEscape).value_or(tableSchema);
+        auto const tablePattern = EscapeSearchPattern(tableName, searchPatternEscape).value_or(tableName);
+
         auto columnStmt = SqlStatement { stmt.Connection() };
         auto const sqlResult = CallWithOdbcText(
             columnStmt.Connection().AcceptsWideQueryText(),
@@ -1533,8 +1552,8 @@ namespace detail
                                                                        0 /* column name length */);
             },
             database,
-            tableSchema,
-            tableName);
+            schemaPattern,
+            tablePattern);
         if (!SQL_SUCCEEDED(sqlResult))
             throw std::runtime_error(std::format("SQLColumns failed: {}", columnStmt.LastError()));
 
@@ -1566,7 +1585,11 @@ namespace detail
                 column.size = rawSize > 0 ? static_cast<size_t>(rawSize) : 0;
 
                 // 8 - bufferLength
-                column.decimalDigits = numColumns >= 9 ? columnCursor.GetNullableColumn<uint16_t>(9).value_or(0) : 0;
+                // DECIMAL_DIGITS is a signed SMALLINT, NULL where the digits do not apply. None of the three drivers
+                // reports a negative value, but one would read as 0 rather than drop the column.
+                auto const decimalDigits =
+                    numColumns >= 9 ? columnCursor.GetNullableColumn<int16_t>(9).value_or(int16_t { 0 }) : int16_t { 0 };
+                column.decimalDigits = static_cast<uint16_t>(std::max(decimalDigits, int16_t { 0 }));
             }
             catch (std::exception const&)
             {
@@ -1581,7 +1604,8 @@ namespace detail
             {
                 try
                 {
-                    column.isNullable = columnCursor.GetColumn<bool>(11);
+                    // NULLABLE is a SMALLINT: SQL_NO_NULLS (0), SQL_NULLABLE (1) or SQL_NULLABLE_UNKNOWN (2).
+                    column.isNullable = columnCursor.GetColumn<int16_t>(11) != SQL_NO_NULLS;
                 }
                 catch (std::exception&)
                 {
@@ -1732,6 +1756,7 @@ namespace detail
             ZoneTextObject(schema);
 
         auto const tablesWithSchema = AllTables(stmt, database, schema);
+        auto const escape = ConnectionInfoString(stmt, SQL_SEARCH_PATTERN_ESCAPE);
 
         // Extract just table names for the EventHandler interface
         std::vector<std::string> tableNames;
@@ -1753,7 +1778,7 @@ namespace detail
             if (!eventHandler.OnTable(tableSchema, tableName))
                 continue;
 
-            ReadOneTableLegacy(stmt, database, tableSchema, tableName, eventHandler, TableReadScope::Full);
+            ReadOneTableLegacy(stmt, database, tableSchema, tableName, escape, eventHandler, TableReadScope::Full);
         }
     }
 
@@ -2178,7 +2203,7 @@ std::optional<Table> ReadTable(SqlStatement& stmt, FullyQualifiedTableName const
     handler.table.schema = entry.schema.empty() ? std::string(table.schema) : entry.schema;
     handler.table.name = entry.name;
 
-    detail::ReadOneTableLegacy(stmt, table.catalog, handler.table.schema, entry.name, handler, scope);
+    detail::ReadOneTableLegacy(stmt, table.catalog, handler.table.schema, entry.name, escape, handler, scope);
 
     // SQL Server's catalog functions name every table as its catalog spells it; a driver such as
     // SQLite's reports a foreign-key target as its REFERENCES clause wrote it, so only those need the lookups.

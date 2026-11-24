@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
+#include <Lightweight/DataBinder/Core.hpp>
+#include <Lightweight/SqlConnection.hpp>
 #include <Lightweight/SqlQueryFormatter.hpp>
 #include <Lightweight/SqlServerType.hpp>
 
@@ -320,4 +322,37 @@ TEST_CASE("ServerTypeFromServerName maps known names", "[SqlQueryFormatter]")
     CHECK(ServerTypeFromServerName("MySQL") == SqlServerType::MYSQL);
     CHECK(ServerTypeFromServerName("Oracle") == SqlServerType::UNKNOWN);
     CHECK(ServerTypeFromServerName("") == SqlServerType::UNKNOWN);
+}
+
+TEST_CASE("Formatter capabilities a connection caches answer for a backend without a formatter", "[SqlQueryFormatter]")
+{
+    // MySQL and an unrecognized server have no formatter; their connections must not call through one.
+    for (auto const serverType: { SqlServerType::UNKNOWN, SqlServerType::MYSQL })
+    {
+        CHECK(SqlQueryFormatter::Get(serverType) == nullptr);
+        CHECK_FALSE(detail::ReportsUnconvertibleCellsAsNull(serverType));
+        CHECK(detail::ConvertsNarrowIntegerCTypes(serverType));
+    }
+    CHECK(detail::ReportsUnconvertibleCellsAsNull(SqlServerType::SQLITE));
+    CHECK_FALSE(detail::ReportsUnconvertibleCellsAsNull(SqlServerType::POSTGRESQL));
+    CHECK_FALSE(detail::ReportsUnconvertibleCellsAsNull(SqlServerType::MICROSOFT_SQL));
+    CHECK_FALSE(detail::ConvertsNarrowIntegerCTypes(SqlServerType::SQLITE));
+
+    // A connection that never connected has no formatter either, and answers the defaults.
+    auto const unconnected = SqlConnection { std::nullopt };
+    CHECK_FALSE(unconnected.ReportsUnconvertibleCellsAsNull());
+    CHECK(unconnected.ConvertsNarrowIntegerCTypes());
+}
+
+TEST_CASE("SqlQueryFormatter: only the SQLite formatter resynchronises an ended transaction", "[SqlQueryFormatter]")
+{
+    CHECK(SqlQueryFormatter::Sqlite().ResyncEndedTransactionStatement() == "BEGIN");
+    // PostgreSQL and SQL Server derive from the SQLite formatter and do not inherit its answer.
+    CHECK(SqlQueryFormatter::PostgrSQL().ResyncEndedTransactionStatement().empty());
+    CHECK(SqlQueryFormatter::SqlServer().ResyncEndedTransactionStatement().empty());
+
+    CHECK(SqlQueryFormatter::ResyncEndedTransactionStatementFor(SqlServerType::SQLITE) == "BEGIN");
+    // A server type without a formatter answers none, rather than dereferencing a missing formatter.
+    CHECK(SqlQueryFormatter::ResyncEndedTransactionStatementFor(SqlServerType::MYSQL).empty());
+    CHECK(SqlQueryFormatter::ResyncEndedTransactionStatementFor(SqlServerType::UNKNOWN).empty());
 }

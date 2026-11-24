@@ -4,7 +4,6 @@
 #include "../DataBinder/SqlDateTime.hpp"
 #include "../DataBinder/SqlGuid.hpp"
 #include "../DataBinder/SqlRawColumn.hpp"
-#include "../DataBinder/SqlTime.hpp"
 #include "../SqlColumnTypeDefinitions.hpp"
 #include "../SqlQuery.hpp"
 #include "../SqlQueryFormatter.hpp"
@@ -428,14 +427,10 @@ BackupValue DecodeSingleRowColumn(SqlResultCursor& cursor,
         return orNull(cursor.GetNullableColumn<SqlDate>(i),
                       [](auto const& v) -> BackupValue { return std::format("{}", v); });
     if (std::holds_alternative<Time>(colDef.type))
-    {
-        // PG/MSSQL: read TIME as driver text to keep fractional seconds (SQL_C_TYPE_TIME loses them);
-        // other DBs (e.g. SQLite) use the native SqlTime struct.
-        if (serverType == SqlServerType::POSTGRESQL || serverType == SqlServerType::MICROSOFT_SQL)
-            return orNull(cursor.GetNullableColumn<std::string>(i), [](auto const& v) -> BackupValue { return v; });
-        return orNull(cursor.GetNullableColumn<SqlTime>(i),
-                      [](auto const& v) -> BackupValue { return std::format("{}", v); });
-    }
+        // TIME is read as driver text on every DBMS, keeping the fraction of a second that SqlTime
+        // (SQL_C_TYPE_TIME) cannot carry: TIME(7) on SQL Server, TIME(6) on PostgreSQL, and on SQLite
+        // the text the column holds. Restore binds the text back (StringTimeBatchColumn).
+        return orNull(cursor.GetNullableColumn<std::string>(i), [](auto const& v) -> BackupValue { return v; });
     if (std::holds_alternative<DateTime>(colDef.type) || std::holds_alternative<Timestamp>(colDef.type))
         // Native SqlDateTime read avoids MSSQL SQL_TYPE_TIMESTAMP -> SQL_C_CHAR conversion error 22003.
         return orNull(cursor.GetNullableColumn<SqlDateTime>(i),
@@ -513,7 +508,7 @@ BackupValue DecodeBatchedColumn(RowArrayCursor& cursor,
         || std::holds_alternative<NChar>(colDef.type) || std::holds_alternative<Time>(colDef.type))
         // Text-family cells: GetString returns UTF-8 regardless of how the driver bound the column,
         // matching the single-row path's std::string / (u16string -> ToUtf8) decode. Time reaches
-        // here only on PG/MSSQL (gated by TableIsArrayFetchable), where TIME is read as driver text.
+        // here only on PG/MSSQL (gated by TableIsArrayFetchable); it is read as driver text on both paths.
         return orNull(cursor.GetString(r, i), [](auto& v) -> BackupValue { return std::move(v); });
     if (std::holds_alternative<Date>(colDef.type))
         // Native SQL_DATE_STRUCT array bind; same std::format as the single-row SqlDate read.

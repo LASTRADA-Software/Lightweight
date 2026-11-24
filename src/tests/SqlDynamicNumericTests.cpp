@@ -120,6 +120,14 @@ TEST_CASE("SqlDynamicNumeric::ToString round-trips the exact decimal text", "[Sq
     // Fewer digits than the scale must gain a leading zero rather than losing the integral part.
     CHECK(render(5, 4) == "0.0005");
     CHECK(render(-5, 4) == "-0.0005");
+    CHECK(render(123, 3) == "0.123");
+    CHECK(render(std::numeric_limits<std::int64_t>::min(), 0) == "-9223372036854775808");
+    CHECK(render(std::numeric_limits<std::int64_t>::min(), 19) == "-0.9223372036854775808");
+    // The longest literal there is: a sign, "0." and 255 fractional digits fill FormatTo()'s buffer exactly.
+    auto const longest = render(-1, std::numeric_limits<std::uint8_t>::max());
+    CHECK(longest.size() == SqlDynamicNumeric::MaxLiteralLength);
+    CHECK(longest.starts_with("-0.000"));
+    CHECK(longest.ends_with("01"));
 }
 
 TEST_CASE("SqlDynamicNumeric keeps precision a double would lose", "[SqlDynamicNumeric]")
