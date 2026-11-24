@@ -5908,3 +5908,29 @@ TEST_CASE_METHOD(SqlTestFixture,
     CHECK(recordReads == "VV DD DD VV ");
     stmt.Connection().SetDefaultPrefetchDepth(PrefetchDepthDefault);
 }
+
+TEST_CASE_METHOD(SqlTestFixture, "A bound SqlNumeric that held a value before reads every row's value", "[SqlDataBinder]")
+{
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("NumericRebound")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Bigint {})
+            .RequiredColumn("N", SqlColumnTypeDefinitions::Decimal { .precision = 10, .scale = 2 });
+    });
+    (void) stmt.ExecuteDirect(R"(INSERT INTO "NumericRebound" ("Id", "N") VALUES (1, 2.5), (2, 3.5))"sv);
+
+    for (auto const depth: { std::size_t { 1 }, PrefetchDepthDefault })
+    {
+        INFO("prefetch depth " << depth);
+        stmt.Connection().SetDefaultPrefetchDepth(depth);
+        // Constructed from a double, as a variable reused for another query would be.
+        auto value = SqlNumeric<10, 2> { 1.5 };
+        auto cursor = stmt.ExecuteDirect(R"(SELECT "N" FROM "NumericRebound" ORDER BY "Id")"sv);
+        cursor.BindOutputColumns(&value);
+        auto reads = std::vector<double> {};
+        while (cursor.FetchRow())
+            reads.push_back(value.ToDouble());
+        CHECK(reads == std::vector { 2.5, 3.5 });
+    }
+    stmt.Connection().SetDefaultPrefetchDepth(PrefetchDepthDefault);
+}

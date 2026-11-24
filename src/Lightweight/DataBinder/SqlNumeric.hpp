@@ -363,6 +363,10 @@ struct SqlDataBinder<SqlNumeric<Precision, Scale>>
             return SQLBindCol(stmt, column, SQL_C_DOUBLE, &result->nativeValue, sizeof(result->nativeValue), indicator);
         }
 
+        // The driver fills only sqlValue, and the accessors prefer a non-zero nativeValue: a value the variable
+        // held before (one constructed from a double, say) would otherwise be read on every row.
+        result->nativeValue = 0.0;
+
         SQLHDESC hDesc {};
         RequireSuccess(stmt, SQLGetStmtAttr(stmt, SQL_ATTR_APP_ROW_DESC, (SQLPOINTER) &hDesc, 0, nullptr));
         RequireSuccess(stmt, SQLSetDescField(hDesc, (SQLSMALLINT) column, SQL_DESC_PRECISION, (SQLPOINTER) Precision, 0)); // NOLINT(performance-no-int-to-ptr)
@@ -381,6 +385,9 @@ struct SqlDataBinder<SqlNumeric<Precision, Scale>>
             result->sqlValue = { .precision = Precision, .scale = Scale, .sign = 0, .val = {} };
             return SQLGetData(stmt, column, SQL_C_DOUBLE, &result->nativeValue, sizeof(result->nativeValue), indicator);
         }
+
+        // As in OutputColumn: the driver fills only sqlValue, which a stale nativeValue would hide.
+        result->nativeValue = 0.0;
 
         SQLHDESC hDesc {};
         RequireSuccess(stmt, SQLGetStmtAttr(stmt, SQL_ATTR_APP_ROW_DESC, (SQLPOINTER) &hDesc, 0, nullptr));
