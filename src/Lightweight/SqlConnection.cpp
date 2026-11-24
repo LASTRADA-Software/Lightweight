@@ -24,6 +24,7 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <tuple>
 #include <utility>
 
 #include <sql.h>
@@ -986,15 +987,16 @@ std::expected<void, SqlErrorInfo> SqlConnection::ConnectOnce(SqlConnectionDataSo
     }
 
     sqlReturn = SQLSetConnectAttrW(m_hDbc, SQL_ATTR_AUTOCOMMIT, (SQLPOINTER) SQL_AUTOCOMMIT_ON, SQL_IS_UINTEGER);
-    if (!SQL_SUCCEEDED(sqlReturn))
+    // Through the fault seam, so a test can fail the attempt after the driver connected.
+    if (auto const outcome = detail::CheckOdbcConnectionCall(sqlReturn, m_hDbc); !outcome)
     {
-        auto error = LastError();
+        auto error = outcome.EffectiveError([this] { return LastError(); });
         SqlLogger::GetLogger().OnError(error);
-        return std::unexpected(std::move(error));
+        return AbandonConnectedAttempt(std::move(error));
     }
 
     if (auto posted = PostConnect(); !posted)
-        return posted;
+        return AbandonConnectedAttempt(std::move(posted).error());
     RememberDriverTextEntry(driverKey, m_acceptsWideQueryText);
 
     SqlLogger::GetLogger().OnConnectionOpened(*this);
@@ -1058,7 +1060,7 @@ std::expected<void, SqlErrorInfo> SqlConnection::ConnectOnce(SqlConnectionString
         return connected;
 
     if (auto posted = PostConnect(); !posted)
-        return posted;
+        return AbandonConnectedAttempt(std::move(posted).error());
     RememberDriverTextEntry(driverKey, m_acceptsWideQueryText);
     SqlLogger::GetLogger().OnConnectionOpened(*this);
     LIGHTWEIGHT_STATS_CONNECTION_OPENED();
@@ -1124,8 +1126,9 @@ std::expected<void, SqlErrorInfo> SqlConnection::ConnectDriver(SqlConnectionStri
         return std::unexpected(outcome.EffectiveError([this] { return LastError(); }));
 
     sqlResult = SQLSetConnectAttrW(m_hDbc, SQL_ATTR_AUTOCOMMIT, (SQLPOINTER) SQL_AUTOCOMMIT_ON, SQL_IS_UINTEGER);
-    if (!SQL_SUCCEEDED(sqlResult))
-        return std::unexpected(LastError());
+    // Through the fault seam, so a test can fail the attempt after the driver connected.
+    if (auto const outcome = detail::CheckOdbcConnectionCall(sqlResult, m_hDbc); !outcome)
+        return AbandonConnectedAttempt(outcome.EffectiveError([this] { return LastError(); }));
     return {};
 }
 
@@ -1232,6 +1235,21 @@ std::expected<void, SqlErrorInfo> SqlConnection::EndCurrentSession() noexcept
         LIGHTWEIGHT_STATS_CONNECTION_CLOSED();
     }
     return {};
+}
+
+std::unexpected<SqlErrorInfo> SqlConnection::AbandonConnectedAttempt(SqlErrorInfo error) noexcept
+{
+    // A failed Connect() leaves the connection as one whose connect failed: not connected, the error in
+    // LastError() (which falls back to the attempt's recorded error once the disconnect has cleared the
+    // handle's diagnostics), and no opened or closed report. The statements the setup allocated go first: the
+    // SQLite ODBC driver refuses to disconnect while one is allocated.
+    FreeStatementHandles();
+    detail::UnregisterAnsiOnlyHandle(m_hDbc);
+    // As Close() does with a refused disconnect: reported, and the connection is left as not connected.
+    if (!SQL_SUCCEEDED(SQLDisconnect(m_hDbc)))
+        SqlLogger::GetLogger().OnError(SqlErrorInfo::FromConnectionHandle(m_hDbc));
+    m_data->sessionId = 0;
+    return std::unexpected(std::move(error));
 }
 
 void SqlConnection::FreeStatementHandles() noexcept

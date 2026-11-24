@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
+#include "ScriptedFaultSource.hpp"
 #include "UniqueTempPath.hpp"
 #include "Utils.hpp"
 
@@ -26,6 +27,8 @@
 
 using namespace Lightweight;
 using namespace std::string_view_literals;
+using Lightweight::Tests::ScopedFaultSource;
+using Lightweight::Tests::ScriptedFaultSource;
 
 // ================================================================================================
 // SqlConnection introspection getters (DB-dependent)
@@ -1502,9 +1505,16 @@ class ConnectionEventCountingLogger: public SqlLogger::Null
         return m_sequence;
     }
 
-    void OnError(SqlErrorInfo const& /*errorInfo*/, std::source_location /*sourceLocation*/) override
+    void OnError(SqlErrorInfo const& errorInfo, std::source_location /*sourceLocation*/) override
     {
         ++m_errors;
+        m_lastError = errorInfo;
+    }
+
+    /// @return The last error reported.
+    [[nodiscard]] SqlErrorInfo const& LastError() const noexcept
+    {
+        return m_lastError;
     }
 
     /// @return The errors reported.
@@ -1532,6 +1542,7 @@ class ConnectionEventCountingLogger: public SqlLogger::Null
     int m_errors = 0;
     std::string m_sequence;
     std::vector<std::string> m_closedServerNames;
+    SqlErrorInfo m_lastError;
 };
 
 } // namespace
@@ -1618,6 +1629,87 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlConnection: a failed first connect reports 
     }
     CHECK(events.Opened() == 1);
     CHECK(events.Closed() == 1);
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "SqlConnection: a connect whose post-connect setup fails leaves the connection closed",
+                 "[SqlConnection][SQLite]")
+{
+    if (SqlConnection {}.ServerType() != SqlServerType::SQLITE)
+        SKIP("SQLite-only: the failing setup is SQLite refusing a journal-mode switch on a locked database");
+
+    auto const path = ScratchSqliteDatabasePath("sqlite-post-connect-failure");
+    RemoveSqliteDatabaseFiles(path);
+    auto const cleanup = detail::Finally([&] { RemoveSqliteDatabaseFiles(path); });
+    REQUIRE(EnsureSqliteDatabaseFileExists(WithSqliteDatabaseFile(path)));
+
+    // A writer holds the database locked, so the WAL switch the connect applies fails at once.
+    auto writer = SqlConnection { WithSqliteDatabaseFile(path) };
+    auto writerStmt = SqlStatement { writer };
+    std::ignore = writerStmt.ExecuteDirect("CREATE TABLE probe (id INTEGER)");
+    auto transaction = SqlTransaction { writer };
+    std::ignore = writerStmt.ExecuteDirect("INSERT INTO probe (id) VALUES (1)");
+    auto const impatientWal = SqliteConnectionSettings {
+        .busyTimeout = std::chrono::milliseconds { 0 },
+        .journalMode = SqliteJournalMode::Wal,
+    };
+
+    auto const events = ConnectionEventCountingLogger {};
+    {
+        auto connection = SqlConnection { std::nullopt, impatientWal };
+        CHECK_FALSE(connection.Connect(WithSqliteDatabaseFile(path)));
+
+        // The driver connected, but the connect failed: the error is the setup's (checked first: asking the
+        // handle anything else posts a diagnostic of its own), and no session is left open.
+        REQUIRE(events.Errors() > 0);
+        CHECK(connection.LastError().sqlState == events.LastError().sqlState);
+        CHECK(connection.LastError().message == events.LastError().message);
+        CHECK(connection.SessionId() == 0);
+        CHECK_FALSE(connection.IsAlive());
+        auto const errorsOfConnect = events.Errors();
+        connection.Close();
+        CHECK(events.Errors() == errorsOfConnect); // no "connection not open" from the disconnect
+    }
+    CHECK(events.Sequence().empty()); // never reported opened, so never reported closed
+
+    // Once the lock is gone, the same settings connect.
+    transaction.Rollback();
+    {
+        auto connection = SqlConnection { std::nullopt, impatientWal };
+        CHECK(connection.Connect(WithSqliteDatabaseFile(path)));
+        CHECK(connection.IsAlive());
+    }
+    CHECK(events.Sequence() == "oc");
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "SqlConnection: a connect whose autocommit setting fails leaves the connection closed",
+                 "[SqlConnection]")
+{
+    // The driver connects; setting autocommit, the next step, is made to fail through the fault seam.
+    auto const injected = SqlErrorInfo { .nativeErrorCode = 0, .sqlState = "HY000", .message = "autocommit refused" };
+    auto faults = ScriptedFaultSource { injected, 1, "ConnectDriver" };
+    auto const events = ConnectionEventCountingLogger {};
+    {
+        auto connection = SqlConnection { std::nullopt };
+        {
+            auto const installed = ScopedFaultSource { &faults };
+            CHECK_FALSE(connection.Connect(SqlConnection::DefaultConnectionString()));
+        }
+        CHECK(faults.RemainingFailures() == 0);
+        CHECK(connection.LastError().sqlState == injected.sqlState);
+        CHECK(connection.LastError().message == injected.message);
+        CHECK(connection.SessionId() == 0);
+        CHECK_FALSE(connection.IsAlive());
+        auto const errorsOfConnect = events.Errors();
+        connection.Close();
+        CHECK(events.Errors() == errorsOfConnect);
+
+        // The same connection connects once nothing fails.
+        CHECK(connection.Connect(SqlConnection::DefaultConnectionString()));
+        CHECK(connection.IsAlive());
+    }
+    CHECK(events.Sequence() == "oc");
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlConnection: a reconnect reports the replaced session closed", "[SqlConnection]")

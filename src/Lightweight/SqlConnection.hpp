@@ -771,6 +771,12 @@ class SqlConnection final
     /// it was and reporting nothing, when the driver refuses to disconnect.
     [[nodiscard]] std::expected<void, SqlErrorInfo> EndCurrentSession() noexcept;
 
+    /// @brief Fails a connect attempt after the driver connected: disconnects that session, which was never
+    /// reported opened and so is not reported closed, and leaves the connection without a session.
+    /// @param error Why the attempt fails.
+    /// @return @p error, to return from the attempt.
+    [[nodiscard]] std::unexpected<SqlErrorInfo> AbandonConnectedAttempt(SqlErrorInfo error) noexcept;
+
     /// One attempt of Connect(SqlConnectionDataSource const&).
     [[nodiscard]] std::expected<void, SqlErrorInfo> ConnectOnce(SqlConnectionDataSource const& info) noexcept;
 
