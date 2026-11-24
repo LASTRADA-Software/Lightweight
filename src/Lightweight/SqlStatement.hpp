@@ -476,6 +476,11 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     template <SqlGetColumnNativeType T>
     [[nodiscard]] bool GetColumn(SQLUSMALLINT column, T* result) const;
 
+    /// @brief Reads column @p column of the current row.
+    /// @param column 1-based result column index.
+    /// @return The value. A NULL cell reads as @c std::nullopt or a NULL @c SqlVariant for those two
+    ///         types; for any other @p T it throws @c std::runtime_error, on the per-row and the
+    ///         block-prefetched path alike.
     template <SqlGetColumnNativeType T>
     [[nodiscard]] T GetColumn(SQLUSMALLINT column) const;
 
@@ -1067,6 +1072,12 @@ class [[nodiscard]] SqlResultCursor
     }
 
     /// Retrieves the value of the column at the given index for the currently selected row.
+    ///
+    /// @param column 1-based result column index.
+    /// @return The value. A NULL cell reads as @c std::nullopt or a NULL @c SqlVariant for those two
+    ///         types; for any other @p T it throws @c std::runtime_error, on the per-row and the
+    ///         block-prefetched path alike (use @c GetNullableColumn or @c GetColumnOr for a column that
+    ///         may be NULL).
     template <SqlGetColumnNativeType T>
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE T GetColumn(SQLUSMALLINT column) const
     {

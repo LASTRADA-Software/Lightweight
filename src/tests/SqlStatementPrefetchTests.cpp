@@ -1617,3 +1617,166 @@ TEST_CASE_METHOD(SqlTestFixture,
         }
     }
 }
+
+// ================================================================================================
+// GetColumn<T>(column) of a non-nullable T on a NULL cell
+//
+// docs/usage.md: "GetColumn<T>(i) of a non-nullable T throws". Pinned per built-in type, on the
+// per-row and the block-prefetched path, each time right after a row that held a value - so a binder
+// that left the previous value, or the driver's leftovers, in place would show.
+// ================================================================================================
+
+namespace
+{
+
+/// Creates "NullSweep": row 1 holds a value in every column, row 2 holds NULL in every column.
+void CreateNullSweepTable(SqlStatement& stmt)
+{
+    using namespace SqlColumnTypeDefinitions;
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("NullSweep")
+            .PrimaryKey("Id", Integer {})
+            .Column("i", Integer {})
+            .Column("big", Bigint {})
+            .Column("r", Real {})
+            .Column("flag", Bool {})
+            .Column("ch", Char { 1 })
+            .Column("s", Varchar { .size = 20 })
+            .Column("ns", NVarchar { .size = 20 })
+            .Column("bin", VarBinary { .size = 16 })
+            .Column("d", Date {})
+            .Column("t", Time {})
+            .Column("dt", DateTime {})
+            .Column("g", Guid {})
+            .Column("dec", Decimal { .precision = 10, .scale = 2 });
+    });
+    stmt.Prepare(
+        R"(INSERT INTO "NullSweep" ("Id", "i", "big", "r", "flag", "ch", "s", "ns", "bin", "d", "t", "dt", "g", "dec")
+                    VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?))");
+    (void) stmt.Execute(7,
+                        std::int64_t { 7 },
+                        1.5,
+                        true,
+                        "x",
+                        "text",
+                        std::u16string { u"wide" },
+                        SqlBinary { std::uint8_t { 0x01 }, std::uint8_t { 0x02 }, std::uint8_t { 0x03 } },
+                        SqlDate { std::chrono::year { 2026 }, std::chrono::month { 11 }, std::chrono::day { 24 } },
+                        SqlTime { std::chrono::hours { 12 }, std::chrono::minutes { 34 }, std::chrono::seconds { 56 } },
+                        SqlDateTime { std::chrono::year { 2026 },
+                                      std::chrono::month { 11 },
+                                      std::chrono::day { 24 },
+                                      std::chrono::hours { 12 },
+                                      std::chrono::minutes { 34 },
+                                      std::chrono::seconds { 56 } },
+                        SqlGuid::TryParse("11111111-2222-3333-8444-555555555555").value_or(SqlGuid {}),
+                        SqlNumeric<10, 2> { 12.34 });
+    (void) stmt.ExecuteDirect(R"(INSERT INTO "NullSweep" ("Id") VALUES (2))");
+}
+
+/// What a read of the NULL row did, and whether the rows came from the block-prefetch buffer.
+struct NullRead
+{
+    std::string outcome;  ///< "throws: <what>" or "returned <value>"
+    bool blockFetched {}; ///< Whether any block fetch served the rows (else the per-row path did).
+};
+
+/// Reads @p column of the value row, then of the NULL row, as a @p T.
+template <typename T>
+NullRead ReadNullAfterValue(SqlStatement& stmt, std::string_view column, std::size_t prefetchDepth)
+{
+    stmt.Connection().SetDefaultPrefetchDepth(prefetchDepth);
+    auto probe = PrefetchProbe {};
+    auto const swap = LoggerSwap { probe };
+    auto cursor = stmt.ExecuteDirect(std::format(R"(SELECT "{}" FROM "NullSweep" ORDER BY "Id")", column));
+    REQUIRE(cursor.FetchRow());
+    (void) cursor.GetColumn<T>(1);
+    REQUIRE(cursor.FetchRow());
+    auto read = NullRead { .outcome = {}, .blockFetched = probe.blockFetches > 0 };
+    try
+    {
+        auto const value = cursor.GetColumn<T>(1);
+        read.outcome = std::format("returned {}", SqlDataBinder<T>::Inspect(value));
+    }
+    catch (std::exception const& error)
+    {
+        read.outcome = std::format("throws: {}", error.what());
+    }
+    return read;
+}
+
+/// One line of the NULL sweep: the type read, and what each path did with the NULL cell.
+struct NullSweepOutcome
+{
+    std::string_view type;
+    std::string perRow;
+    std::string prefetched;
+    /// Whether the prefetched leg really read from the block buffer. Not for a column type or a @c T the
+    /// block buffer cannot serve: there that leg falls back to the per-row path, and pins nothing new.
+    bool blockFetched {};
+};
+
+/// Reads @p column as @p T on both paths.
+template <typename T>
+NullSweepOutcome SweepNull(SqlStatement& stmt, std::string_view type, std::string_view column)
+{
+    auto perRow = ReadNullAfterValue<T>(stmt, column, 1);
+    auto prefetched = ReadNullAfterValue<T>(stmt, column, TestPrefetchDepth);
+    return NullSweepOutcome {
+        .type = type,
+        .perRow = std::move(perRow.outcome),
+        .prefetched = std::move(prefetched.outcome),
+        .blockFetched = prefetched.blockFetched,
+    };
+}
+
+} // namespace
+
+TEST_CASE_METHOD(SqlTestFixture, "GetColumn of a non-nullable type throws on a NULL cell on both paths", "[prefetch]")
+{
+    auto stmt = SqlStatement {};
+    CreateNullSweepTable(stmt);
+
+    auto const outcomes = std::vector {
+        SweepNull<std::int16_t>(stmt, "int16_t", "i"),
+        SweepNull<std::int32_t>(stmt, "int32_t", "i"),
+        SweepNull<std::int64_t>(stmt, "int64_t", "big"),
+        SweepNull<float>(stmt, "float", "r"),
+        SweepNull<double>(stmt, "double", "r"),
+        SweepNull<bool>(stmt, "bool", "flag"),
+        SweepNull<char>(stmt, "char", "ch"),
+        SweepNull<std::string>(stmt, "std::string", "s"),
+        SweepNull<std::u16string>(stmt, "std::u16string", "ns"),
+        SweepNull<SqlAnsiString<20>>(stmt, "SqlAnsiString<20>", "s"),
+        SweepNull<SqlTrimmedFixedString<20>>(stmt, "SqlTrimmedFixedString<20>", "s"),
+        SweepNull<SqlBinary>(stmt, "SqlBinary", "bin"),
+        SweepNull<SqlDynamicBinary<16>>(stmt, "SqlDynamicBinary<16>", "bin"),
+        SweepNull<SqlDate>(stmt, "SqlDate", "d"),
+        SweepNull<SqlTime>(stmt, "SqlTime", "t"),
+        SweepNull<SqlDateTime>(stmt, "SqlDateTime", "dt"),
+        SweepNull<SqlGuid>(stmt, "SqlGuid", "g"),
+        SweepNull<SqlNumeric<10, 2>>(stmt, "SqlNumeric<10, 2>", "dec"),
+        SweepNull<SqlDynamicNumeric>(stmt, "SqlDynamicNumeric", "dec"),
+    };
+
+    for (auto const& outcome: outcomes)
+    {
+        UNSCOPED_INFO(std::format("{:<26} | block-fetched: {} | per row: {} | prefetched: {}",
+                                  outcome.type,
+                                  outcome.blockFetched,
+                                  outcome.perRow,
+                                  outcome.prefetched));
+        CHECK(outcome.perRow.starts_with("throws"));
+        CHECK(outcome.prefetched == outcome.perRow);
+    }
+
+    // Which reads the block buffer serves depends on the driver, the column type and T (on SQLite, for
+    // instance, none of the text columns); the others are read per row on both legs.
+    // At least some of the sweep must have gone through the buffer, or the second leg pins nothing.
+    CHECK(std::ranges::any_of(outcomes, &NullSweepOutcome::blockFetched));
+
+    // The one nullable type of the set reads a NULL cell as a NULL variant on either path.
+    auto const variant = SweepNull<SqlVariant>(stmt, "SqlVariant", "i");
+    CHECK(variant.perRow == std::format("returned {}", SqlDataBinder<SqlVariant>::Inspect(SqlVariant {})));
+    CHECK(variant.prefetched == variant.perRow);
+}
