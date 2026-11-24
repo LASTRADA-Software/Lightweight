@@ -12,6 +12,7 @@
 #include <source_location>
 #include <string>
 #include <string_view>
+#include <utility>
 
 namespace Lightweight
 {
@@ -94,7 +95,32 @@ SqlTransaction::SqlTransaction(SqlConnection& connection,
         m_location);
 }
 
+SqlTransaction::SqlTransaction(SqlTransaction&& other) noexcept:
+    m_connection { other.m_connection },
+    m_defaultMode { std::exchange(other.m_defaultMode, SqlTransactionMode::NONE) },
+    m_location { other.m_location },
+    m_lastError { std::move(other.m_lastError) }
+{
+}
+
+SqlTransaction& SqlTransaction::operator=(SqlTransaction&& other) noexcept
+{
+    if (this == &other)
+        return *this;
+    End();
+    m_connection = other.m_connection;
+    m_defaultMode = std::exchange(other.m_defaultMode, SqlTransactionMode::NONE);
+    m_location = other.m_location;
+    m_lastError = std::move(other.m_lastError);
+    return *this;
+}
+
 SqlTransaction::~SqlTransaction() noexcept
+{
+    End();
+}
+
+void SqlTransaction::End() noexcept
 {
     switch (m_defaultMode)
     {

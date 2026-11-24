@@ -109,10 +109,12 @@ class SqlTransaction
     SqlTransaction(SqlTransaction const&) = delete;
     SqlTransaction& operator=(SqlTransaction const&) = delete;
 
-    /// Default move constructor.
-    SqlTransaction(SqlTransaction&&) = default;
-    /// Default move assignment operator.
-    SqlTransaction& operator=(SqlTransaction&&) = default;
+    /// Takes over the transaction of @p other, which no longer ends it: its destructor does nothing.
+    LIGHTWEIGHT_API SqlTransaction(SqlTransaction&& other) noexcept;
+
+    /// Ends this object's own transaction as its destructor would (commit or roll back, by its mode), then
+    /// takes over the transaction of @p other, which no longer ends it.
+    LIGHTWEIGHT_API SqlTransaction& operator=(SqlTransaction&& other) noexcept;
 
     /// Construct a new SqlTransaction object, and disable the auto-commit mode, so that the transaction can be
     /// controlled manually.
@@ -168,6 +170,10 @@ class SqlTransaction
     {
         return m_connection->NativeHandle();
     }
+
+    /// Ends the transaction as the default mode says: commits (rolling back if that fails), rolls back,
+    /// or, in @c NONE mode, leaves it open.
+    void End() noexcept;
 
     /// Checks @p result of a transaction call through the connection fault seam, recording the
     /// diagnostic of a failure unless an earlier one of the same commit or rollback is recorded already.

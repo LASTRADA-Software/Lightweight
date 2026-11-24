@@ -533,3 +533,49 @@ TEST_CASE_METHOD(SqlTestFixture,
     CHECK(RowVisibleElsewhere(2));
     CheckUsableForTransactions(stmt);
 }
+
+// ================================================================================================
+// Moving a transaction hands it over: the moved-from object no longer ends it
+// ================================================================================================
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlTransaction: a moved-from transaction does not end the transaction", "[SqlTransaction]")
+{
+    auto stmt = SqlStatement {};
+    CreateRefusedCommitTable(stmt);
+
+    auto holder = std::optional<SqlTransaction> {};
+    {
+        auto first = SqlTransaction { stmt.Connection(), SqlTransactionMode::COMMIT };
+        holder.emplace(std::move(first));
+    } // the moved-from object goes away here; the transaction must stay open
+
+    REQUIRE(stmt.Connection().TransactionActive());
+    (void) stmt.ExecuteDirect(R"(INSERT INTO "TxnRefused" ("id", "ref") VALUES (2, NULL))");
+    holder->Rollback();
+    CHECK_FALSE(RowVisibleElsewhere(2));
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "SqlTransaction: move assignment ends the target's transaction as its destructor would",
+                 "[SqlTransaction]")
+{
+    auto stmt = SqlStatement {};
+    CreateRefusedCommitTable(stmt);
+    auto otherConnection = SqlConnection {};
+
+    auto target = SqlTransaction { stmt.Connection(), SqlTransactionMode::ROLLBACK };
+    (void) stmt.ExecuteDirect(R"(INSERT INTO "TxnRefused" ("id", "ref") VALUES (2, NULL))");
+    {
+        auto source = SqlTransaction { otherConnection, SqlTransactionMode::COMMIT };
+        target = std::move(source);
+    }
+
+    // The target's own transaction was rolled back, as its ROLLBACK mode says ...
+    REQUIRE_FALSE(stmt.Connection().TransactionActive());
+    CHECK_FALSE(RowVisibleElsewhere(2));
+    // ... and it now holds the other connection's, which the moved-from source left open.
+    CHECK(otherConnection.TransactionActive());
+    CHECK(&target.Connection() == &otherConnection);
+    target.Commit();
+    CHECK_FALSE(otherConnection.TransactionActive());
+}
