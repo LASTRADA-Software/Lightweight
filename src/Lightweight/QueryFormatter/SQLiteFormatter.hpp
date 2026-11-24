@@ -707,6 +707,15 @@ ALTER TABLE {2} DROP COLUMN "{1}";)",
         return "SELECT sqlite_version()";
     }
 
+    /// A plain @c BEGIN, which the SQLite ODBC driver does not see as one (see the base) - but only as the
+    /// SQLite formatter itself: a dialect derived from this class answers none unless it overrides.
+    [[nodiscard]] std::string_view ResyncEndedTransactionStatement() const noexcept override
+    {
+        if (this != Get(SqlServerType::SQLITE))
+            return {};
+        return "BEGIN";
+    }
+
     /// Emits @c PRAGMA @c busy_timeout, followed by @c PRAGMA @c journal_mode unless the journal mode
     /// is to stay unchanged. The busy timeout goes first so that the journal-mode switch, which needs an
     /// exclusive lock on the database file, already waits on a contended file instead of failing.

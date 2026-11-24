@@ -1,13 +1,16 @@
 // SPDX-License-Identifier: Apache-2.0
 
+#include "ScriptedFaultSource.hpp"
 #include "Utils.hpp"
 
 #include <Lightweight/Lightweight.hpp>
 #include <Lightweight/SqlTransaction.hpp>
 
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
 
 #include <format>
+#include <optional>
 #include <source_location>
 #include <stdexcept>
 #include <string>
@@ -312,4 +315,221 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlTransaction: Serializable isolation works o
     transaction.Rollback();
 
     CHECK(RowCountInEmployees(stmt) == 0);
+}
+
+// ================================================================================================
+// A commit the database refuses
+//
+// The database can end a transaction on its own (SQLite's INSERT OR ROLLBACK), or refuse the commit
+// itself (a deferred foreign key on PostgreSQL). Either way the commit fails; the transaction object
+// must still hand the connection back in autocommit mode, and say why the commit failed.
+// ================================================================================================
+
+namespace
+{
+
+/// Makes the open transaction on @p stmt's connection fail its commit, in a way this DBMS supports.
+/// @return The text the commit's diagnostic holds; empty when the DBMS has no way to make a commit fail
+///         that this test knows of.
+std::string_view PrepareRefusedCommit(SqlStatement& stmt)
+{
+    switch (stmt.Connection().ServerType())
+    {
+        case SqlServerType::SQLITE:
+            // Hitting the constraint rolls the whole transaction back, so there is nothing left to commit.
+            (void) stmt.ExecuteDirect(R"(INSERT INTO "TxnRefused" ("id", "ref") VALUES (2, NULL))");
+            CHECK_THROWS_AS(stmt.ExecuteDirect(R"(INSERT OR ROLLBACK INTO "TxnRefused" ("id", "ref") VALUES (1, NULL))"),
+                            SqlException);
+            return "cannot commit";
+        case SqlServerType::POSTGRESQL:
+            // The deferred foreign key is checked by COMMIT, which then fails.
+            (void) stmt.ExecuteDirect(R"(INSERT INTO "TxnRefused" ("id", "ref") VALUES (2, 99))");
+            return "23503";
+        default:
+            return {};
+    }
+}
+
+/// Makes the next commit on @p stmt's connection fail: as the DBMS itself refuses one where this test
+/// knows how, otherwise (SQL Server) through the fault seam.
+class RefusedCommit
+{
+  public:
+    /// @param stmt The statement whose connection holds the open transaction.
+    explicit RefusedCommit(SqlStatement& stmt):
+        _reason { PrepareRefusedCommit(stmt) }
+    {
+        if (!_reason.empty())
+            return;
+        _source.emplace(
+            SqlErrorInfo { .nativeErrorCode = 0, .sqlState = "HY000", .message = "commit refused" }, 1, "TryCommit");
+        _installed.emplace(&*_source);
+        _reason = "commit refused";
+    }
+
+    /// @return The text the failed commit's diagnostic holds.
+    [[nodiscard]] std::string_view Reason() const noexcept
+    {
+        return _reason;
+    }
+
+  private:
+    std::string_view _reason;
+    std::optional<Tests::ScriptedFaultSource> _source;
+    std::optional<Tests::ScopedFaultSource> _installed;
+};
+
+/// Checks that the connection of @p stmt is usable for transactions: the next one really is one, and its
+/// rollback discards what it wrote.
+void CheckUsableForTransactions(SqlStatement& stmt)
+{
+    {
+        auto const transaction = SqlTransaction { stmt.Connection(), SqlTransactionMode::ROLLBACK };
+        (void) stmt.ExecuteDirect(R"(INSERT INTO "TxnRefused" ("id", "ref") VALUES (4, NULL))");
+    }
+    CHECK_FALSE(stmt.Connection().TransactionActive());
+    auto otherConnection = SqlConnection {};
+    auto other = SqlStatement { otherConnection };
+    CHECK(other.ExecuteDirectScalar<int>(R"(SELECT COUNT(*) FROM "TxnRefused" WHERE "id" = 4)").value_or(0) == 0);
+}
+
+/// Creates the table the refused-commit tests write to, with one committed row.
+void CreateRefusedCommitTable(SqlStatement& stmt)
+{
+    auto const* const deferred = stmt.Connection().ServerType() == SqlServerType::POSTGRESQL
+                                     ? R"(REFERENCES "TxnRefused" ("id") DEFERRABLE INITIALLY DEFERRED)"
+                                     : "";
+    (void) stmt.ExecuteDirect(R"(DROP TABLE IF EXISTS "TxnRefused")");
+    (void) stmt.ExecuteDirect(
+        std::format(R"(CREATE TABLE "TxnRefused" ("id" INTEGER NOT NULL PRIMARY KEY, "ref" INTEGER NULL {}))", deferred));
+    (void) stmt.ExecuteDirect(R"(INSERT INTO "TxnRefused" ("id", "ref") VALUES (1, NULL))");
+}
+
+} // namespace
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "SqlTransaction: a refused Commit names the reason and restores autocommit",
+                 "[SqlTransaction]")
+{
+    auto stmt = SqlStatement {};
+    CreateRefusedCommitTable(stmt);
+
+    auto message = std::string {};
+    {
+        auto transaction = SqlTransaction { stmt.Connection(), SqlTransactionMode::COMMIT };
+        auto const refused = RefusedCommit { stmt };
+        try
+        {
+            transaction.Commit();
+        }
+        catch (SqlTransactionException const& error)
+        {
+            message = error.what();
+        }
+        // The exception names the reason: the driver's diagnostic, read before anything could clear it
+        // (the SQLite ODBC driver hands a diagnostic record out only once). LastError() keeps it.
+        INFO(message);
+        CHECK(message.starts_with("Failed to commit the transaction: "));
+        CHECK(message.contains(refused.Reason()));
+        CHECK(std::format("{}", transaction.LastError().value_or(SqlErrorInfo {})).contains(refused.Reason()));
+    }
+
+    // The transaction object is gone; whatever the commit did, the connection is back in autocommit mode.
+    CHECK_FALSE(stmt.Connection().TransactionActive());
+    (void) stmt.ExecuteDirect(R"(INSERT INTO "TxnRefused" ("id", "ref") VALUES (3, NULL))");
+    auto otherConnection = SqlConnection {};
+    auto other = SqlStatement { otherConnection };
+    CHECK(other.ExecuteDirectScalar<int>(R"(SELECT COUNT(*) FROM "TxnRefused" WHERE "id" = 3)").value_or(0) == 1);
+
+    CheckUsableForTransactions(stmt);
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "SqlTransaction: the destructor restores autocommit after the database ended the transaction",
+                 "[SqlTransaction]")
+{
+    for (auto const mode: { SqlTransactionMode::COMMIT, SqlTransactionMode::ROLLBACK })
+    {
+        INFO("mode " << std::format("{}", mode));
+        auto stmt = SqlStatement {};
+        CreateRefusedCommitTable(stmt);
+        {
+            // Declared first, so that an injected refusal is still installed when the destructor commits.
+            auto refused = std::optional<RefusedCommit> {};
+            auto const transaction = SqlTransaction { stmt.Connection(), mode };
+            refused.emplace(stmt);
+        }
+        CHECK_FALSE(stmt.Connection().TransactionActive());
+        CheckUsableForTransactions(stmt);
+    }
+}
+
+// ================================================================================================
+// The transaction state machine through the connection fault seam, on every DBMS
+// ================================================================================================
+
+namespace
+{
+
+/// @return An injected diagnostic carrying @p message.
+SqlErrorInfo InjectedError(std::string message)
+{
+    return SqlErrorInfo { .nativeErrorCode = 0, .sqlState = "HY000", .message = std::move(message) };
+}
+
+/// @return Whether row @p id of "TxnRefused" is visible to another connection.
+bool RowVisibleElsewhere(int id)
+{
+    auto connection = SqlConnection {};
+    auto stmt = SqlStatement { connection };
+    return stmt.ExecuteDirectScalar<int>(std::format(R"(SELECT COUNT(*) FROM "TxnRefused" WHERE "id" = {})", id)).value_or(0)
+           == 1;
+}
+
+} // namespace
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "SqlTransaction: a failed rollback leaves manual-commit mode until a rollback succeeds",
+                 "[SqlTransaction]")
+{
+    auto stmt = SqlStatement {};
+    CreateRefusedCommitTable(stmt);
+    {
+        auto transaction = SqlTransaction { stmt.Connection(), SqlTransactionMode::ROLLBACK };
+        (void) stmt.ExecuteDirect(R"(INSERT INTO "TxnRefused" ("id", "ref") VALUES (2, NULL))");
+        {
+            auto source = Tests::ScriptedFaultSource { InjectedError("rollback refused"), 1, "TryRollback" };
+            auto const installed = Tests::ScopedFaultSource { &source };
+            CHECK_FALSE(transaction.TryRollback());
+        }
+        CHECK(transaction.LastError().value_or(SqlErrorInfo {}).message == "rollback refused");
+        // Autocommit is not forced back on, which would commit a transaction the driver might still hold.
+        CHECK(stmt.Connection().TransactionActive());
+
+        CHECK(transaction.TryRollback());
+        CHECK_FALSE(transaction.LastError().has_value());
+    }
+    CHECK_FALSE(stmt.Connection().TransactionActive());
+    CHECK_FALSE(RowVisibleElsewhere(2));
+    CheckUsableForTransactions(stmt);
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "SqlTransaction: a commit that cannot switch autocommit back on reports it",
+                 "[SqlTransaction]")
+{
+    auto stmt = SqlStatement {};
+    CreateRefusedCommitTable(stmt);
+    {
+        auto transaction = SqlTransaction { stmt.Connection(), SqlTransactionMode::COMMIT };
+        (void) stmt.ExecuteDirect(R"(INSERT INTO "TxnRefused" ("id", "ref") VALUES (2, NULL))");
+        {
+            auto source = Tests::ScriptedFaultSource { InjectedError("autocommit refused"), 1, "RestoreAutoCommit" };
+            auto const installed = Tests::ScopedFaultSource { &source };
+            CHECK_THROWS_WITH(transaction.Commit(), "Failed to commit the transaction: HY000 (0) - autocommit refused");
+        }
+    } // the destructor finishes what the commit left: the switch back to autocommit
+    CHECK_FALSE(stmt.Connection().TransactionActive());
+    CHECK(RowVisibleElsewhere(2));
+    CheckUsableForTransactions(stmt);
 }

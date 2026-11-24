@@ -343,3 +343,16 @@ TEST_CASE("Formatter capabilities a connection caches answer for a backend witho
     CHECK_FALSE(unconnected.ReportsUnconvertibleCellsAsNull());
     CHECK(unconnected.ConvertsNarrowIntegerCTypes());
 }
+
+TEST_CASE("SqlQueryFormatter: only the SQLite formatter resynchronises an ended transaction", "[SqlQueryFormatter]")
+{
+    CHECK(SqlQueryFormatter::Sqlite().ResyncEndedTransactionStatement() == "BEGIN");
+    // PostgreSQL and SQL Server derive from the SQLite formatter and do not inherit its answer.
+    CHECK(SqlQueryFormatter::PostgrSQL().ResyncEndedTransactionStatement().empty());
+    CHECK(SqlQueryFormatter::SqlServer().ResyncEndedTransactionStatement().empty());
+
+    CHECK(SqlQueryFormatter::ResyncEndedTransactionStatementFor(SqlServerType::SQLITE) == "BEGIN");
+    // A server type without a formatter answers none, rather than dereferencing a missing formatter.
+    CHECK(SqlQueryFormatter::ResyncEndedTransactionStatementFor(SqlServerType::MYSQL).empty());
+    CHECK(SqlQueryFormatter::ResyncEndedTransactionStatementFor(SqlServerType::UNKNOWN).empty());
+}

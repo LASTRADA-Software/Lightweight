@@ -322,6 +322,41 @@ class [[nodiscard]] LIGHTWEIGHT_API SqlQueryFormatter
         return {};
     }
 
+    /// @brief Returns a statement that opens a transaction on the database directly, bypassing the driver's
+    /// own transaction bookkeeping.
+    ///
+    /// Used after a failed rollback. The defect it works around belongs to one driver, not to a DBMS: the
+    /// SQLite ODBC driver keeps its own "in a transaction" flag, clears it only when a COMMIT or ROLLBACK
+    /// succeeds, and opens its transaction lazily (an implicit BEGIN before the first statement after
+    /// autocommit went off). When the database ended the transaction on its own (@c INSERT @c OR
+    /// @c ROLLBACK, @c RAISE(ROLLBACK)), both COMMIT and ROLLBACK are refused, the flag stays set, and
+    /// every later transaction on the connection gets no BEGIN and silently runs in autocommit mode.
+    /// Executing this statement opens a real transaction, which the driver then ends with @c SQLEndTran,
+    /// clearing its flag. The answer assumes that driver: on another driver for the same DBMS that
+    /// follows the database's state, the statement fails ("cannot start a transaction within a
+    /// transaction" once the driver opened its own) or opens a transaction that the following rollback
+    /// ends - either way the connection is left in manual-commit mode or rolled back, never committed.
+    ///
+    /// Only a formatter that answers for itself returns a statement: this base class returns none, and
+    /// the SQLite formatter returns one only as the SQLite formatter, not as the base of another dialect
+    /// (a BEGIN on MySQL or MariaDB would implicitly commit). A derived dialect opts in by overriding.
+    ///
+    /// @return The statement; empty for a dialect whose driver needs no such resynchronisation.
+    [[nodiscard]] virtual std::string_view ResyncEndedTransactionStatement() const noexcept
+    {
+        return {};
+    }
+
+    /// The statement ResyncEndedTransactionStatement() names for @p serverType, or none for a server type
+    /// without a formatter (MySQL, an unrecognised server).
+    /// @param serverType The connection's server type.
+    /// @return The statement, or empty.
+    [[nodiscard]] static std::string_view ResyncEndedTransactionStatementFor(SqlServerType serverType) noexcept
+    {
+        auto const* formatter = Get(serverType);
+        return formatter ? formatter->ResyncEndedTransactionStatement() : std::string_view {};
+    }
+
     /// @brief Returns the dialect-specific handler used by `SqlScopedLock` to
     /// acquire and release named cross-process advisory locks.
     ///

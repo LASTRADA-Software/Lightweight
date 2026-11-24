@@ -8,6 +8,7 @@
 #include "SqlOdbcPrelude.hpp"
 
 #include <format>
+#include <optional>
 #include <source_location>
 #include <stdexcept>
 
@@ -126,17 +127,40 @@ class SqlTransaction
     /// Get the connection object associated with this transaction.
     SqlConnection& Connection() noexcept;
 
-    /// Rollback the transaction. Throws an exception if the transaction cannot be rolled back.
+    /// Rollback the transaction. Throws a SqlTransactionException, naming the driver's diagnostic, if
+    /// the transaction cannot be rolled back.
     LIGHTWEIGHT_API void Rollback();
 
-    /// Try to rollback the transaction, and return true if successful, falls otherwise
+    /// Try to rollback the transaction, and return true if successful, false otherwise.
+    ///
+    /// A failed rollback leaves the connection in manual-commit mode, because turning autocommit on would
+    /// commit a transaction the driver might still hold; @c SqlConnection::TransactionActive() then
+    /// reports it, and a pool discards such a connection. The exception is a driver that still believes
+    /// in a transaction the database already ended on its own (SQLite after @c INSERT @c OR @c ROLLBACK),
+    /// which the dialect can bring back in line (see
+    /// @c SqlQueryFormatter::ResyncEndedTransactionStatement()): then autocommit is turned back on, and
+    /// false is still returned.
     LIGHTWEIGHT_API bool TryRollback() noexcept;
 
-    /// Commit the transaction. Throws an exception if the transaction cannot be committed.
+    /// Commit the transaction. Throws a SqlTransactionException, naming the driver's diagnostic, if the
+    /// transaction cannot be committed.
     LIGHTWEIGHT_API void Commit();
 
-    /// Try to commit the transaction, and return true if successful, falls otherwise
+    /// Try to commit the transaction, and return true if successful, false otherwise.
+    ///
+    /// A failed commit leaves the transaction to the caller, autocommit still off: a later successful
+    /// TryCommit() ends it, as does a rollback. If the caller does neither, the destructor of a
+    /// @c COMMIT-mode or @c ROLLBACK-mode transaction rolls it back - it does not try the failed commit
+    /// again - while a @c NONE-mode transaction leaves the connection in manual-commit mode, as that
+    /// mode always does.
     LIGHTWEIGHT_API bool TryCommit() noexcept;
+
+    /// The diagnostic of the last failed commit, rollback or autocommit switch; empty after a success.
+    /// It is read right after the failing call, so it stays available after the driver discarded it.
+    [[nodiscard]] std::optional<SqlErrorInfo> const& LastError() const noexcept
+    {
+        return m_lastError;
+    }
 
   private:
     /// Retrieves the native handle.
@@ -145,10 +169,28 @@ class SqlTransaction
         return m_connection->NativeHandle();
     }
 
+    /// Checks @p result of a transaction call through the connection fault seam, recording the
+    /// diagnostic of a failure unless an earlier one of the same commit or rollback is recorded already.
+    /// @param result The ODBC return code.
+    /// @param location The call site, for the fault seam.
+    /// @return Whether the call succeeded.
+    bool Check(SQLRETURN result, std::source_location location) noexcept;
+
+    /// Turns autocommit back on, recording the driver's diagnostic if that fails.
+    /// @return Whether autocommit is on again.
+    bool RestoreAutoCommit() noexcept;
+
+    /// After a failed rollback: opens a transaction on the database for the driver to end, if the
+    /// dialect knows how (see @c SqlQueryFormatter::ResyncEndedTransactionStatement()), and ends it.
+    /// @return Whether the driver and the database agree again that no transaction is open.
+    bool ResyncEndedTransaction() noexcept;
+
   private:
     SqlConnection* m_connection {};
     SqlTransactionMode m_defaultMode {};
     std::source_location m_location {};
+    /// The diagnostic of the last failed commit or rollback (see LastError()).
+    std::optional<SqlErrorInfo> m_lastError {};
 };
 
 inline SqlConnection& SqlTransaction::Connection() noexcept

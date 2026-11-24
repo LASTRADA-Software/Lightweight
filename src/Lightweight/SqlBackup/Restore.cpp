@@ -249,7 +249,7 @@ namespace
     {
         ZoneScopedN("Restore::Commit");
         if (!transaction.TryCommit())
-            ThrowForSingleTransaction(target, SqlErrorInfo::FromConnectionHandle(target.workerConn.NativeHandle()));
+            ThrowForSingleTransaction(target, transaction.LastError().value_or(SqlErrorInfo {}));
         if (settledRows <= target.state.settledRows)
             return;
         target.committedRows.fetch_add(settledRows - target.state.settledRows);
@@ -323,7 +323,7 @@ namespace
                     (void) target.stmt.ExecuteBatch(slice, rowCount, target.paramStatus, processed);
                     if (!transaction.TryCommit())
                         return std::unexpected(::Lightweight::detail::BatchInsertError {
-                            .error = SqlErrorInfo::FromConnectionHandle(target.workerConn.NativeHandle()),
+                            .error = transaction.LastError().value_or(SqlErrorInfo {}),
                             .reportedFailedRows = {},
                         });
                     target.committedRows.fetch_add(rowCount);

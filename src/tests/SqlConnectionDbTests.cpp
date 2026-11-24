@@ -5,6 +5,7 @@
 #include "Utils.hpp"
 
 #include <Lightweight/Lightweight.hpp>
+#include <Lightweight/SqlTransaction.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -1770,4 +1771,37 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlConnection: a reconnect reports the replace
         }
         CHECK(events.Opened() == events.Closed());
     }
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlTransaction: a commit refused as busy can be retried", "[SqlTransaction][SQLite]")
+{
+    if (SqlConnection {}.ServerType() != SqlServerType::SQLITE)
+        SKIP("SQLite-only: a reader's SHARED lock refuses a writer's COMMIT in rollback-journal mode");
+
+    // A private file in rollback-journal mode, waiting for no lock: a reader holding SHARED makes the
+    // writer's COMMIT fail at once with "database is locked".
+    auto const path = ScratchSqliteDatabasePath("busy-commit");
+    RemoveSqliteDatabaseFiles(path);
+    auto const cleanup = detail::Finally([&] { RemoveSqliteDatabaseFiles(path); });
+    REQUIRE(EnsureSqliteDatabaseFileExists(WithSqliteDatabaseFile(path)));
+    auto const impatient = SqliteConnectionSettings { .busyTimeout = {}, .journalMode = SqliteJournalMode::Delete };
+    auto writer = SqlConnection { WithSqliteDatabaseFile(path), impatient };
+    auto reader = SqlConnection { WithSqliteDatabaseFile(path), impatient };
+    (void) SqlStatement { writer }.ExecuteDirect("CREATE TABLE busy_commit (id INTEGER PRIMARY KEY)");
+    auto readerStmt = SqlStatement { reader };
+
+    {
+        auto readerTransaction = SqlTransaction { reader, SqlTransactionMode::ROLLBACK };
+        (void) readerStmt.ExecuteDirectScalar<int>("SELECT COUNT(*) FROM busy_commit"); // holds SHARED
+
+        auto writerTransaction = SqlTransaction { writer, SqlTransactionMode::ROLLBACK };
+        (void) SqlStatement { writer }.ExecuteDirect("INSERT INTO busy_commit (id) VALUES (1)");
+        CHECK_FALSE(writerTransaction.TryCommit());
+        CHECK(writerTransaction.LastError().value_or(SqlErrorInfo {}).message.contains("locked"));
+
+        // Once the reader lets go, the same commit goes through.
+        readerTransaction.Rollback();
+        CHECK(writerTransaction.TryCommit());
+    }
+    CHECK(readerStmt.ExecuteDirectScalar<int>("SELECT COUNT(*) FROM busy_commit").value_or(0) == 1);
 }
