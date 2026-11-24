@@ -258,6 +258,9 @@ class SqlConnection final
     LIGHTWEIGHT_API static void SetDefaultDataSource(SqlConnectionDataSource const& dataSource);
 
     /// Sets a callback to be called after each connection being established.
+    ///
+    /// An exception the callback throws fails the connect: Connect() returns false, LastError() names
+    /// the exception (the SqlErrorInfo of a SqlException), and the session is disconnected.
     LIGHTWEIGHT_API static void SetPostConnectedHook(std::function<void(SqlConnection&)> hook);
 
     /// Resets the post connected hook.
@@ -771,11 +774,19 @@ class SqlConnection final
     /// it was and reporting nothing, when the driver refuses to disconnect.
     [[nodiscard]] std::expected<void, SqlErrorInfo> EndCurrentSession() noexcept;
 
-    /// @brief Fails a connect attempt after the driver connected: disconnects that session, which was never
-    /// reported opened and so is not reported closed, and leaves the connection without a session.
+    /// @brief Fails a connect attempt after the driver connected: disconnects that session, which is
+    /// reported closed only if it was reported opened already (a throwing post-connected hook), and leaves
+    /// the connection without a session.
     /// @param error Why the attempt fails.
     /// @return @p error, to return from the attempt.
     [[nodiscard]] std::unexpected<SqlErrorInfo> AbandonConnectedAttempt(SqlErrorInfo error) noexcept;
+
+    /// @brief The rest of a connect attempt once the driver connected: PostConnect(), the opened report and
+    /// the post-connected hook. An exception any of them throws fails the attempt (see
+    /// AbandonConnectedAttempt()) rather than escaping.
+    /// @param driverKey The driver the attempt connected through (see ConnectThroughDriverTextEntry in the source).
+    /// @return Nothing on success, or why the attempt failed.
+    [[nodiscard]] std::expected<void, SqlErrorInfo> CompleteConnectedAttempt(std::string const& driverKey) noexcept;
 
     /// One attempt of Connect(SqlConnectionDataSource const&).
     [[nodiscard]] std::expected<void, SqlErrorInfo> ConnectOnce(SqlConnectionDataSource const& info) noexcept;

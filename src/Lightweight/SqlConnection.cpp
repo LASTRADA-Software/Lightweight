@@ -16,6 +16,8 @@
 #include <atomic>
 #include <cctype>
 #include <cstdint>
+#include <cstdio>
+#include <exception>
 #include <initializer_list>
 #include <map>
 #include <mutex>
@@ -995,22 +997,7 @@ std::expected<void, SqlErrorInfo> SqlConnection::ConnectOnce(SqlConnectionDataSo
         return AbandonConnectedAttempt(std::move(error));
     }
 
-    if (auto posted = PostConnect(); !posted)
-        return AbandonConnectedAttempt(std::move(posted).error());
-    RememberDriverTextEntry(driverKey, m_acceptsWideQueryText);
-
-    SqlLogger::GetLogger().OnConnectionOpened(*this);
-    // Not covered by the suite: this is the success tail of the DSN overload, and reaching it needs a
-    // *registered* ODBC data source that actually connects - neither CI nor a developer checkout has
-    // one, so every test connects through the SqlConnectionString overload instead, whose counterpart
-    // of this call (below) is exercised.
-    LIGHTWEIGHT_STATS_CONNECTION_OPENED();
-    m_data->openedReported = true;
-
-    if (gPostConnectedHook)
-        gPostConnectedHook(*this);
-
-    return {};
+    return CompleteConnectedAttempt(driverKey);
 }
 
 // Connects to the given database with the given connection string.
@@ -1059,17 +1046,65 @@ std::expected<void, SqlErrorInfo> SqlConnection::ConnectOnce(SqlConnectionString
         !connected)
         return connected;
 
-    if (auto posted = PostConnect(); !posted)
-        return AbandonConnectedAttempt(std::move(posted).error());
-    RememberDriverTextEntry(driverKey, m_acceptsWideQueryText);
-    SqlLogger::GetLogger().OnConnectionOpened(*this);
-    LIGHTWEIGHT_STATS_CONNECTION_OPENED();
-    m_data->openedReported = true;
+    return CompleteConnectedAttempt(driverKey);
+}
 
-    if (gPostConnectedHook)
-        gPostConnectedHook(*this);
+namespace
+{
+    /// Turns the exception being handled into the error a failed connect reports. Called from a catch
+    /// handler of noexcept connect code, so nothing may escape: should building the error itself fail,
+    /// an out-of-memory error without a message is what remains.
+    SqlErrorInfo CurrentExceptionAsConnectError() noexcept
+    {
+        try
+        {
+            try
+            {
+                throw;
+            }
+            catch (SqlException const& error)
+            {
+                return error.info();
+            }
+            catch (std::exception const& error)
+            {
+                return SqlErrorInfo { .nativeErrorCode = 0, .sqlState = "HY000", .message = error.what() };
+            }
+            catch (...)
+            {
+                return SqlErrorInfo { .nativeErrorCode = 0, .sqlState = "HY000", .message = "unknown exception" };
+            }
+        }
+        catch (...)
+        {
+            return SqlErrorInfo { .nativeErrorCode = 0, .sqlState = "HY001", .message = {} };
+        }
+    }
+} // namespace
 
-    return {};
+std::expected<void, SqlErrorInfo> SqlConnection::CompleteConnectedAttempt(std::string const& driverKey) noexcept
+{
+    // The setup runs statements, which throw on failure (SET ANSI_WARNINGS on SQL Server), and user
+    // code: the installed logger and the post-connected hook. Connect() is noexcept, so whatever they
+    // throw fails the attempt instead of reaching that boundary.
+    try
+    {
+        if (auto posted = PostConnect(); !posted)
+            return AbandonConnectedAttempt(std::move(posted).error());
+        RememberDriverTextEntry(driverKey, m_acceptsWideQueryText);
+        SqlLogger::GetLogger().OnConnectionOpened(*this);
+        LIGHTWEIGHT_STATS_CONNECTION_OPENED();
+        m_data->openedReported = true;
+
+        if (gPostConnectedHook)
+            gPostConnectedHook(*this);
+
+        return {};
+    }
+    catch (...)
+    {
+        return AbandonConnectedAttempt(CurrentExceptionAsConnectError());
+    }
 }
 
 std::expected<void, SqlErrorInfo> SqlConnection::ConnectDriver(SqlConnectionString const& connectionString,
@@ -1239,16 +1274,33 @@ std::expected<void, SqlErrorInfo> SqlConnection::EndCurrentSession() noexcept
 
 std::unexpected<SqlErrorInfo> SqlConnection::AbandonConnectedAttempt(SqlErrorInfo error) noexcept
 {
-    // A failed Connect() leaves the connection as one whose connect failed: not connected, the error in
+    // A failed Connect() leaves the connection as one whose connect failed: not connected, and the error in
     // LastError() (which falls back to the attempt's recorded error once the disconnect has cleared the
-    // handle's diagnostics), and no opened or closed report. The statements the setup allocated go first: the
-    // SQLite ODBC driver refuses to disconnect while one is allocated.
+    // handle's diagnostics). A session that was never reported opened gets no closed report either; one
+    // reported opened already - the post-connected hook threw - is reported closed below. The statements the
+    // setup allocated go first: the SQLite ODBC driver refuses to disconnect while one is allocated.
     FreeStatementHandles();
     detail::UnregisterAnsiOnlyHandle(m_hDbc);
-    // As Close() does with a refused disconnect: reported, and the connection is left as not connected.
-    if (!SQL_SUCCEEDED(SQLDisconnect(m_hDbc)))
-        SqlLogger::GetLogger().OnError(SqlErrorInfo::FromConnectionHandle(m_hDbc));
+    auto const disconnected = SQL_SUCCEEDED(SQLDisconnect(m_hDbc));
     m_data->sessionId = 0;
+    // A session already reported opened - the post-connected hook failed - is reported closed, as
+    // EndCurrentSession() would report it.
+    auto const reportClosed = std::exchange(m_data->openedReported, false);
+    if (reportClosed)
+        LIGHTWEIGHT_STATS_CONNECTION_CLOSED();
+    try
+    {
+        // As Close() does with a refused disconnect: reported, and the connection is left as not connected.
+        if (!disconnected)
+            SqlLogger::GetLogger().OnError(SqlErrorInfo::FromConnectionHandle(m_hDbc));
+        if (reportClosed)
+            SqlLogger::GetLogger().OnConnectionClosed(*this);
+    }
+    catch (...)
+    {
+        // The logger is user code; what it failed to report does not change how the attempt ends.
+        std::fputs("SqlConnection: the logger failed while reporting an abandoned connect attempt.\n", stderr);
+    }
     return std::unexpected(std::move(error));
 }
 

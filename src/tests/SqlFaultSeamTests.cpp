@@ -20,14 +20,17 @@
 #include <Lightweight/SqlError.hpp>
 #include <Lightweight/SqlRetryPolicy.hpp>
 #include <Lightweight/SqlStatement.hpp>
+#include <Lightweight/SqlStatistics.hpp>
 #include <Lightweight/Utils.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 
 #include <algorithm>
 #include <chrono>
+#include <functional>
 #include <optional>
 #include <source_location>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -515,4 +518,120 @@ TEST_CASE("The process-wide connect-retry default reaches newly constructed conn
     auto const connection = SqlConnection { std::nullopt };
     CHECK(connection.ConnectRetrySettings().maxRetries == 5);
     CHECK(connection.ConnectRetrySettings().initialDelay == std::chrono::milliseconds { 10 });
+}
+
+// ================================================================================================
+// Connect() is noexcept, yet the setup it runs once the driver connected executes statements and
+// user code: an exception from there must fail the connect, not reach the noexcept boundary.
+// ================================================================================================
+
+namespace
+{
+
+/// Records the opened and closed reports of sessions, as "opened " and "closed ", while it is the active logger.
+class SessionEventLogger: public SqlLogger::Null
+{
+  public:
+    /// @param events Receives the reports, in order.
+    explicit SessionEventLogger(std::string& events):
+        _events { events },
+        _previous { &SqlLogger::GetLogger() }
+    {
+        SqlLogger::SetLogger(*this);
+    }
+
+    SessionEventLogger(SessionEventLogger const&) = delete;
+    SessionEventLogger(SessionEventLogger&&) = delete;
+    SessionEventLogger& operator=(SessionEventLogger const&) = delete;
+    SessionEventLogger& operator=(SessionEventLogger&&) = delete;
+
+    ~SessionEventLogger() override
+    {
+        SqlLogger::SetLogger(*_previous);
+    }
+
+    void OnConnectionOpened(SqlConnection const& /*connection*/) override
+    {
+        _events += "opened ";
+    }
+
+    void OnConnectionClosed(SqlConnection const& /*connection*/) override
+    {
+        _events += "closed ";
+    }
+
+  private:
+    std::string& _events;
+    SqlLogger* _previous;
+};
+
+/// Installs @p hook as the post-connected hook for its lifetime, then reinstates the fixture's.
+struct ScopedPostConnectedHook
+{
+    explicit ScopedPostConnectedHook(std::function<void(SqlConnection&)> hook)
+    {
+        SqlConnection::SetPostConnectedHook(std::move(hook));
+    }
+
+    ScopedPostConnectedHook(ScopedPostConnectedHook const&) = delete;
+    ScopedPostConnectedHook(ScopedPostConnectedHook&&) = delete;
+    ScopedPostConnectedHook& operator=(ScopedPostConnectedHook const&) = delete;
+    ScopedPostConnectedHook& operator=(ScopedPostConnectedHook&&) = delete;
+
+    ~ScopedPostConnectedHook()
+    {
+        SqlConnection::SetPostConnectedHook(&SqlTestFixture::PostConnectedHook);
+    }
+};
+
+} // namespace
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "Connect fails rather than terminates when the post-connected hook throws",
+                 "[SqlFaultSeam]")
+{
+    auto const statisticsEnabled = ScopedSqlStatisticsEnabled {};
+    auto connection = SqlConnection { std::nullopt };
+    auto const before = SqlStatistics::Instance().Snapshot();
+    auto events = std::string {};
+    {
+        auto const logger = SessionEventLogger { events };
+        auto const hook = ScopedPostConnectedHook { [](SqlConnection& /*connection*/) {
+            throw std::runtime_error { "the application's setup failed" };
+        } };
+        CHECK_FALSE(connection.Connect(SqlConnection::DefaultConnectionString()));
+    }
+    CHECK(connection.LastError().message.contains("the application's setup failed"));
+    CHECK_FALSE(connection.IsAlive());
+
+    // The hook runs after the session was reported opened; failing it reports the session closed, so
+    // the logger and the statistics see the pair.
+    CHECK(events == "opened closed ");
+    auto const after = SqlStatistics::Instance().Snapshot();
+    CHECK(after.connectionsOpened - before.connectionsOpened == 1);
+    CHECK(after.connectionsClosed - before.connectionsClosed == 1);
+
+    // The failed attempt left nothing behind that stops the next one.
+    REQUIRE(connection.Connect(SqlConnection::DefaultConnectionString()));
+    auto stmt = SqlStatement { connection };
+    CHECK(stmt.ExecuteDirectScalar<int>("SELECT 42").value_or(0) == 42);
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "Connect fails rather than terminates when a connect-time session statement fails",
+                 "[SqlFaultSeam]")
+{
+    // Only SQL Server has a session statement that PostConnect() issues through a SqlStatement, which
+    // throws on failure (SET ANSI_WARNINGS, for the string-truncation mode).
+    if (SqlConnection {}.ServerType() != SqlServerType::MICROSOFT_SQL)
+        SKIP("No connect-time session statement that throws on this DBMS");
+
+    ScriptedFaultSource source { MakeError("HY000", "session setup refused"), 1, "ApplyStringTruncationMode" };
+    ScopedFaultSource const installed { &source };
+
+    auto connection = SqlConnection { std::nullopt };
+    CHECK_FALSE(connection.Connect(SqlConnection::DefaultConnectionString()));
+    CHECK(source.ConsultCount() == 1);
+    CHECK(connection.LastError().message.contains("session setup refused"));
+    CHECK_FALSE(connection.IsAlive());
 }
