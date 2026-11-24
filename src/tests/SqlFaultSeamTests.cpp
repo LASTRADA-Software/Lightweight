@@ -635,3 +635,31 @@ TEST_CASE_METHOD(SqlTestFixture,
     CHECK(connection.LastError().message.contains("session setup refused"));
     CHECK_FALSE(connection.IsAlive());
 }
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "A data-source connect fails rather than terminates when the logger throws",
+                 "[SqlFaultSeam]")
+{
+    // The installed logger is user code; it reports the failed connect from inside noexcept code.
+    struct ThrowingLogger: SqlLogger::Null
+    {
+        void OnError(SqlErrorInfo const& /*errorInfo*/, std::source_location /*sourceLocation*/) override
+        {
+            throw std::runtime_error { "logger failure" };
+        }
+    };
+    auto logger = ThrowingLogger {};
+    auto* const previous = &SqlLogger::GetLogger();
+    SqlLogger::SetLogger(logger);
+
+    auto connection = SqlConnection { std::nullopt };
+    auto const connected = connection.Connect(SqlConnectionDataSource {
+        .datasource = "LightweightNoSuchDSN",
+        .username = "user",
+        .password = "password",
+        .timeout = std::chrono::seconds { 1 },
+    });
+    SqlLogger::SetLogger(*previous);
+
+    CHECK_FALSE(connected);
+}

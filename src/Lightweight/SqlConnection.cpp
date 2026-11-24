@@ -100,6 +100,21 @@ namespace
 #endif
     }
 
+    /// Reports a failed connect attempt to the installed logger, which is user code free to throw,
+    /// without letting anything escape: the connect code that calls it is noexcept.
+    void ReportConnectError(SqlErrorInfo const& error) noexcept
+    {
+        try
+        {
+            SqlLogger::GetLogger().OnError(error);
+        }
+        catch (...)
+        {
+            // The failure still reaches the caller through Connect()'s result and LastError().
+            std::fputs("SqlConnection: the logger failed while reporting a connect error.\n", stderr);
+        }
+    }
+
 #if defined(_WIN32) || defined(_WIN64)
     /// Reads an option the way the SQLite ODBC driver does: true when it starts with Y, T or a non-zero digit.
     bool IsSqliteDriverOptionTrue(std::string_view value) noexcept
@@ -926,7 +941,7 @@ std::expected<void, SqlErrorInfo> SqlConnection::ConnectOnce(SqlConnectionDataSo
         if (!SQL_SUCCEEDED(sqlReturn))
         {
             auto error = LastError();
-            SqlLogger::GetLogger().OnError(error);
+            ReportConnectError(error);
             return std::unexpected(std::move(error));
         }
 
@@ -955,7 +970,7 @@ std::expected<void, SqlErrorInfo> SqlConnection::ConnectOnce(SqlConnectionDataSo
                 // install a SqlFaultSource that forces this branch anyway (see #585). The reported
                 // diagnostic comes from the outcome rather than the handle; see EffectiveError().
                 auto error = encryptOutcome.EffectiveError([this] { return LastError(); });
-                SqlLogger::GetLogger().OnError(error);
+                ReportConnectError(error);
                 return std::unexpected(std::move(error));
             }
         }
@@ -984,7 +999,7 @@ std::expected<void, SqlErrorInfo> SqlConnection::ConnectOnce(SqlConnectionDataSo
     if (auto const outcome = detail::CheckOdbcConnectionCall(sqlReturn, m_hDbc); !outcome)
     {
         auto error = outcome.EffectiveError([this] { return LastError(); });
-        SqlLogger::GetLogger().OnError(error);
+        ReportConnectError(error);
         return std::unexpected(std::move(error));
     }
 
@@ -993,7 +1008,7 @@ std::expected<void, SqlErrorInfo> SqlConnection::ConnectOnce(SqlConnectionDataSo
     if (auto const outcome = detail::CheckOdbcConnectionCall(sqlReturn, m_hDbc); !outcome)
     {
         auto error = outcome.EffectiveError([this] { return LastError(); });
-        SqlLogger::GetLogger().OnError(error);
+        ReportConnectError(error);
         return AbandonConnectedAttempt(std::move(error));
     }
 
