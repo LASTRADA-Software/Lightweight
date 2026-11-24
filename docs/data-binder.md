@@ -149,6 +149,11 @@ one is stored. A custom binder that wraps a date should define it too, forwardin
 Without it, its bad rows are still refused with `22008`, by the wrapped date's `InputParameter()`, but in
 such a batch the rows before the bad one are already stored.
 
+The hook must have exactly this signature. A binder that declares a member named `UnwritableYear` with
+another one (returning `std::optional<int>`, say, or not `noexcept`) does not compile: `SqlBinderChecksYear<T>` fails with a
+`static_assert` that names the expected signature, rather than skipping the hook and storing the rows before
+a bad one.
+
 ## `SqlGuid` and `SqlTime`: what a read returns
 
 - **`SqlGuid` on SQLite.** SQLite stores a GUID as text. Reading a column whose text is not a GUID (see
@@ -161,8 +166,9 @@ such a batch the rows before the bad one are already stored.
 - **`SqlDate` and `SqlDateTime` with a negative year are not written.** SQLite would store text no reader
   accepts, SQL Server rejects such a date, and PostgreSQL stores a BC date its driver reads back without the
   sign; so binding one fails with a `SqlException`, SQLSTATE `22008`, also inside a `std::optional`, a `Field`
-  or a `SqlVariant`. A batch checks every row first, also where it executes row by row (a column range that is
-  not contiguous, a record with a column that is not bound in place, a driver without row-wise parameter
+  or a `SqlVariant`. A batch checks every row first, also where it executes row by row (a column batch whose
+  range is not contiguous or whose element type has no array binding, a row batch with a column that is not
+  bound in place, an accessor that returns its value by value, or a driver without row-wise parameter
   arrays), so no row of it is stored. Years 0 to 9999 are written as before (PostgreSQL itself refuses year 0).
 - **`SqlTime` carries whole seconds.** It is bound as `SQL_C_TYPE_TIME`, whose structure has no fraction,
   so after a read the fraction is always 0, on every database and path; a fraction set before writing is

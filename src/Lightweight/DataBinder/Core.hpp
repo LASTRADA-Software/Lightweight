@@ -518,14 +518,44 @@ namespace detail
 template <typename>
 struct SqlDataBinder;
 
+namespace detail
+{
+    /// @brief Whether @c SqlDataBinder<T> declares a member named @c UnwritableYear, whatever its signature.
+    template <typename T>
+    concept SqlBinderDeclaresUnwritableYear = requires { &SqlDataBinder<T>::UnwritableYear; }
+                                              || requires(T const& value) { SqlDataBinder<T>::UnwritableYear(value); };
+
+    /// @brief Whether @c SqlDataBinder<T> has the @c UnwritableYear hook with the signature it is called with,
+    /// @c noexcept included.
+    template <typename T>
+    concept SqlBinderHasUnwritableYearHook = requires(T const& value) {
+        { SqlDataBinder<T>::UnwritableYear(value) } noexcept -> std::same_as<std::optional<SQLSMALLINT>>;
+    };
+
+    /// @brief Whether @c SqlDataBinder<T> has the @c UnwritableYear hook; a member of that name with another
+    /// signature fails to compile rather than being skipped, which would store the rows before a refused one.
+    /// @return @c true if the hook is there.
+    template <typename T>
+    consteval bool CheckedUnwritableYearHook() noexcept
+    {
+        static_assert(SqlBinderHasUnwritableYearHook<T> || !SqlBinderDeclaresUnwritableYear<T>,
+                      "SqlDataBinder<T>::UnwritableYear must be declared as "
+                      "static std::optional<SQLSMALLINT> UnwritableYear(T const& value) noexcept "
+                      "(see docs/data-binder.md)");
+        return SqlBinderHasUnwritableYearHook<T>;
+    }
+} // namespace detail
+
 /// @brief Whether the binder of @p T can tell, before anything is bound, that a value of @p T holds a date or
 /// timestamp whose year cannot be written (see detail::IsWritableYear()): the dates themselves and the
 /// wrappers that bind through them. A batch that executes row by row checks every row through it first, so
 /// that no row is stored when one would be refused; a type without it costs nothing.
+///
+/// The hook is @c static @c std::optional<SQLSMALLINT> @c UnwritableYear(T const& value) @c noexcept. A binder
+/// that declares a member of that name with another signature (another return type, or one that is not
+/// @c noexcept) fails to compile.
 template <typename T>
-concept SqlBinderChecksYear = requires(T const& value) {
-    { SqlDataBinder<T>::UnwritableYear(value) } -> std::same_as<std::optional<SQLSMALLINT>>;
-};
+concept SqlBinderChecksYear = detail::CheckedUnwritableYearHook<T>();
 
 // Default traits for output string parameters
 // This needs to be implemented for each string type that should be used as output parameter via

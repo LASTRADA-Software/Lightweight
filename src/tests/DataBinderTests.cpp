@@ -5104,6 +5104,65 @@ struct WrappedDatedRow
 
 } // namespace
 
+/// A custom type that wraps a date, of which the binder forwards the UnwritableYear hook as documented.
+struct WrappedAnniversary
+{
+    /// The wrapped date.
+    SqlDate date;
+};
+
+namespace Lightweight
+{
+
+/// Binds a WrappedAnniversary as its date.
+template <>
+struct SqlDataBinder<WrappedAnniversary>
+{
+    /// The column type of the wrapped date.
+    static constexpr auto ColumnType = SqlColumnTypeDefinitions::Date {};
+
+    /// The year of @p value if it cannot be written, forwarded to the date's binder.
+    /// @param value The value to write.
+    /// @return Its year if the value is refused, otherwise @c std::nullopt.
+    [[nodiscard]] static constexpr std::optional<SQLSMALLINT> UnwritableYear(WrappedAnniversary const& value) noexcept
+    {
+        return SqlDataBinder<SqlDate>::UnwritableYear(value.date);
+    }
+
+    /// Binds the date of @p value.
+    /// @return What the date's binder returns.
+    static SQLRETURN InputParameter(SQLHSTMT stmt,
+                                    SQLUSMALLINT column,
+                                    WrappedAnniversary const& value,
+                                    SqlDataBinderCallback& cb) noexcept
+    {
+        return SqlDataBinder<SqlDate>::InputParameter(stmt, column, value.date, cb);
+    }
+};
+
+} // namespace Lightweight
+
+// The binders that check the year before anything is bound, and the ones that have nothing to check.
+static_assert(SqlBinderChecksYear<SqlDate>);
+static_assert(SqlBinderChecksYear<SqlDateTime>);
+static_assert(SqlBinderChecksYear<std::optional<SqlDate>>);
+static_assert(SqlBinderChecksYear<Field<SqlDateTime>>);
+static_assert(SqlBinderChecksYear<Field<std::optional<SqlDate>>>);
+static_assert(SqlBinderChecksYear<SqlVariant>);
+static_assert(SqlBinderChecksYear<WrappedAnniversary>);
+static_assert(SqlBinderChecksYear<std::optional<WrappedAnniversary>>);
+static_assert(!SqlBinderChecksYear<int>);
+static_assert(!SqlBinderChecksYear<std::string>);
+static_assert(!SqlBinderChecksYear<std::optional<int>>);
+static_assert(!SqlBinderChecksYear<Field<int>>);
+// A hook of another signature is not skipped (which would let a row-by-row batch store the rows before a
+// refused one) but fails to compile. A binder that declares
+//     static std::optional<int> UnwritableYear(T const& value) noexcept
+// or the right return type without noexcept
+// stops the build wherever SqlBinderChecksYear<T> is evaluated (any batch of T) with "SqlDataBinder<T>::UnwritableYear
+// must be declared as static std::optional<SQLSMALLINT> UnwritableYear(T const& value) noexcept"; it cannot be
+// checked here without breaking this file's build.
+
 TEST_CASE_METHOD(SqlTestFixture,
                  "A date with a negative year fails to be written instead of storing unreadable text",
                  "[SqlDataBinder]")
