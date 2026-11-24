@@ -1229,3 +1229,37 @@ TEST_CASE_METHOD(SqlTestFixture,
         CheckDescribesOwnTable(table.value_or(SqlSchema::Table {}));
     }
 }
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "SqlSchema::ReadAllTables of a schema whose name holds _ lists that schema alone",
+                 "[SqlSchema]")
+{
+    auto stmt = SqlStatement {};
+    if (stmt.Connection().ServerType() == SqlServerType::SQLITE)
+        SKIP("SQLite has no schemas to create");
+
+    // "sn_a" read as a search pattern also matches "snXa".
+    auto const dropAll = [&] {
+        for (auto const* const schema: { "sn_a", "snXa" })
+        {
+            auto const quoted = SqlQueryFormatter::QuoteIdentifier(schema);
+            (void) stmt.ExecuteDirect(
+                std::format("DROP TABLE IF EXISTS {}.{}", quoted, SqlQueryFormatter::QuoteIdentifier("t")));
+            (void) stmt.ExecuteDirect(std::format("DROP SCHEMA IF EXISTS {}", quoted));
+        }
+    };
+    dropAll();
+    for (auto const* const schema: { "sn_a", "snXa" })
+    {
+        auto const quoted = SqlQueryFormatter::QuoteIdentifier(schema);
+        (void) stmt.ExecuteDirect(std::format("CREATE SCHEMA {}", quoted));
+        (void) stmt.ExecuteDirect(std::format(R"(CREATE TABLE {}."t" ("id" INT NOT NULL PRIMARY KEY))", quoted));
+    }
+
+    auto const tables = SqlSchema::ReadAllTables(stmt, stmt.Connection().DatabaseName(), "sn_a");
+    auto schemas = std::vector<std::string> {};
+    for (auto const& table: tables)
+        schemas.emplace_back(table.schema);
+    dropAll();
+    CHECK(schemas == std::vector<std::string> { "sn_a" });
+}

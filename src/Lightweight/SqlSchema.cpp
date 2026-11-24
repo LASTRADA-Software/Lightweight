@@ -145,13 +145,36 @@ namespace
             varbinary->legacyLob = true;
     }
 
+    /// Reads a string-valued @c SQLGetInfo item of the connection @p stmt runs on.
+    ///
+    /// @return The value, or an empty string when the driver does not report it.
+    std::string ConnectionInfoString(SqlStatement& stmt, SQLUSMALLINT infoType)
+    {
+        auto buffer = std::array<SQLCHAR, 32> {};
+        auto length = SQLSMALLINT {};
+        if (!SQL_SUCCEEDED(SQLGetInfo(stmt.Connection().NativeHandle(),
+                                      infoType,
+                                      buffer.data(),
+                                      static_cast<SQLSMALLINT>(buffer.size()),
+                                      &length)))
+            return {};
+        auto const size = std::min(static_cast<std::size_t>(std::max<SQLSMALLINT>(length, 0)), buffer.size() - 1);
+        return { reinterpret_cast<char const*>(buffer.data()), size };
+    }
+
     /// Calls @c SQLTables for the tables of @p database and @p schema, narrowed to the
     /// @p tableName search pattern when given.
+    ///
+    /// @p schema is a schema name, not a pattern: SQLTables reads its argument as a search pattern, so
+    /// '_' and '%' are escaped with the driver's escape, and a schema "a_b" does not also list the tables
+    /// of "aXb". A driver without an escape gets the name as it is.
     SQLRETURN CallSqlTables(SqlStatement& stmt,
                             std::string_view database,
                             std::string_view schema,
                             std::optional<std::string_view> tableName)
     {
+        auto const schemaPattern = detail::EscapeSearchPattern(schema, ConnectionInfoString(stmt, SQL_SEARCH_PATTERN_ESCAPE))
+                                       .value_or(std::string { schema });
         return CallWithOdbcText(
             stmt.Connection().AcceptsWideQueryText(),
             [&]<typename Text>(Text& catalogName, Text& schemaName, Text& tableNameText) {
@@ -166,7 +189,7 @@ namespace
                                                                      0);
             },
             database,
-            schema,
+            schemaPattern,
             tableName.value_or(std::string_view {}));
     }
 
@@ -208,23 +231,6 @@ namespace
         SqlErrorInfo::RequireStatementSuccess(
             CallSqlTables(stmt, database, schema, tablePattern), stmt.NativeHandle(), "SQLTables");
         return FetchTables(stmt);
-    }
-
-    /// Reads a string-valued @c SQLGetInfo item of the connection @p stmt runs on.
-    ///
-    /// @return The value, or an empty string when the driver does not report it.
-    std::string ConnectionInfoString(SqlStatement& stmt, SQLUSMALLINT infoType)
-    {
-        auto buffer = std::array<SQLCHAR, 32> {};
-        auto length = SQLSMALLINT {};
-        if (!SQL_SUCCEEDED(SQLGetInfo(stmt.Connection().NativeHandle(),
-                                      infoType,
-                                      buffer.data(),
-                                      static_cast<SQLSMALLINT>(buffer.size()),
-                                      &length)))
-            return {};
-        auto const size = std::min(static_cast<std::size_t>(std::max<SQLSMALLINT>(length, 0)), buffer.size() - 1);
-        return { reinterpret_cast<char const*>(buffer.data()), size };
     }
 
     /// SQLite-specific path: the SQLite ODBC driver does not populate FK_NAME (column 12 of
