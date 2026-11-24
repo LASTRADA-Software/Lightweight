@@ -61,6 +61,18 @@ class SqlServerQueryFormatter final: public SQLiteQueryFormatter
         return true;
     }
 
+    /// SQL Server enforces its column types: undoes the SQLite formatter's answer.
+    [[nodiscard]] bool ReportsUnconvertibleCellsAsNull() const noexcept override
+    {
+        return false;
+    }
+
+    /// The SQL Server driver converts every integer C type over its range: undoes the SQLite formatter's answer.
+    [[nodiscard]] bool ConvertsNarrowIntegerCTypes() const noexcept override
+    {
+        return true;
+    }
+
     [[nodiscard]] bool BoundsBulkLoadTransactionSize() const noexcept override
     {
         return false;
@@ -821,6 +833,13 @@ DROP INDEX "{0}_{1}_{2}_index" ON "{0}"."{1}";)",
 
     /// SQL Server has no SQLite settings: undoes the PRAGMAs inherited from the SQLite formatter.
     [[nodiscard]] StringList SqliteSettingsStatements(SqliteConnectionSettings const& /*settings*/) const override
+    {
+        return {};
+    }
+
+    /// SQL Server has no SQLite settings: undoes the driver attribute inherited from the SQLite formatter.
+    [[nodiscard]] SqlConnectionStringMap DriverConnectionAttributes(
+        SqliteConnectionSettings const& /*settings*/) const override
     {
         return {};
     }

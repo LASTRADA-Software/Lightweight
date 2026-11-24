@@ -12,9 +12,15 @@
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
+#include <algorithm>
 #include <array>
+#include <concepts>
+#include <cstdint>
 #include <cstdlib>
+#include <cstring>
+#include <deque>
 #include <format>
+#include <functional>
 #include <limits>
 #include <numbers>
 #include <optional>
@@ -23,6 +29,7 @@
 #include <string>
 #include <type_traits>
 #include <variant>
+#include <vector>
 
 // NOLINTBEGIN(readability-container-size-empty, bugprone-unchecked-optional-access)
 
@@ -176,10 +183,10 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlFixedString: c_str", "[SqlFixedString]")
 TEST_CASE_METHOD(SqlTestFixture, "SqlFixedString: TrimRight", "[SqlFixedString]")
 {
     SqlTrimmedFixedString<20> str { "Hello        " };
-    SqlBasicStringOperations<SqlTrimmedFixedString<20>>::TrimRight(&str, 5);
+    SqlBasicStringOperations<SqlTrimmedFixedString<20>>::TrimRight(&str);
     REQUIRE(str == "Hello");
     SqlTrimmedWideFixedString<20> wstr { L"Hello        " };
-    SqlBasicStringOperations<SqlTrimmedWideFixedString<20>>::TrimRight(&wstr, 10);
+    SqlBasicStringOperations<SqlTrimmedWideFixedString<20>>::TrimRight(&wstr);
     REQUIRE(wstr == L"Hello");
     SqlTrimmedWideFixedString<20> wstrWrongIndicator { L"Hello        " };
     REQUIRE(wstrWrongIndicator != L"Hello");
@@ -831,6 +838,32 @@ TEST_CASE("SqlDateTime construction", "[SqlDataBinder],[SqlDateTime]")
     CHECK(baseDateTime.sqlValue.minute == 34);
     CHECK(baseDateTime.sqlValue.second == 56);
     CHECK(baseDateTime.sqlValue.fraction == 123'456'700);
+}
+
+TEST_CASE("SqlDateTime construction from a date and a time of day", "[SqlDataBinder],[SqlDateTime]")
+{
+    using namespace std::chrono_literals;
+    auto const date =
+        std::chrono::year_month_day { std::chrono::year { 2025 }, std::chrono::January, std::chrono::day { 2 } };
+    // A time of day of duration_type holds what system_clock counts: 100 ns (MSVC), 1 ns (libstdc++) or only
+    // 1 us (libc++), so the 100 ns digit of 123'456'700 ns reaches the constructor only where the clock has it.
+    auto const subseconds = std::chrono::duration_cast<SqlDateTime::duration_type>(123'456'700ns);
+    auto const timeOfDay = std::chrono::hh_mm_ss<SqlDateTime::duration_type> { 12h + 34min + 56s + subseconds };
+    auto const value = SqlDateTime { date, timeOfDay };
+
+    // The fraction is the part below one second, not the whole time of day in nanoseconds.
+    auto const fraction = std::chrono::duration_cast<std::chrono::nanoseconds>(subseconds);
+    CHECK(value.sqlValue.hour == 12);
+    CHECK(value.sqlValue.minute == 34);
+    CHECK(value.sqlValue.second == 56);
+    CHECK(value.sqlValue.fraction == fraction.count());
+    CHECK(value.sqlValue.fraction >= 123'456'000);
+    CHECK(
+        value
+        == SqlDateTime(std::chrono::year { 2025 }, std::chrono::January, std::chrono::day { 2 }, 12h, 34min, 56s, fraction));
+
+    // A whole second has no fraction at all.
+    CHECK(SqlDateTime { date, std::chrono::hh_mm_ss<SqlDateTime::duration_type> { 1s } }.sqlValue.fraction == 0);
 }
 
 TEST_CASE("SqlDateTime operations", "[SqlDataBinder],[SqlDateTime]")
@@ -3896,13 +3929,13 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlFixedString: TrimRight stops at non-whitesp
 {
     // Pin a non-trivial right-trim path: trailing spaces and tabs are all stripped.
     SqlTrimmedFixedString<32> str { "abc   \t   " };
-    SqlBasicStringOperations<SqlTrimmedFixedString<32>>::TrimRight(&str, 10);
+    SqlBasicStringOperations<SqlTrimmedFixedString<32>>::TrimRight(&str);
     CHECK(str == "abc");
 
     SECTION("trim stops at non-whitespace even with extra padding")
     {
         SqlTrimmedFixedString<32> nonTrimmable { "abc def    " };
-        SqlBasicStringOperations<SqlTrimmedFixedString<32>>::TrimRight(&nonTrimmable, 11);
+        SqlBasicStringOperations<SqlTrimmedFixedString<32>>::TrimRight(&nonTrimmable);
         CHECK(nonTrimmable == "abc def");
     }
 }
@@ -4186,5 +4219,1476 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlGuid: text that is not a GUID fails the rea
             REQUIRE(std::holds_alternative<std::string>(variant.value));
             CHECK(std::get<std::string>(variant.value) == row.text);
         }
+    }
+}
+
+namespace
+{
+
+/// Counts the native batch executes while it is installed.
+class NativeBatchCountingLogger: public SqlLogger::Null
+{
+  public:
+    NativeBatchCountingLogger()
+    {
+        SqlLogger::SetLogger(*this);
+    }
+    NativeBatchCountingLogger(NativeBatchCountingLogger const&) = delete;
+    NativeBatchCountingLogger(NativeBatchCountingLogger&&) = delete;
+    NativeBatchCountingLogger& operator=(NativeBatchCountingLogger const&) = delete;
+    NativeBatchCountingLogger& operator=(NativeBatchCountingLogger&&) = delete;
+
+    ~NativeBatchCountingLogger() override
+    {
+        SqlLogger::SetLogger(m_previousLogger);
+    }
+
+    void OnExecuteNativeBatch(std::string_view /*query*/) override
+    {
+        ++m_nativeBatches;
+    }
+
+    /// @return The native batch executes counted so far.
+    [[nodiscard]] int NativeBatches() const noexcept
+    {
+        return m_nativeBatches;
+    }
+
+  private:
+    SqlLogger& m_previousLogger = SqlLogger::GetLogger();
+    int m_nativeBatches = 0;
+};
+
+/// A row of the row-wise batch of @ref IntegerRangeTest.
+template <typename T>
+struct IntegerRangeRow
+{
+    std::int64_t id {};
+    T value {};
+};
+
+/// Writes @p values of @p T through every write path of its binder into a BIGINT column, and checks what the
+/// database stored and what every read path reads back.
+template <typename T>
+void IntegerRangeTest(std::vector<T> const& values)
+{
+    INFO("type " << Reflection::TypeNameOf<T>);
+    auto stmt = SqlStatement {};
+    auto ids = std::vector<std::int64_t> {};
+    auto expectedText = std::vector<std::string> {};
+    for (auto const index: std::views::iota(std::size_t { 0 }, values.size()))
+    {
+        ids.push_back(static_cast<std::int64_t>(index) + 1);
+        expectedText.push_back(std::to_string(values[index]));
+    }
+
+    // What the database holds, as text: a value stored wrongly also misleads every other reader.
+    auto const storedText = [&] {
+        auto stored = std::vector<std::string> {};
+        auto cursor = stmt.ExecuteDirect(R"(SELECT CAST("Value" AS VARCHAR(40)) FROM "IntegerRange" ORDER BY "Id")"sv);
+        while (cursor.FetchRow())
+            stored.push_back(cursor.GetColumn<std::string>(1));
+        return stored;
+    };
+    auto const reset = [&] {
+        (void) stmt.ExecuteDirect(R"(DELETE FROM "IntegerRange")"sv);
+        stmt.Prepare(R"(INSERT INTO "IntegerRange" ("Id", "Value") VALUES (?, ?))");
+    };
+
+    reset();
+    for (auto const index: std::views::iota(std::size_t { 0 }, values.size()))
+        (void) stmt.Execute(ids[index], values[index]);
+    CHECK(storedText() == expectedText);
+
+    reset();
+    (void) stmt.ExecuteBatch(ids, values); // column-major
+    CHECK(storedText() == expectedText);
+
+    reset();
+    auto rows = std::vector<IntegerRangeRow<T>> {};
+    for (auto const index: std::views::iota(std::size_t { 0 }, values.size()))
+        rows.push_back(IntegerRangeRow<T> { .id = ids[index], .value = values[index] });
+    {
+        auto const logger = NativeBatchCountingLogger {};
+        (void) stmt.ExecuteBatch(
+            std::span { rows },
+            [](IntegerRangeRow<T> const& row) -> std::int64_t const& { return row.id; },
+            [](IntegerRangeRow<T> const& row) -> T const& { return row.value; });
+        // The row-wise batch stays one native execute, except where the binder must stage the value: on SQLite.
+        auto const staged = SqlColumnMayStage<T>() && stmt.Connection().ServerType() == SqlServerType::SQLITE;
+        CHECK(logger.NativeBatches() == (stmt.Connection().SupportsNativeRowBatch() && !staged ? 1 : 0));
+    }
+    CHECK(storedText() == expectedText);
+
+    // Read back, from values the database holds correctly whatever the write paths did.
+    (void) stmt.ExecuteDirect(R"(DELETE FROM "IntegerRange")"sv);
+    for (auto const index: std::views::iota(std::size_t { 0 }, values.size()))
+        (void) stmt.ExecuteDirect(
+            std::format(R"(INSERT INTO "IntegerRange" ("Id", "Value") VALUES ({}, {}))", ids[index], expectedText[index]));
+    for (auto const depth: { PrefetchDepthDefault, std::size_t { 1 } })
+    {
+        INFO("prefetch depth " << depth);
+        stmt.Connection().SetDefaultPrefetchDepth(depth);
+        auto readByGetColumn = std::vector<T> {};
+        {
+            auto cursor = stmt.ExecuteDirect(R"(SELECT "Value" FROM "IntegerRange" ORDER BY "Id")"sv);
+            while (cursor.FetchRow())
+                readByGetColumn.push_back(cursor.GetColumn<T>(1));
+        }
+        CHECK(readByGetColumn == values);
+        auto readBound = std::vector<T> {};
+        {
+            auto value = T {};
+            auto cursor = stmt.ExecuteDirect(R"(SELECT "Value" FROM "IntegerRange" ORDER BY "Id")"sv);
+            cursor.BindOutputColumns(&value);
+            while (cursor.FetchRow())
+                readBound.push_back(value);
+        }
+        CHECK(readBound == values);
+    }
+    stmt.Connection().SetDefaultPrefetchDepth(PrefetchDepthDefault);
+    CHECK(stmt.ExecuteDirectScalar<T>(std::format(R"(SELECT "Value" FROM "IntegerRange" WHERE "Id" = {})", ids.back()))
+          == values.back());
+}
+
+} // namespace
+
+TEST_CASE_METHOD(SqlTestFixture, "Integer binders store and read the full range of their type", "[SqlDataBinder]")
+{
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("IntegerRange")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Bigint {})
+            .RequiredColumn("Value", SqlColumnTypeDefinitions::Bigint {});
+    });
+
+    IntegerRangeTest<std::int8_t>({ -128, -1, 0, 127 });
+    IntegerRangeTest<std::uint8_t>({ 0, 127, 128, 255 });
+    IntegerRangeTest<std::int16_t>({ -32768, -1, 32767 });
+    IntegerRangeTest<std::uint16_t>({ 0, 32767, 32768, 65535 });
+    IntegerRangeTest<std::int32_t>(
+        { (std::numeric_limits<std::int32_t>::min)(), -1, (std::numeric_limits<std::int32_t>::max)() });
+    IntegerRangeTest<std::uint32_t>({ 0, 2147483647U, 2147483648U, 4294967295U });
+}
+
+namespace
+{
+/// The SQLSTATE @p read throws, or "none".
+template <typename Read>
+std::string IntegerReadState(Read const& read)
+{
+    try
+    {
+        read();
+        return "none";
+    }
+    catch (SqlException const& error)
+    {
+        return error.info().sqlState;
+    }
+}
+} // namespace
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "int8_t and uint32_t reads of a value outside their range fail with 22003",
+                 "[SqlDataBinder]")
+{
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("NarrowOutOfRange")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Bigint {})
+            .RequiredColumn("Small", SqlColumnTypeDefinitions::Bigint {})
+            .RequiredColumn("Large", SqlColumnTypeDefinitions::Bigint {});
+    });
+    // psqlODBC converts a value outside the narrow C type's range without an error, and these types bind in place
+    // there; SQL Server raises 22003 itself, and on SQLite the staged copy is checked.
+    UNSUPPORTED_DATABASE(stmt, SqlServerType::POSTGRESQL);
+    (void) stmt.ExecuteDirect(R"(INSERT INTO "NarrowOutOfRange" ("Id", "Small", "Large") VALUES (1, 300, 4294967296))"sv);
+    auto const query = R"(SELECT "Small", "Large" FROM "NarrowOutOfRange")"sv;
+
+    // 300 is no int8_t and 4294967296 no uint32_t, nor a form an older version stored on SQLite: the read fails
+    // rather than wrapping the value, through the binders' own reads and under block prefetch alike.
+    for (auto const depth: { std::size_t { 1 }, PrefetchDepthDefault })
+    {
+        INFO("prefetch depth " << depth);
+        stmt.Connection().SetDefaultPrefetchDepth(depth);
+        CHECK(IntegerReadState([&] {
+                  auto cursor = stmt.ExecuteDirect(query);
+                  (void) cursor.FetchRow();
+                  (void) cursor.GetColumn<std::int8_t>(1);
+              })
+              == "22003");
+        CHECK(IntegerReadState([&] {
+                  auto cursor = stmt.ExecuteDirect(query);
+                  (void) cursor.FetchRow();
+                  (void) cursor.GetColumn<std::uint32_t>(2);
+              })
+              == "22003");
+        CHECK(IntegerReadState([&] {
+                  auto small = std::int8_t {};
+                  auto large = std::uint32_t {};
+                  auto cursor = stmt.ExecuteDirect(query);
+                  cursor.BindOutputColumns(&small, &large);
+                  (void) cursor.FetchRow();
+              })
+              == "22003");
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "SQLite int8_t and uint32_t rows an older version stored read back unchanged",
+                 "[SqlDataBinder]")
+{
+    auto stmt = SqlStatement {};
+    // The legacy forms are those of the SQLite driver, which stored an int8_t -1 as 255 and a uint32_t above
+    // INT32_MAX as its negative 32-bit pattern; SQL Server and PostgreSQL stored the values themselves.
+    UNSUPPORTED_DATABASE(stmt, SqlServerType::MICROSOFT_SQL);
+    UNSUPPORTED_DATABASE(stmt, SqlServerType::POSTGRESQL);
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("NarrowLegacy")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Bigint {})
+            .RequiredColumn("Small", SqlColumnTypeDefinitions::Bigint {})
+            .RequiredColumn("Large", SqlColumnTypeDefinitions::Bigint {});
+    });
+    // Written with raw SQL, as an older version left them: the stored value, the expected int8_t, the expected
+    // uint32_t (an empty expectation: SQLSTATE 22003).
+    struct LegacyRow
+    {
+        std::int64_t small = 0;
+        std::optional<std::int8_t> expectedSmall;
+        std::int64_t large = 0;
+        std::optional<std::uint32_t> expectedLarge;
+    };
+    auto const rows = std::array {
+        LegacyRow { .small = 255, .expectedSmall = -1, .large = -1, .expectedLarge = 4'294'967'295U },
+        LegacyRow { .small = 128, .expectedSmall = -128, .large = -2'147'483'648, .expectedLarge = 2'147'483'648U },
+        LegacyRow { .small = 127, .expectedSmall = 127, .large = 2'147'483'647, .expectedLarge = 2'147'483'647U },
+        LegacyRow { .small = -128, .expectedSmall = -128, .large = 4'294'967'295, .expectedLarge = 4'294'967'295U },
+        LegacyRow { .small = 0, .expectedSmall = 0, .large = 0, .expectedLarge = 0U },
+        LegacyRow { .small = 256, .expectedSmall = std::nullopt, .large = 4'294'967'296, .expectedLarge = std::nullopt },
+        LegacyRow { .small = -129, .expectedSmall = std::nullopt, .large = -2'147'483'649, .expectedLarge = std::nullopt },
+        // Outside int16_t: their 16-bit wrap (-1, -128) lies in the legacy range, the numbers do not.
+        LegacyRow { .small = 65'535, .expectedSmall = std::nullopt, .large = 0, .expectedLarge = 0U },
+        LegacyRow { .small = 65'408, .expectedSmall = std::nullopt, .large = 0, .expectedLarge = 0U },
+    };
+    for (auto const index: std::views::iota(std::size_t { 0 }, rows.size()))
+        (void) stmt.ExecuteDirect(std::format(R"(INSERT INTO "NarrowLegacy" ("Id", "Small", "Large") VALUES ({}, {}, {}))",
+                                              index,
+                                              rows[index].small,
+                                              rows[index].large));
+
+    auto const outcome = [](auto const& read) -> std::string {
+        try
+        {
+            return std::to_string(read());
+        }
+        catch (SqlException const& error)
+        {
+            return error.info().sqlState;
+        }
+    };
+    auto const expected = [](auto const& value) -> std::string {
+        return value ? std::to_string(*value) : std::string { "22003" };
+    };
+    for (auto const depth: { std::size_t { 1 }, PrefetchDepthDefault })
+    {
+        stmt.Connection().SetDefaultPrefetchDepth(depth);
+        for (auto const index: std::views::iota(std::size_t { 0 }, rows.size()))
+        {
+            INFO(std::format("depth {} row {}", depth, index));
+            auto const query = std::format(R"(SELECT "Small", "Large" FROM "NarrowLegacy" WHERE "Id" = {})", index);
+            CHECK(outcome([&] {
+                      auto cursor = stmt.ExecuteDirect(query);
+                      (void) cursor.FetchRow();
+                      return cursor.GetColumn<std::int8_t>(1);
+                  })
+                  == expected(rows[index].expectedSmall));
+            CHECK(outcome([&] {
+                      auto cursor = stmt.ExecuteDirect(query);
+                      (void) cursor.FetchRow();
+                      return cursor.GetColumn<std::uint32_t>(2);
+                  })
+                  == expected(rows[index].expectedLarge));
+        }
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "int8_t and uint32_t boundary values round-trip, with and without prefetch",
+                 "[SqlDataBinder]")
+{
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("NarrowBoundaries")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Bigint {})
+            .RequiredColumn("Small", SqlColumnTypeDefinitions::Bigint {})
+            .RequiredColumn("Large", SqlColumnTypeDefinitions::Bigint {});
+    });
+    auto const smalls = std::array<std::int8_t, 5> { -128, -1, 0, 1, 127 };
+    auto const larges = std::array<std::uint32_t, 5> { 0, 1, 2'147'483'647, 2'147'483'648, 4'294'967'295 };
+    stmt.Prepare(R"(INSERT INTO "NarrowBoundaries" ("Id", "Small", "Large") VALUES (?, ?, ?))");
+    for (auto const index: std::views::iota(std::size_t { 0 }, smalls.size()))
+        (void) stmt.Execute(static_cast<std::int64_t>(index), smalls[index], larges[index]);
+
+    for (auto const depth: { std::size_t { 1 }, PrefetchDepthDefault })
+    {
+        stmt.Connection().SetDefaultPrefetchDepth(depth);
+        auto cursor = stmt.ExecuteDirect(R"(SELECT "Small", "Large" FROM "NarrowBoundaries" ORDER BY "Id")");
+        auto index = std::size_t { 0 };
+        while (cursor.FetchRow())
+        {
+            INFO(std::format("depth {} row {}", depth, index));
+            REQUIRE(index < smalls.size());
+            CHECK(cursor.GetColumn<std::int8_t>(1) == smalls[index]);
+            CHECK(cursor.GetColumn<std::uint32_t>(2) == larges[index]);
+            ++index;
+        }
+        CHECK(index == smalls.size());
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "A NULL read into a bound int8_t or uint32_t resets it, with and without prefetch",
+                 "[SqlDataBinder]")
+{
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("NarrowNull")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Bigint {})
+            .Column("Small", SqlColumnTypeDefinitions::Bigint {})
+            .Column("Large", SqlColumnTypeDefinitions::Bigint {});
+    });
+    // Bound in place, SQL Server's and PostgreSQL's drivers leave a non-optional variable untouched on NULL, as for
+    // every other type; only SQLite stages these two types, and its staged read resets the variable as prefetch does.
+    UNSUPPORTED_DATABASE(stmt, SqlServerType::MICROSOFT_SQL);
+    UNSUPPORTED_DATABASE(stmt, SqlServerType::POSTGRESQL);
+    (void) stmt.ExecuteDirect(R"(INSERT INTO "NarrowNull" ("Id", "Small", "Large") VALUES (1, 5, 7), (2, NULL, NULL))"sv);
+    for (auto const depth: { std::size_t { 1 }, PrefetchDepthDefault })
+    {
+        INFO("prefetch depth " << depth);
+        stmt.Connection().SetDefaultPrefetchDepth(depth);
+        auto small = std::int8_t {};
+        auto large = std::uint32_t {};
+        auto cursor = stmt.ExecuteDirect(R"(SELECT "Small", "Large" FROM "NarrowNull" ORDER BY "Id")"sv);
+        cursor.BindOutputColumns(&small, &large);
+        REQUIRE(cursor.FetchRow());
+        CHECK(small == 5);
+        CHECK(large == 7U);
+        REQUIRE(cursor.FetchRow());
+        CHECK(small == 0);
+        CHECK(large == 0U);
+    }
+}
+
+TEST_CASE("SqlQueryFormatter: only SQLite stages int8_t and uint32_t", "[SqlDataBinder]")
+{
+    CHECK_FALSE(SqlQueryFormatter::Sqlite().ConvertsNarrowIntegerCTypes());
+    CHECK(SqlQueryFormatter::PostgrSQL().ConvertsNarrowIntegerCTypes());
+    CHECK(SqlQueryFormatter::SqlServer().ConvertsNarrowIntegerCTypes());
+}
+
+namespace
+{
+
+/// A record of the direct row-wise fetch test: the integer widths whose C type SQLite does not convert.
+struct NarrowIntegerRow
+{
+    std::int64_t id {};
+    std::uint32_t large {};
+    std::int8_t small {};
+    std::optional<std::uint32_t> maybeLarge {};
+};
+
+} // namespace
+
+TEST_CASE_METHOD(SqlTestFixture, "FetchAllRowWise reads the full range of int8_t and uint32_t", "[SqlDataBinder]")
+{
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("NarrowRowWise")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Bigint {})
+            .RequiredColumn("Large", SqlColumnTypeDefinitions::Bigint {})
+            .RequiredColumn("Small", SqlColumnTypeDefinitions::Bigint {})
+            .Column("MaybeLarge", SqlColumnTypeDefinitions::Bigint {});
+    });
+    (void) stmt.ExecuteDirect(R"(INSERT INTO "NarrowRowWise" ("Id", "Large", "Small", "MaybeLarge") VALUES )"
+                              R"((1, 4294967295, -128, 2147483648), (2, 2147483648, -1, NULL), (3, 0, 127, 0))"sv);
+
+    auto rows = std::vector<NarrowIntegerRow> {};
+    auto cursor = stmt.ExecuteDirect(R"(SELECT "Id", "Large", "Small", "MaybeLarge" FROM "NarrowRowWise" ORDER BY "Id")"sv);
+    cursor.FetchAllRowWise(
+        rows,
+        64,
+        [](NarrowIntegerRow& row) -> std::int64_t& { return row.id; },
+        [](NarrowIntegerRow& row) -> std::uint32_t& { return row.large; },
+        [](NarrowIntegerRow& row) -> std::int8_t& { return row.small; },
+        [](NarrowIntegerRow& row) -> std::optional<std::uint32_t>& { return row.maybeLarge; });
+
+    REQUIRE(rows.size() == 3);
+    CHECK(rows[0].large == 4294967295U);
+    CHECK(rows[0].small == -128);
+    CHECK(rows[0].maybeLarge == std::optional<std::uint32_t> { 2147483648U });
+    CHECK(rows[1].large == 2147483648U);
+    CHECK(rows[1].small == -1);
+    CHECK_FALSE(rows[1].maybeLarge.has_value());
+    CHECK(rows[2].large == 0U);
+    CHECK(rows[2].small == 127);
+}
+
+/// A record that has no default constructor: its @c int8_t member is a required field. At namespace scope rather
+/// than in an anonymous namespace, like the other records reflection may see (MSVC C7631).
+struct RequiredNarrowRecord
+{
+    std::int64_t id {};
+    Field<std::int8_t> small;
+};
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "FetchAllRowWise reads a staged column per row into records without a default constructor",
+                 "[SqlDataBinder]")
+{
+    static_assert(!std::default_initializable<RequiredNarrowRecord>);
+    auto stmt = SqlStatement {};
+    if (stmt.Connection().ServerType() != SqlServerType::SQLITE)
+        SKIP("Only SQLite stages int8_t, which makes FetchAllRowWise read per row");
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("RequiredNarrow")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Bigint {})
+            .RequiredColumn("Small", SqlColumnTypeDefinitions::Bigint {});
+    });
+    // 255 is how an older version stored -1; 300 fits no int8_t.
+    (void) stmt.ExecuteDirect(R"(INSERT INTO "RequiredNarrow" ("Id", "Small") VALUES (1, 255), (2, 127), (3, 300))"sv);
+
+    auto rows = std::vector<RequiredNarrowRecord> {};
+    auto cursor = stmt.ExecuteDirect(R"(SELECT "Id", "Small" FROM "RequiredNarrow" ORDER BY "Id")"sv);
+    auto const sqlState = [&]() -> std::string {
+        try
+        {
+            cursor.FetchAllRowWise(
+                rows,
+                64,
+                [](RequiredNarrowRecord& row) -> std::int64_t& { return row.id; },
+                [](RequiredNarrowRecord& row) -> std::int8_t& { return row.small.MutableValue(); });
+            return "none";
+        }
+        catch (SqlException const& error)
+        {
+            return error.info().sqlState;
+        }
+    }();
+
+    CHECK(sqlState == "22003");
+    REQUIRE(rows.size() == 2); // the rows read before the failing one, and only those
+    CHECK(rows[0].small.Value() == -1);
+    CHECK(rows[1].small.Value() == 127);
+}
+
+namespace
+{
+
+/// A fixed-capacity string followed by memory a write past its end would change.
+template <typename StringType>
+struct GuardedFixedString
+{
+    StringType value {};
+    std::array<typename StringType::value_type, 600> canary {};
+};
+
+constexpr auto FixedStringCanaryMarker = 0x5A;
+constexpr auto LongFixedStringSourceLength = std::size_t { 500 };
+
+/// Reads a 500-character value into a capacity-8 string through GetColumn and a bound output column, and
+/// checks that the string holds the value's first 8 characters and nothing after it was written.
+template <typename StringType>
+void ReadLongValueIntoFixedString(SqlStatement& stmt, std::string const& source)
+{
+    using CharType = StringType::value_type;
+    INFO("type " << Reflection::TypeNameOf<StringType>);
+    auto const expected = std::basic_string<CharType>(source.begin(), source.begin() + StringType {}.capacity());
+    auto const canaryIntact = [](GuardedFixedString<StringType> const& guarded) {
+        return std::ranges::all_of(guarded.canary,
+                                   [](CharType c) { return c == static_cast<CharType>(FixedStringCanaryMarker); });
+    };
+    auto const fresh = [] {
+        auto guarded = GuardedFixedString<StringType> {};
+        guarded.canary.fill(static_cast<CharType>(FixedStringCanaryMarker));
+        return guarded;
+    };
+
+    {
+        auto guarded = fresh();
+        auto cursor = stmt.ExecuteDirect(R"(SELECT "Value" FROM "FixedOverrun")"sv);
+        REQUIRE(cursor.FetchRow());
+        (void) cursor.GetColumn(1, &guarded.value);
+        CHECK(canaryIntact(guarded));
+        CHECK((std::basic_string_view<CharType> { guarded.value.data(), guarded.value.size() } == expected));
+    }
+    {
+        auto guarded = fresh();
+        auto cursor = stmt.ExecuteDirect(R"(SELECT "Value" FROM "FixedOverrun")"sv);
+        cursor.BindOutputColumns(&guarded.value);
+        REQUIRE(cursor.FetchRow());
+        CHECK(canaryIntact(guarded));
+        CHECK((std::basic_string_view<CharType> { guarded.value.data(), guarded.value.size() } == expected));
+    }
+}
+
+} // namespace
+
+TEST_CASE_METHOD(SqlTestFixture, "A value longer than a fixed-capacity string is cut to its capacity", "[SqlDataBinder]")
+{
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("FixedOverrun").RequiredColumn("Value", SqlColumnTypeDefinitions::Varchar { .size = 600 });
+    });
+    auto source = std::string(LongFixedStringSourceLength, ' ');
+    for (auto const index: std::views::iota(std::size_t { 0 }, source.size()))
+        source[index] = static_cast<char>('a' + (index % 26));
+    stmt.Prepare(R"(INSERT INTO "FixedOverrun" ("Value") VALUES (?))");
+    (void) stmt.Execute(source);
+
+    ReadLongValueIntoFixedString<SqlAnsiString<8>>(stmt, source);
+    ReadLongValueIntoFixedString<SqlUtf16String<8>>(stmt, source);
+    ReadLongValueIntoFixedString<SqlUtf32String<8>>(stmt, source);
+    ReadLongValueIntoFixedString<SqlWideString<8>>(stmt, source);
+}
+
+TEST_CASE("ReadRawColumnArrayData offers a fixed-capacity array no more than its room", "[SqlDataBinder]")
+{
+    // A driver that fills every buffer it is given, reporting a 500-unit value with or without its length.
+    struct Answer
+    {
+        SQLRETURN returnCode;
+        SQLLEN indicator;
+    };
+    auto const read = [](std::vector<Answer> const& answers) {
+        auto guarded = GuardedFixedString<SqlUtf16String<8>> {};
+        guarded.canary.fill(static_cast<char16_t>(FixedStringCanaryMarker));
+        guarded.value.resize(guarded.value.capacity()); // as GetColumn sizes it before reading
+        auto calls = std::size_t { 0 };
+        auto indicator = SQLLEN { 0 };
+        auto const rv = detail::ReadRawColumnArrayData<SQL_C_WCHAR>(
+            [&](SQLPOINTER target, SQLLEN bytes, SQLLEN* reported) noexcept {
+                auto const& answer = answers.at((std::min) (calls++, answers.size() - 1));
+                std::fill_n(static_cast<char16_t*>(target), static_cast<std::size_t>(bytes) / sizeof(char16_t), u'x');
+                *reported = answer.indicator;
+                return answer.returnCode;
+            },
+            &guarded.value,
+            &indicator);
+        CHECK(SQL_SUCCEEDED(rv));
+        CHECK(std::ranges::all_of(guarded.canary,
+                                  [](char16_t c) { return c == static_cast<char16_t>(FixedStringCanaryMarker); }));
+        CHECK(guarded.value.size() <= guarded.value.capacity());
+    };
+    constexpr auto Total = SQLLEN { 500 * sizeof(char16_t) };
+    read({ { .returnCode = SQL_SUCCESS_WITH_INFO, .indicator = Total }, { .returnCode = SQL_SUCCESS, .indicator = Total } });
+    read({ { .returnCode = SQL_SUCCESS_WITH_INFO, .indicator = SQL_NO_TOTAL },
+           { .returnCode = SQL_SUCCESS, .indicator = 4 } });
+}
+
+TEST_CASE("A right-trimmed UTF-16 fixed string read shorter than before keeps no stale characters", "[SqlDataBinder]")
+{
+    using String = SqlFixedString<8, char16_t, SqlFixedStringMode::FIXED_SIZE_RIGHT_TRIMMED>;
+    // The variable held a longer value; the driver wrote the next one, "ab", over its start and reported
+    // 2 characters in bytes.
+    auto value = String { u"abcd" };
+    SqlBasicStringOperations<String>::PostProcessOutputColumn(&value, static_cast<SQLLEN>(2 * sizeof(char16_t)));
+    CHECK((std::u16string_view { value.data(), value.size() } == u"ab"));
+}
+
+TEST_CASE("SqlDynamicBinary: constructed from a list of bytes", "[SqlDataBinder]")
+{
+    auto const binary = SqlDynamicBinary<16> { 0xDE, 0xAD };
+    // Compared as a whole, so no element is read past what the binary holds.
+    CHECK(std::ranges::equal(std::span { binary.data(), binary.size() }, std::array<std::uint8_t, 2> { 0xDE, 0xAD }));
+}
+
+namespace
+{
+
+/// A SqlDateTime on @p year at 23:59:59.9999999 of December 31 (the latest moment of the year).
+constexpr SqlDateTime EndOfYear(int year)
+{
+    using namespace std::chrono;
+    return SqlDateTime { std::chrono::year { year }, December, day { 31 }, hours { 23 }, minutes { 59 }, seconds { 59 },
+                         nanoseconds { 999'999'900 } };
+}
+
+/// A SqlDateTime at midnight of January 1 of @p year.
+constexpr SqlDateTime StartOfYear(int year)
+{
+    using namespace std::chrono;
+    return SqlDateTime { std::chrono::year { year }, January, day { 1 }, hours { 0 }, minutes { 0 }, seconds { 0 } };
+}
+
+// Compared field by field, in constant expressions, beyond what a nanosecond system_clock can count.
+static_assert(StartOfYear(1) < StartOfYear(1600));
+static_assert(StartOfYear(1600) < StartOfYear(2262));
+static_assert(EndOfYear(2262) < StartOfYear(2263));
+static_assert(StartOfYear(2263) < EndOfYear(9999));
+static_assert(EndOfYear(9999) == EndOfYear(9999));
+static_assert(StartOfYear(9999) != EndOfYear(9999));
+static_assert((EndOfYear(9999) <=> StartOfYear(1)) == std::weak_ordering::greater);
+// Beyond even a 100 ns clock (MSVC): SQL_TIMESTAMP_STRUCT holds years up to 32767.
+static_assert(EndOfYear(9999) < StartOfYear(32000));
+
+} // namespace
+
+TEST_CASE("SqlDateTime: values of every year compare and sort in time order", "[SqlDataBinder],[SqlDateTime]")
+{
+    auto values = std::vector { EndOfYear(9999),   StartOfYear(2263), StartOfYear(1), EndOfYear(2262),
+                                StartOfYear(1600), StartOfYear(9999), EndOfYear(1) };
+    std::ranges::sort(values);
+    auto const expected = std::vector { StartOfYear(1),    EndOfYear(1),      StartOfYear(1600), EndOfYear(2262),
+                                        StartOfYear(2263), StartOfYear(9999), EndOfYear(9999) };
+    CHECK(values == expected);
+    // The fields order values 100 ns apart, the fraction's unit.
+    using namespace std::chrono;
+    auto const early = SqlDateTime { year { 2000 }, March, day { 1 }, hours { 12 }, minutes { 0 }, seconds { 0 } };
+    auto const later =
+        SqlDateTime { year { 2000 }, March, day { 1 }, hours { 12 }, minutes { 0 }, seconds { 0 }, nanoseconds { 100 } };
+    CHECK(early < later);
+    // Within the clock's range the order is the time points' order, down to what the clock counts: value() has
+    // only whole microseconds on libc++, so this compares values 1 us apart.
+    auto const late =
+        SqlDateTime { year { 2000 }, March, day { 1 }, hours { 12 }, minutes { 0 }, seconds { 0 }, microseconds { 1 } };
+    CHECK(early < late);
+    CHECK((early.value() < late.value()));
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "SqlVariant reads binary cells as bytes and integers in 64 bits",
+                 "[SqlDataBinder],[SqlVariant]")
+{
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("VariantCells")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Integer {})
+            .Column("Bytes", SqlColumnTypeDefinitions::VarBinary { .size = 16 })
+            .Column("Wide", SqlColumnTypeDefinitions::Bigint {});
+    });
+    auto const bytes = SqlBinary { 0xDE, 0xAD, 0xBE, 0xEF };
+    stmt.Prepare(R"(INSERT INTO "VariantCells" ("Id", "Bytes", "Wide") VALUES (?, ?, ?))");
+    (void) stmt.Execute(1, bytes, std::int64_t { 5'000'000'000 });
+
+    for (auto const depth: { std::size_t { 1 }, PrefetchDepthDefault })
+    {
+        INFO("prefetch depth " << depth);
+        stmt.Connection().SetDefaultPrefetchDepth(depth);
+        auto cursor = stmt.ExecuteDirect(R"(SELECT "Bytes", "Wide" FROM "VariantCells")"sv);
+        REQUIRE(cursor.FetchRow());
+        auto const binary = cursor.GetColumn<SqlVariant>(1);
+        auto const wide = cursor.GetColumn<SqlVariant>(2);
+        REQUIRE(std::holds_alternative<SqlBinary>(binary.value));
+        CHECK((std::get<SqlBinary>(binary.value) == bytes)); // no printer for SqlBinary
+        CHECK(wide.TryGetLongLong() == std::optional<long long> { 5'000'000'000 });
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "SqlVariant reads a SQLite cell whose value is not of its column's type as stored",
+                 "[SqlDataBinder],[SqlVariant]")
+{
+    auto stmt = SqlStatement {};
+    UNSUPPORTED_DATABASE(stmt, SqlServerType::MICROSOFT_SQL); // enforces column types: such a cell cannot exist
+    UNSUPPORTED_DATABASE(stmt, SqlServerType::POSTGRESQL);    // the same
+
+    (void) stmt.ExecuteDirect("DROP TABLE IF EXISTS variant_affinity"sv);
+    (void) stmt.ExecuteDirect(
+        "CREATE TABLE variant_affinity (k INTEGER, i INTEGER, d DATE, ts TIMESTAMP, tm TIME, b BLOB)"sv);
+    (void) stmt.ExecuteDirect("INSERT INTO variant_affinity VALUES "
+                              "(1, 'hello', 'notadate', 'nottimestamp', 'nottime', x'DEADBEEF'), "
+                              "(2, 5000000000, '2024-01-02', '2024-01-02 03:04:05', '03:04:05', NULL), "
+                              "(3, NULL, NULL, NULL, NULL, x'00')"sv);
+
+    for (auto const depth: { std::size_t { 1 }, PrefetchDepthDefault })
+    {
+        INFO("prefetch depth " << depth);
+        stmt.Connection().SetDefaultPrefetchDepth(depth);
+        auto rows = std::vector<std::vector<SqlVariant>> {};
+        auto cursor = stmt.ExecuteDirect("SELECT i, d, ts, tm, b FROM variant_affinity ORDER BY k"sv);
+        while (cursor.FetchRow())
+        {
+            auto& row = rows.emplace_back();
+            for (auto const column: std::views::iota(SQLUSMALLINT { 1 }, SQLUSMALLINT { 6 }))
+                row.push_back(cursor.GetColumn<SqlVariant>(column));
+        }
+        REQUIRE(rows.size() == 3);
+
+        // Text in typed columns comes back as the text, not as NULL.
+        CHECK(rows[0][0].TryGetStringView() == std::optional<std::string_view> { "hello" });
+        CHECK(rows[0][1].TryGetStringView() == std::optional<std::string_view> { "notadate" });
+        CHECK(rows[0][2].TryGetStringView() == std::optional<std::string_view> { "nottimestamp" });
+        CHECK(rows[0][3].TryGetStringView() == std::optional<std::string_view> { "nottime" });
+        REQUIRE(std::holds_alternative<SqlBinary>(rows[0][4].value));
+        CHECK((std::get<SqlBinary>(rows[0][4].value) == SqlBinary { 0xDE, 0xAD, 0xBE, 0xEF }));
+
+        // A 64-bit integer in an INTEGER column, and typed values, read as such.
+        CHECK(rows[1][0].TryGetLongLong() == std::optional<long long> { 5'000'000'000 });
+        CHECK(std::holds_alternative<SqlDate>(rows[1][1].value));
+        CHECK(std::holds_alternative<SqlDateTime>(rows[1][2].value));
+        CHECK(std::holds_alternative<SqlTime>(rows[1][3].value));
+
+        // Real NULLs stay NULL.
+        for (auto const column: std::views::iota(std::size_t { 0 }, std::size_t { 4 }))
+            CHECK(rows[2][column].IsNull());
+
+        // An INTEGER-only result set, which block prefetch would otherwise read: the variant row cursor and the
+        // variant scalar read it per row, so the text and the wide integer survive.
+        auto values = std::vector<SqlVariant> {};
+        for (auto& row: SqlVariantRowCursor(stmt.ExecuteDirect("SELECT i FROM variant_affinity ORDER BY k"sv)))
+            values.push_back(row.at(0));
+        REQUIRE(values.size() == 3);
+        CHECK(values[0].TryGetStringView() == std::optional<std::string_view> { "hello" });
+        CHECK(values[1].TryGetLongLong() == std::optional<long long> { 5'000'000'000 });
+        CHECK(values[2].IsNull());
+        auto const scalar = stmt.ExecuteDirectScalar<SqlVariant>("SELECT i FROM variant_affinity WHERE k = 1"sv);
+        CHECK(scalar.TryGetStringView() == std::optional<std::string_view> { "hello" });
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "Known limit: a raw SqlVariant read of a prefetched SQLite block reads a mistyped cell as NULL",
+                 "[SqlDataBinder],[SqlVariant]")
+{
+    auto stmt = SqlStatement {};
+    UNSUPPORTED_DATABASE(stmt, SqlServerType::MICROSOFT_SQL); // enforces column types: such a cell cannot exist
+    UNSUPPORTED_DATABASE(stmt, SqlServerType::POSTGRESQL);    // the same
+
+    (void) stmt.ExecuteDirect("DROP TABLE IF EXISTS variant_limit"sv);
+    (void) stmt.ExecuteDirect("CREATE TABLE variant_limit (k INTEGER, i INTEGER)"sv);
+    (void) stmt.ExecuteDirect("INSERT INTO variant_limit VALUES (1, 'hello'), (2, 7)"sv);
+    auto const query = "SELECT i FROM variant_limit ORDER BY k"sv;
+
+    auto const readRaw = [&] {
+        auto values = std::vector<SqlVariant> {};
+        auto cursor = stmt.ExecuteDirect(query);
+        while (cursor.FetchRow())
+            values.push_back(cursor.GetColumn<SqlVariant>(1));
+        return values;
+    };
+
+    // The documented limit: the block was fetched before the variant read, and the driver reported the
+    // text in the INTEGER column as NULL; a prefetched block cannot read the cell again as text.
+    stmt.Connection().SetDefaultPrefetchDepth(PrefetchDepthDefault);
+    auto const prefetched = readRaw();
+    REQUIRE(prefetched.size() == 2);
+    CHECK(prefetched[0].IsNull());
+    CHECK(prefetched[1].TryGetLongLong() == std::optional<long long> { 7 });
+
+    // The ways out the documentation names read it as the text.
+    auto viaRowCursor = std::vector<SqlVariant> {};
+    for (auto& row: SqlVariantRowCursor(stmt.ExecuteDirect(query)))
+        viaRowCursor.push_back(row.at(0));
+    REQUIRE(viaRowCursor.size() == 2);
+    CHECK(viaRowCursor[0].TryGetStringView() == std::optional<std::string_view> { "hello" });
+    CHECK(stmt.ExecuteDirectScalar<SqlVariant>("SELECT i FROM variant_limit WHERE k = 1"sv).TryGetStringView()
+          == std::optional<std::string_view> { "hello" });
+
+    stmt.Connection().SetDefaultPrefetchDepth(1);
+    auto const perRow = readRaw();
+    REQUIRE(perRow.size() == 2);
+    CHECK(perRow[0].TryGetStringView() == std::optional<std::string_view> { "hello" });
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "SqlVariant reads of a statement describe each result set's columns anew",
+                 "[SqlDataBinder],[SqlVariant]")
+{
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("VariantDescribe")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Integer {})
+            .RequiredColumn("Name", SqlColumnTypeDefinitions::Varchar { .size = 20 })
+            .RequiredColumn("Number", SqlColumnTypeDefinitions::Integer {});
+    });
+    std::ignore = stmt.ExecuteDirect(R"(INSERT INTO "VariantDescribe" ("Id", "Name", "Number") VALUES (1, 'first', 42))");
+    std::ignore = stmt.ExecuteDirect(R"(INSERT INTO "VariantDescribe" ("Id", "Name", "Number") VALUES (2, 'second', 43))");
+
+    // The statement keeps each column's type for the result set it described, so the rows after the first ask the
+    // driver nothing; the next query's column 1 has another type and must be described again.
+    auto const read = [&](std::string_view column) {
+        auto cells = std::vector<SqlVariant> {};
+        for (auto& row: SqlVariantRowCursor {
+                 stmt.ExecuteDirect(std::format(R"(SELECT "{}" FROM "VariantDescribe" ORDER BY "Id")", column)) })
+            cells.push_back(std::move(row.at(0)));
+        return cells;
+    };
+    auto const names = read("Name");
+    REQUIRE(names.size() == 2);
+    CHECK(std::holds_alternative<std::string>(names[0].value));
+    CHECK(names[1].ToString() == "second");
+    auto const numbers = read("Number");
+    REQUIRE(numbers.size() == 2);
+    CHECK_FALSE(std::holds_alternative<std::string>(numbers[0].value));
+    CHECK(numbers[0].ToString() == "42");
+    CHECK(numbers[1].ToString() == "43");
+    auto const namesAgain = read("Name");
+    REQUIRE(namesAgain.size() == 2);
+    CHECK(std::holds_alternative<std::string>(namesAgain[0].value));
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "SqlVariant reads of a prepared SELECT ? describe each execute's column anew",
+                 "[SqlDataBinder],[SqlVariant]")
+{
+    // Executed again with another parameter type, the driver may give the column that type (SQL Server prepares
+    // the statement again as nvarchar): a type kept from the previous execute would read the text as an integer.
+    // Each read must equal the read of a statement that executes the query once.
+    auto stmt = SqlStatement {};
+    stmt.Connection().SetDefaultPrefetchDepth(1);
+    stmt.Prepare("SELECT ?");
+    auto const readThrough = [](SqlStatement& statement, auto const& value) {
+        auto cells = std::vector<std::string> {};
+        for (auto& row: SqlVariantRowCursor { statement.Execute(value) })
+            cells.push_back(std::format(
+                "{}:{}", std::holds_alternative<std::string>(row.at(0).value) ? "text" : "other", row.at(0).ToString()));
+        return cells;
+    };
+    auto const once = [&](auto const& value) {
+        auto fresh = SqlStatement {};
+        fresh.Prepare("SELECT ?");
+        return readThrough(fresh, value);
+    };
+    CHECK(readThrough(stmt, 42) == once(42));
+    CHECK(readThrough(stmt, std::string { "abc" }) == once(std::string { "abc" }));
+    CHECK(readThrough(stmt, 43) == once(43));
+    CHECK(once(std::string { "abc" }) == std::vector<std::string> { "text:abc" });
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "DataMapper::Query<SqlVariantRow> reads a SQLite cell not of its column's type as stored",
+                 "[SqlDataBinder],[SqlVariant]")
+{
+    auto dm = DataMapper {};
+    auto stmt = SqlStatement { dm.Connection() };
+    UNSUPPORTED_DATABASE(stmt, SqlServerType::MICROSOFT_SQL); // enforces column types: such a cell cannot exist
+    UNSUPPORTED_DATABASE(stmt, SqlServerType::POSTGRESQL);    // the same
+
+    (void) stmt.ExecuteDirect("DROP TABLE IF EXISTS variant_query"sv);
+    (void) stmt.ExecuteDirect("CREATE TABLE variant_query (k INTEGER, i INTEGER, d DATE)"sv);
+    (void) stmt.ExecuteDirect("INSERT INTO variant_query VALUES (1, 'hello', 'notadate'), (2, '', '2024-01-02')"sv);
+
+    // At the default depth, which block-prefetches an INTEGER and DATE result set: a copy tool built on this
+    // must get the text, not NULL.
+    dm.Connection().SetDefaultPrefetchDepth(PrefetchDepthDefault);
+    auto const rows = dm.Query<SqlVariantRow>("SELECT i, d FROM variant_query ORDER BY k"sv);
+    REQUIRE(rows.size() == 2);
+    REQUIRE(rows[0].size() == 2);
+    CHECK(rows[0][0].TryGetStringView() == std::optional<std::string_view> { "hello" });
+    CHECK(rows[0][1].TryGetStringView() == std::optional<std::string_view> { "notadate" });
+    REQUIRE(rows[1].size() == 2);
+    CHECK(rows[1][0].TryGetStringView() == std::optional<std::string_view> { "" });
+    CHECK(std::holds_alternative<SqlDate>(rows[1][1].value));
+}
+
+namespace
+{
+
+/// A row of the batches of the negative-year test.
+struct DatedRow
+{
+    std::int64_t id {};
+    SqlDate date {};
+    SqlDateTime moment {};
+};
+
+/// A row of the negative-year test whose dates are bound through the wrappers of a date.
+struct WrappedDatedRow
+{
+    std::int64_t id {};
+    std::optional<SqlDate> date;
+    Field<SqlDateTime> moment;
+};
+
+} // namespace
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "A date with a negative year fails to be written instead of storing unreadable text",
+                 "[SqlDataBinder]")
+{
+    using namespace std::chrono;
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("NegativeYear")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Bigint {})
+            .Column("D", SqlColumnTypeDefinitions::Date {})
+            .Column("T", SqlColumnTypeDefinitions::DateTime {});
+    });
+    auto const negativeDate = SqlDate { year { -5 }, January, day { 2 } };
+    auto const negativeMoment = SqlDateTime { year { -5 }, January, day { 2 }, hours { 3 }, minutes { 4 }, seconds { 5 } };
+    auto const goodDate = SqlDate { year { 2024 }, January, day { 2 } };
+    auto const goodMoment = SqlDateTime { year { 2024 }, January, day { 2 }, hours { 3 }, minutes { 4 }, seconds { 5 } };
+    auto const sqlStateOf = [](auto const& write) -> std::string {
+        try
+        {
+            write();
+            return "none";
+        }
+        catch (SqlException const& error)
+        {
+            return error.info().sqlState;
+        }
+    };
+    stmt.Prepare(R"(INSERT INTO "NegativeYear" ("Id", "D", "T") VALUES (?, ?, ?))");
+
+    // A single row, and each column of a column-wise and a row-wise batch, a bad value in its second row.
+    CHECK(sqlStateOf([&] { (void) stmt.Execute(1, negativeDate, goodMoment); }) == "22008");
+    CHECK(sqlStateOf([&] { (void) stmt.Execute(2, goodDate, negativeMoment); }) == "22008");
+    CHECK(sqlStateOf([&] { (void) stmt.Execute(3, std::optional { negativeDate }, goodMoment); }) == "22008");
+    CHECK(sqlStateOf([&] {
+              (void) stmt.ExecuteBatch(std::vector<std::int64_t> { 4, 5 },
+                                       std::vector { goodDate, negativeDate },
+                                       std::vector { goodMoment, goodMoment });
+          })
+          == "22008");
+    auto const rows = std::vector { DatedRow { .id = 6, .date = goodDate, .moment = goodMoment },
+                                    DatedRow { .id = 7, .date = goodDate, .moment = negativeMoment } };
+    CHECK(sqlStateOf([&] {
+              (void) stmt.ExecuteBatch(
+                  std::span { rows },
+                  [](DatedRow const& row) -> std::int64_t const& { return row.id; },
+                  [](DatedRow const& row) -> SqlDate const& { return row.date; },
+                  [](DatedRow const& row) -> SqlDateTime const& { return row.moment; });
+          })
+          == "22008");
+
+    // The batches that execute row by row refuse the bad second row before the first one is stored: a column
+    // batch that is not contiguous, and rows with a column that is not bound in place (a Field) or, on a
+    // driver without row-wise parameter arrays, any rows.
+    CHECK(sqlStateOf([&] {
+              (void) stmt.ExecuteBatch(std::deque<std::int64_t> { 20, 21 },
+                                       std::deque { goodDate, negativeDate },
+                                       std::deque { goodMoment, goodMoment });
+          })
+          == "22008");
+    CHECK(sqlStateOf([&] {
+              (void) stmt.ExecuteBatch(std::deque<std::int64_t> { 22, 23 },
+                                       std::deque { SqlVariant { goodDate }, SqlVariant { negativeDate } },
+                                       std::deque { goodMoment, goodMoment });
+          })
+          == "22008");
+    auto const badOptionalRows = std::vector {
+        WrappedDatedRow { .id = 24, .date = std::nullopt, .moment = goodMoment },
+        WrappedDatedRow { .id = 25, .date = negativeDate, .moment = goodMoment },
+    };
+    auto const badFieldRows = std::vector {
+        WrappedDatedRow { .id = 26, .date = goodDate, .moment = goodMoment },
+        WrappedDatedRow { .id = 27, .date = goodDate, .moment = negativeMoment },
+    };
+    CHECK(sqlStateOf([&] {
+              (void) stmt.ExecuteBatch(
+                  std::span { badOptionalRows },
+                  [](WrappedDatedRow const& row) -> std::int64_t const& { return row.id; },
+                  [](WrappedDatedRow const& row) -> std::optional<SqlDate> const& { return row.date; },
+                  [](WrappedDatedRow const& row) -> Field<SqlDateTime> const& { return row.moment; });
+          })
+          == "22008");
+    CHECK(sqlStateOf([&] {
+              (void) stmt.ExecuteBatch(
+                  std::span { badFieldRows },
+                  [](WrappedDatedRow const& row) -> std::int64_t const& { return row.id; },
+                  [](WrappedDatedRow const& row) -> std::optional<SqlDate> const& { return row.date; },
+                  [](WrappedDatedRow const& row) -> Field<SqlDateTime> const& { return row.moment; });
+          })
+          == "22008");
+    CHECK(stmt.ExecuteDirectScalar<int>(R"(SELECT COUNT(*) FROM "NegativeYear")"sv) == 0);
+
+    // Years from 0 on are written as before (PostgreSQL has no year 0 and refuses it itself).
+    stmt.Prepare(R"(INSERT INTO "NegativeYear" ("Id", "D", "T") VALUES (?, ?, ?))");
+    (void) stmt.Execute(8, goodDate, goodMoment);
+    CHECK((stmt.ExecuteDirectScalar<SqlDate>(R"(SELECT "D" FROM "NegativeYear" WHERE "Id" = 8)"sv) == goodDate));
+}
+
+/// A record with a @c bool member over a BIGINT column, read by SqlRowIterator. At namespace scope, not in an
+/// anonymous namespace: MSVC cannot reflect a type with internal linkage.
+struct BoolFromIntegerRecord
+{
+    static constexpr std::string_view TableName = "BoolFromInteger";
+
+    Field<std::int64_t> Id;
+    Field<bool> V;
+};
+
+namespace
+{
+
+/// A number read as @c bool: "true", "false", or the SQLSTATE of the failure.
+std::string BoolOutcome(std::function<bool()> const& read)
+{
+    try
+    {
+        return read() ? "true" : "false";
+    }
+    catch (SqlException const& error)
+    {
+        return error.info().sqlState;
+    }
+}
+
+/// Rows of a bool read through a row-wise fetch or a record iterator: the values, or the SQLSTATE of the failure.
+std::string BoolRowsOutcome(std::function<std::vector<bool>()> const& read)
+{
+    try
+    {
+        auto text = std::string {};
+        for (auto const value: read())
+            text += value ? "1" : "0";
+        return text;
+    }
+    catch (SqlException const& error)
+    {
+        return error.info().sqlState;
+    }
+}
+
+} // namespace
+
+TEST_CASE_METHOD(SqlTestFixture, "A bool reads 0 and 1 and fails with 22003 for any other number", "[SqlDataBinder]")
+{
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("BoolFromInteger")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Bigint {})
+            .RequiredColumn("V", SqlColumnTypeDefinitions::Bigint {});
+    });
+    auto const values = std::array<std::int64_t, 6> { 0, 1, 2, -1, 255, 256 };
+    for (auto const index: std::views::iota(std::size_t { 0 }, values.size()))
+        (void) stmt.ExecuteDirect(
+            std::format(R"(INSERT INTO "BoolFromInteger" ("Id", "V") VALUES ({}, {}))", index, values[index]));
+
+    // Every read but the row-wise fetch reads the number itself, per row and from the block alike: 0 and 1, and -1
+    // where the driver may report a boolean true as -1 (PostgreSQL), else 22003.
+    auto const minusOneIsTrue = stmt.Connection().BooleanTrueMayBeMinusOne();
+    auto const expected = [&](std::int64_t value) -> std::string {
+        if (value == 1 || (value == -1 && minusOneIsTrue))
+            return "true";
+        return value == 0 ? "false" : "22003";
+    };
+
+    for (auto const depth: { std::size_t { 1 }, PrefetchDepthDefault })
+    {
+        stmt.Connection().SetDefaultPrefetchDepth(depth);
+        for (auto const index: std::views::iota(std::size_t { 0 }, values.size()))
+        {
+            INFO(std::format("depth {} value {}", depth, values[index]));
+            auto const query = std::format(R"(SELECT "V" FROM "BoolFromInteger" WHERE "Id" = {})", index);
+            CHECK(BoolOutcome([&] {
+                      auto cursor = stmt.ExecuteDirect(query);
+                      if (!cursor.FetchRow())
+                          throw std::runtime_error("no row");
+                      return cursor.GetColumn<bool>(1);
+                  })
+                  == expected(values[index]));
+            CHECK(BoolOutcome([&] {
+                      auto cursor = stmt.ExecuteDirect(query);
+                      if (!cursor.FetchRow())
+                          throw std::runtime_error("no row");
+                      return cursor.GetNullableColumn<bool>(1).value_or(false);
+                  })
+                  == expected(values[index]));
+            CHECK(BoolOutcome([&] {
+                      auto value = false;
+                      auto cursor = stmt.ExecuteDirect(query);
+                      cursor.BindOutputColumns(&value);
+                      if (!cursor.FetchRow())
+                          throw std::runtime_error("no row");
+                      return value;
+                  })
+                  == expected(values[index]));
+            CHECK(BoolOutcome([&] {
+                      auto value = std::optional<bool> {};
+                      auto cursor = stmt.ExecuteDirect(query);
+                      cursor.BindOutputColumns(&value);
+                      if (!cursor.FetchRow())
+                          throw std::runtime_error("no row");
+                      return value.value_or(false);
+                  })
+                  == expected(values[index]));
+            CHECK(BoolOutcome([&] { return stmt.ExecuteDirectScalar<bool>(query).value_or(false); })
+                  == expected(values[index]));
+        }
+
+        // A record member read per row: the first row that is neither 0 nor 1 (2) fails the read.
+        CHECK(BoolRowsOutcome([&] {
+                  auto rows = std::vector<bool> {};
+                  for (auto const& record: SqlRowIterator<BoolFromIntegerRecord> { stmt.Connection() })
+                      rows.push_back(record.V.Value());
+                  return rows;
+              })
+              == "22003");
+    }
+
+    // The row-wise fetch (FetchAllRowWise, and DataMapper All() through it) binds the record's bool in place as
+    // SQL_C_BIT and so takes what the driver writes there: SQL Server fails 2 with 22003, PostgreSQL writes the low
+    // byte (2 fails with 22003, 256 reads false), SQLite writes 1 for any positive number and 0 otherwise.
+    auto const isSqlite = stmt.Connection().ServerType() == SqlServerType::SQLITE;
+    auto const isPostgres = stmt.Connection().ServerType() == SqlServerType::POSTGRESQL;
+    struct BoolRow
+    {
+        std::int64_t id = 0;
+        bool value = false;
+    };
+    auto const rowWise = [&](std::string_view where) {
+        return BoolRowsOutcome([&] {
+            auto rows = std::vector<BoolRow> {};
+            auto cursor =
+                stmt.ExecuteDirect(std::format(R"(SELECT "Id", "V" FROM "BoolFromInteger" WHERE {} ORDER BY "Id")", where));
+            cursor.FetchAllRowWise(
+                rows,
+                8,
+                [](BoolRow& row) -> std::int64_t& { return row.id; },
+                [](BoolRow& row) -> bool& { return row.value; });
+            auto result = std::vector<bool> {};
+            for (auto const& row: rows)
+                result.push_back(row.value);
+            return result;
+        });
+    };
+    CHECK(rowWise("1 = 1") == std::string { isSqlite ? "011011" : "22003" });
+    auto const rowWise256 = [&]() -> std::string {
+        if (isSqlite)
+            return "1";
+        return isPostgres ? "0" : "22003";
+    }();
+    CHECK(rowWise(R"("V" = 256)") == rowWise256);
+    auto const rowWiseMinusOne = [&]() -> std::string {
+        if (isSqlite)
+            return "0";
+        return isPostgres ? "1" : "22003";
+    }();
+    CHECK(rowWise(R"("V" = -1)") == rowWiseMinusOne);
+    // PostgreSQL writes the low byte 0xFF, a boolean true reported as -1.
+    CHECK(rowWise(R"("V" = 255)") == std::string { isSqlite || isPostgres ? "1" : "22003" });
+
+    auto dm = DataMapper {};
+    CHECK(BoolRowsOutcome([&] {
+              auto rows = std::vector<bool> {};
+              for (auto const& record: dm.Query<BoolFromIntegerRecord>().OrderBy("Id").All())
+                  rows.push_back(record.V.Value());
+              return rows;
+          })
+          == std::string { isSqlite ? "011011" : "22003" });
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "A bool column round-trips, with and without prefetch", "[SqlDataBinder]")
+{
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("BoolRoundTrip")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Bigint {})
+            .Column("V", SqlColumnTypeDefinitions::Bool {});
+    });
+    stmt.Prepare(R"(INSERT INTO "BoolRoundTrip" ("Id", "V") VALUES (?, ?))");
+    (void) stmt.Execute(std::int64_t { 1 }, true);
+    (void) stmt.Execute(std::int64_t { 2 }, std::optional<bool> {});
+    (void) stmt.Execute(std::int64_t { 3 }, false);
+
+    auto variantsPerRow = std::vector<std::string> {};
+    for (auto const depth: { std::size_t { 1 }, PrefetchDepthDefault })
+    {
+        INFO("depth " << depth);
+        stmt.Connection().SetDefaultPrefetchDepth(depth);
+        auto value = true;
+        auto maybe = std::optional<bool> {};
+        auto variants = std::vector<std::string> {};
+        auto cursor = stmt.ExecuteDirect(R"(SELECT "V", "V" FROM "BoolRoundTrip" ORDER BY "Id")");
+        cursor.BindOutputColumns(&value, &maybe);
+        auto read = std::string {};
+        auto const optionalText = [](std::optional<bool> const& v) {
+            if (!v.has_value())
+                return "-";
+            return *v ? "1" : "0";
+        };
+        while (cursor.FetchRow())
+            read += std::format("{}{} ", value ? "1" : "0", optionalText(maybe));
+        // A NULL read into a bound bool sets it to false, also after a true.
+        CHECK(read == "11 0- 00 ");
+        for (auto& row: SqlVariantRowCursor { stmt.ExecuteDirect(R"(SELECT "V" FROM "BoolRoundTrip" ORDER BY "Id")") })
+            variants.push_back(row.at(0).ToString());
+        // The variant's alternative follows the driver's column type (PostgreSQL reports a boolean as text by
+        // default); both depths read the same.
+        if (depth == 1)
+            variantsPerRow = variants;
+        CHECK(variants == variantsPerRow);
+        CHECK(variants.size() == 3);
+    }
+}
+
+/// A record with a @c bool member over a BOOLEAN column, read on a connection with psqlODBC's TrueIsMinus1. At
+/// namespace scope: MSVC cannot reflect a type with internal linkage.
+struct BoolMinusOneRecord
+{
+    static constexpr std::string_view TableName = "BoolMinusOne";
+
+    Field<std::int64_t> Id;
+    Field<std::optional<bool>> V;
+};
+
+TEST_CASE_METHOD(SqlTestFixture, "A bool reads a boolean true reported as -1 as true", "[SqlDataBinder]")
+{
+    auto stmt = SqlStatement {};
+    if (!stmt.Connection().BooleanTrueMayBeMinusOne())
+        SKIP("Only psqlODBC reports a boolean true as -1 (connection option TrueIsMinus1=1).");
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("BoolMinusOne")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Bigint {})
+            .Column("V", SqlColumnTypeDefinitions::Bool {});
+    });
+    stmt.Prepare(R"(INSERT INTO "BoolMinusOne" ("Id", "V") VALUES (?, ?))");
+    (void) stmt.Execute(std::int64_t { 1 }, true);
+    (void) stmt.Execute(std::int64_t { 2 }, std::optional<bool> {});
+    (void) stmt.Execute(std::int64_t { 3 }, false);
+
+    auto connectionString = SqlConnection::DefaultConnectionString();
+    connectionString.value += ";TrueIsMinus1=1";
+    auto connection = SqlConnection { connectionString };
+    auto minusOne = SqlStatement { connection };
+    // The driver does report it so: a true read as a number is -1.
+    CHECK(minusOne.ExecuteDirectScalar<std::int64_t>(R"(SELECT "V" FROM "BoolMinusOne" WHERE "Id" = 1)").value_or(0) == -1);
+
+    auto const optionalText = [](std::optional<bool> const& value) {
+        if (!value.has_value())
+            return "-";
+        return *value ? "1" : "0";
+    };
+    for (auto const depth: { std::size_t { 1 }, PrefetchDepthDefault })
+    {
+        INFO("depth " << depth);
+        connection.SetDefaultPrefetchDepth(depth);
+        auto read = std::string {};
+        auto cursor = minusOne.ExecuteDirect(R"(SELECT "V" FROM "BoolMinusOne" ORDER BY "Id")");
+        while (cursor.FetchRow())
+            read += optionalText(cursor.GetNullableColumn<bool>(1));
+        CHECK(read == "1-0");
+
+        auto value = false;
+        auto bound = std::string {};
+        cursor = minusOne.ExecuteDirect(R"(SELECT "V" FROM "BoolMinusOne" ORDER BY "Id")");
+        cursor.BindOutputColumns(&value);
+        while (cursor.FetchRow())
+            bound += value ? "1" : "0";
+        CHECK(bound == "100");
+
+        auto records = std::string {};
+        for (auto const& record: SqlRowIterator<BoolMinusOneRecord> { connection })
+            records += optionalText(record.V.Value());
+        CHECK(records == "1-0");
+    }
+
+    struct BoolRow
+    {
+        std::int64_t id = 0;
+        std::optional<bool> value;
+    };
+    auto rows = std::vector<BoolRow> {};
+    auto cursor = minusOne.ExecuteDirect(R"(SELECT "Id", "V" FROM "BoolMinusOne" ORDER BY "Id")");
+    cursor.FetchAllRowWise(
+        rows,
+        8,
+        [](BoolRow& row) -> std::int64_t& { return row.id; },
+        [](BoolRow& row) -> std::optional<bool>& { return row.value; });
+    auto rowWise = std::string {};
+    for (auto const& row: rows)
+        rowWise += optionalText(row.value);
+    CHECK(rowWise == "1-0");
+
+    auto dm = DataMapper { std::move(connection) };
+    auto all = std::string {};
+    for (auto const& record: dm.Query<BoolMinusOneRecord>().OrderBy("Id").All())
+        all += optionalText(record.V.Value());
+    CHECK(all == "1-0");
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "FetchAllRowWise keeps the rows of the blocks before a failing one, and only those",
+                 "[SqlStatement]")
+{
+    auto stmt = SqlStatement {};
+    if (stmt.Connection().ServerType() == SqlServerType::SQLITE)
+        SKIP("The SQLite driver writes 1 for any positive number through SQL_C_BIT, so no row fails.");
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("BoolBlocks")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Bigint {})
+            .RequiredColumn("V", SqlColumnTypeDefinitions::Bigint {});
+    });
+    // Blocks of 4 rows: the second block's second row holds 2, which no bool reads.
+    for (auto const id: std::views::iota(0, 8))
+        (void) stmt.ExecuteDirect(
+            std::format(R"(INSERT INTO "BoolBlocks" ("Id", "V") VALUES ({}, {}))", id, id == 5 ? 2 : id % 2));
+
+    struct BoolRow
+    {
+        std::int64_t id = 0;
+        bool value = false;
+    };
+    auto rows = std::vector<BoolRow> { BoolRow { .id = -1, .value = true } };
+    auto cursor = stmt.ExecuteDirect(R"(SELECT "Id", "V" FROM "BoolBlocks" ORDER BY "Id")");
+    auto error = std::string {};
+    try
+    {
+        cursor.FetchAllRowWise(
+            rows, 4, [](BoolRow& row) -> std::int64_t& { return row.id; }, [](BoolRow& row) -> bool& { return row.value; });
+    }
+    catch (SqlException const& exception)
+    {
+        error = exception.info().sqlState;
+    }
+    CHECK(error == "22003");
+    // What the vector held before, then the first block.
+    REQUIRE(rows.size() == 5);
+    for (auto const index: std::views::iota(std::size_t { 0 }, rows.size()))
+    {
+        INFO("row " << index);
+        CHECK(rows[index].id == static_cast<std::int64_t>(index) - 1);
+        auto byte = static_cast<unsigned char>(0xAA);
+        std::memcpy(&byte, &rows[index].value, 1);
+        CHECK(byte <= 1);
+        CHECK(rows[index].value == (index == 0 || index % 2 == 0));
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "FetchAllRowWise reports a row's error, not an earlier row's warning", "[SqlStatement]")
+{
+    auto stmt = SqlStatement {};
+    if (stmt.Connection().ServerType() != SqlServerType::MICROSOFT_SQL)
+        SKIP("Only the SQL Server driver warns of a truncated fraction (01S07) and fails a later row in the block.");
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("RowErrorAfterWarning")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Bigint {})
+            .RequiredColumn("V", SqlColumnTypeDefinitions::Real { .precision = 53 });
+    });
+    // Row 1 loses its fraction (a warning), row 2 does not fit an int32_t (an error).
+    (void) stmt.ExecuteDirect(R"(INSERT INTO "RowErrorAfterWarning" ("Id", "V") VALUES (1, 1.5), (2, 5000000000))");
+
+    struct IntRow
+    {
+        std::int64_t id = 0;
+        std::int32_t value = 0;
+    };
+    auto rows = std::vector<IntRow> {};
+    auto cursor = stmt.ExecuteDirect(R"(SELECT "Id", "V" FROM "RowErrorAfterWarning" ORDER BY "Id")");
+    auto error = std::string {};
+    try
+    {
+        cursor.FetchAllRowWise(
+            rows,
+            8,
+            [](IntRow& row) -> std::int64_t& { return row.id; },
+            [](IntRow& row) -> std::int32_t& { return row.value; });
+    }
+    catch (SqlException const& exception)
+    {
+        error = exception.info().sqlState;
+    }
+    CHECK(error == "22003");
+    CHECK(rows.empty());
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "A SqlVariant reads a bit column by the bool rule, with and without prefetch",
+                 "[SqlDataBinder]")
+{
+    auto stmt = SqlStatement {};
+    if (stmt.Connection().ServerType() != SqlServerType::SQLITE)
+        SKIP("Only SQLite stores a number other than 0 or 1 in a column it describes as SQL_BIT.");
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("VariantBit")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Bigint {})
+            .Column("V", SqlColumnTypeDefinitions::Bool {});
+    });
+    (void) stmt.ExecuteDirect(R"(INSERT INTO "VariantBit" ("Id", "V") VALUES (0, 0), (1, 1), (2, 2), (3, -1))");
+
+    auto const variantOutcome = [](std::function<SqlVariant()> const& read) -> std::string {
+        try
+        {
+            return read().ToString();
+        }
+        catch (SqlException const& error)
+        {
+            return error.info().sqlState;
+        }
+    };
+    for (auto const depth: { std::size_t { 1 }, PrefetchDepthDefault })
+    {
+        stmt.Connection().SetDefaultPrefetchDepth(depth);
+        auto outcomes = std::string {};
+        for (auto const id: std::views::iota(0, 4))
+        {
+            outcomes += variantOutcome([&] {
+                auto cursor = stmt.ExecuteDirect(std::format(R"(SELECT "V" FROM "VariantBit" WHERE "Id" = {})", id));
+                if (!cursor.FetchRow())
+                    throw std::runtime_error("no row");
+                return cursor.GetColumn<SqlVariant>(1);
+            });
+            outcomes += ' ';
+        }
+        INFO("depth " << depth);
+        CHECK(outcomes == "false true 22003 22003 ");
+
+        auto rows = std::string {};
+        try
+        {
+            for (auto& row: SqlVariantRowCursor { stmt.ExecuteDirect(R"(SELECT "V" FROM "VariantBit" ORDER BY "Id")") })
+                rows += row.at(0).ToString() + ' ';
+        }
+        catch (SqlException const& error)
+        {
+            rows += error.info().sqlState;
+        }
+        CHECK(rows == "false true 22003");
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "A bool reads text the driver cannot give as a number in a BOOLEAN column as NULL",
+                 "[SqlDataBinder]")
+{
+    auto stmt = SqlStatement {};
+    if (stmt.Connection().ServerType() != SqlServerType::SQLITE)
+        SKIP("Only SQLite stores text in a column it describes as SQL_BIT.");
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("BoolText")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Bigint {})
+            .Column("V", SqlColumnTypeDefinitions::Bool {});
+    });
+    (void) stmt.ExecuteDirect(R"(INSERT INTO "BoolText" ("Id", "V") VALUES (1, 'true'))");
+    auto const query = std::string_view { R"(SELECT "V" FROM "BoolText" WHERE "Id" = 1)" };
+    auto const optionalText = [](std::optional<bool> const& value) -> std::string_view {
+        if (!value.has_value())
+            return "-";
+        return *value ? "1" : "0";
+    };
+
+    // SQLite describes the column as SQL_BIT, so a bool is read through SQL_C_SBIGINT, which the driver answers
+    // with NULL for text; the block prefetch reports the cell as NULL as well. (Through SQL_C_BIT the driver parses
+    // 'true' as 1, which earlier versions returned per row.)
+    for (auto const depth: { std::size_t { 1 }, PrefetchDepthDefault })
+    {
+        INFO("depth " << depth);
+        stmt.Connection().SetDefaultPrefetchDepth(depth);
+        auto read = std::string {};
+        {
+            auto cursor = stmt.ExecuteDirect(query);
+            REQUIRE(cursor.FetchRow());
+            read += optionalText(cursor.GetNullableColumn<bool>(1));
+        }
+        {
+            auto value = std::optional<bool> { true };
+            auto cursor = stmt.ExecuteDirect(query);
+            cursor.BindOutputColumns(&value);
+            REQUIRE(cursor.FetchRow());
+            read += optionalText(value);
+        }
+        {
+            auto cursor = stmt.ExecuteDirect(query);
+            REQUIRE(cursor.FetchRow());
+            auto const variant = cursor.GetColumn<SqlVariant>(1);
+            read += variant.IsNull() ? "-" : variant.ToString();
+        }
+        // A SqlVariant read per row reads such a cell again as text; a block-prefetched one reads it as NULL (see
+        // docs/data-binder.md).
+        CHECK(read == (depth == 1 ? "--true" : "---"));
     }
 }

@@ -4,6 +4,7 @@
 
 #include "Api.hpp"
 
+#include <algorithm>
 #include <array>
 #include <cstdint>
 #include <format>
@@ -39,6 +40,35 @@ enum class SqlServerType : uint8_t
     };
     for (auto const& [name, type]: mappings)
         if (serverName.contains(name))
+            return type;
+    return SqlServerType::UNKNOWN;
+}
+
+/// Tells the backend an ODBC driver serves from the driver's name or library path, as a connection string's
+/// @c DRIVER attribute or a data source's @c Driver entry gives it, before anything is connected.
+///
+/// The match is a case-insensitive substring, so a registered name (@c SQLite3, @c {PostgreSQL Unicode}), a
+/// lower-case spelling, and a library path (@c /usr/lib/.../libsqlite3odbc.so, @c sqlite3odbc.dll) all match.
+///
+/// @param driverName The driver's name or path; braces are allowed.
+/// @return The backend, or SqlServerType::UNKNOWN when no known name occurs in @p driverName.
+[[nodiscard]] constexpr SqlServerType ServerTypeFromDriverName(std::string_view driverName) noexcept
+{
+    using namespace std::string_view_literals;
+    // Checked in order: "sqlite" first, since a SQLite path or name may also contain "sql".
+    constexpr auto mappings = std::array {
+        std::pair { "sqlite"sv, SqlServerType::SQLITE },
+        std::pair { "postgres"sv, SqlServerType::POSTGRESQL },
+        std::pair { "psqlodbc"sv, SqlServerType::POSTGRESQL },
+        std::pair { "sql server"sv, SqlServerType::MICROSOFT_SQL },
+        std::pair { "msodbcsql"sv, SqlServerType::MICROSOFT_SQL },
+        std::pair { "mysql"sv, SqlServerType::MYSQL },
+    };
+    constexpr auto lower = [](char c) noexcept {
+        return c >= 'A' && c <= 'Z' ? static_cast<char>(c - 'A' + 'a') : c;
+    };
+    for (auto const& [needle, type]: mappings)
+        if (!std::ranges::search(driverName, needle, {}, lower).empty())
             return type;
     return SqlServerType::UNKNOWN;
 }

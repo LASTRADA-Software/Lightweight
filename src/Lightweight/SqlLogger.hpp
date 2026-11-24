@@ -77,7 +77,10 @@ class SqlLogger
     /// Invoked when a connection is opened.
     virtual void OnConnectionOpened(SqlConnection const& connection) = 0;
 
-    /// Invoked when a connection is closed.
+    /// Invoked when a connection's session has ended: by @c SqlConnection::Close() (also from the destructor) or by
+    /// a @c Connect() that replaces it, once for each session reported opened, after the driver disconnected. The
+    /// connection can no longer query its server then; its identity (@c ConnectionId()) and connection string
+    /// are still those of the ended session.
     virtual void OnConnectionClosed(SqlConnection const& connection) = 0;
 
     /// Invoked when a connection is idle.

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "SqlConnectInfo.hpp"
+#include "SqlServerType.hpp"
 
 #include <algorithm>
 #include <array>
@@ -288,16 +289,7 @@ bool EnsureSqliteDatabaseFileExists(SqlConnectionString const& connectionString)
     if (driverIt == params.end())
         return true;
 
-    auto const& driver = driverIt->second;
-    auto const driverIsSqlite = std::ranges::search(driver,
-                                                    std::string_view { "sqlite" },
-                                                    [](char a, char b) {
-                                                        return std::tolower(static_cast<unsigned char>(a))
-                                                               == std::tolower(static_cast<unsigned char>(b));
-                                                    })
-                                    .begin()
-                                != driver.end();
-    if (!driverIsSqlite)
+    if (ServerTypeFromDriverName(driverIt->second) != SqlServerType::SQLITE)
         return true;
 
     auto const databaseIt = params.find("DATABASE");

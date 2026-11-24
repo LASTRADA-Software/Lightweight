@@ -1566,7 +1566,11 @@ namespace detail
                 column.size = rawSize > 0 ? static_cast<size_t>(rawSize) : 0;
 
                 // 8 - bufferLength
-                column.decimalDigits = numColumns >= 9 ? columnCursor.GetNullableColumn<uint16_t>(9).value_or(0) : 0;
+                // DECIMAL_DIGITS is a signed SMALLINT, NULL where the digits do not apply. None of the three drivers
+                // reports a negative value, but one would read as 0 rather than drop the column.
+                auto const decimalDigits =
+                    numColumns >= 9 ? columnCursor.GetNullableColumn<int16_t>(9).value_or(int16_t { 0 }) : int16_t { 0 };
+                column.decimalDigits = static_cast<uint16_t>(std::max(decimalDigits, int16_t { 0 }));
             }
             catch (std::exception const&)
             {
@@ -1581,7 +1585,8 @@ namespace detail
             {
                 try
                 {
-                    column.isNullable = columnCursor.GetColumn<bool>(11);
+                    // NULLABLE is a SMALLINT: SQL_NO_NULLS (0), SQL_NULLABLE (1) or SQL_NULLABLE_UNKNOWN (2).
+                    column.isNullable = columnCursor.GetColumn<int16_t>(11) != SQL_NO_NULLS;
                 }
                 catch (std::exception&)
                 {

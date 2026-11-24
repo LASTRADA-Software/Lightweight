@@ -534,6 +534,15 @@ struct SqlDataBinder<BelongsTo<ReferencedField, ColumnNameOverrideString, Nullab
 
     static constexpr auto ColumnType = SqlDataBinder<InnerType>::ColumnType;
 
+    /// The year of the referenced key if it cannot be written (see detail::IsWritableYear()).
+    /// @param value The reference to write.
+    /// @return Its year if the value is refused, otherwise @c std::nullopt.
+    [[nodiscard]] static constexpr std::optional<SQLSMALLINT> UnwritableYear(SelfType const& value) noexcept
+        requires SqlBinderChecksYear<InnerType>
+    {
+        return SqlDataBinder<InnerType>::UnwritableYear(value.Value());
+    }
+
     static LIGHTWEIGHT_FORCE_INLINE SQLRETURN InputParameter(SQLHSTMT stmt,
                                                              SQLUSMALLINT column,
                                                              SelfType const& value,

@@ -31,12 +31,22 @@ namespace Lightweight
 
 struct SqlStatement::Data
 {
-    std::optional<SqlConnection> ownedConnection;    // The connection object (if owned)
-    std::vector<SQLLEN> indicators;                  // Holds the indicators for the bound output columns
-    std::deque<SQLLEN> inputIndicators;              // Holds the indicators for the bound input parameters
+    std::optional<SqlConnection> ownedConnection; // The connection object (if owned)
+    std::vector<SQLLEN> indicators;               // Holds the indicators for the bound output columns
+    // Holds the indicators for the bound input parameters. An execute that binds every parameter anew, and
+    // Prepare(), reuse the slots (see SqlStatement::ReuseParameterSlots()). Parameters bound by hand with
+    // BindInputParameter() take a new slot per bind until the next Prepare(), since a partial rebind must not
+    // take a slot another bound parameter still uses. A deque, so a slot never moves while the driver points at it.
+    std::deque<SQLLEN> inputIndicators;
     std::deque<std::vector<SQLLEN>> batchIndicators; // Holds the indicators for the bound batch input parameters
-    std::deque<std::vector<std::byte>>
-        batchStagingBuffers; // Holds temporary scratch buffers for batch input parameter binders
+    // Holds the scratch buffers of the input parameter binders, reused across executes like inputIndicators.
+    // A reused buffer grows only when its next user needs more bytes than it holds.
+    std::deque<std::vector<std::byte>> batchStagingBuffers;
+    // The row-strided indicators of a row-wise fetch's columns (see SqlStatement::ProvideRowWiseFetchIndicators()).
+    std::deque<std::vector<std::byte>> fetchIndicatorBuffers;
+    /// The staging of each output column (see SqlStatement::ProvideOutputColumnStaging()). A deque, so a staging
+    /// bound to the driver never moves when a later column adds one.
+    std::deque<SqlOutputColumnStaging> outputColumnStaging;
     std::vector<std::function<void()>> postExecuteCallbacks;
 
     /// @brief What the binders planned for one bound output column. Re-binding the column clears the
@@ -59,6 +69,27 @@ struct SqlStatement::Data
     // the driver once per result set and column, so binding a column again for every row asks nothing
     // (0: not asked yet). Only filled where the driver cannot read a bound column again.
     std::vector<std::array<std::size_t, 2>> declaredOutputColumnSizes;
+    // The precision and scale each result column declares, asked of the driver once per result set and column (see
+    // SqlStatement::DeclaredDynamicNumericDigits()).
+    std::vector<std::optional<SqlDataBinder<SqlDynamicNumeric>::DeclaredDigits>> declaredNumericDigits;
+    // The SQL type of each result column, asked of the driver once per result set and column (see
+    // SqlStatement::DescribeResultColumnType()).
+    std::vector<std::optional<SQLSMALLINT>> resultColumnTypes;
+
+    /// @brief Drops the result set's column types and declared digits: every execute may produce columns of other
+    /// types (a re-executed `SELECT ?` takes its parameter's type).
+    void ForgetResultSetColumns() noexcept
+    {
+        declaredNumericDigits.clear();
+        resultColumnTypes.clear();
+    }
+
+    /// @brief Drops what was asked of the driver about the result set's columns, since the next query's may differ.
+    void ForgetResultColumnDescriptions() noexcept
+    {
+        declaredOutputColumnSizes.clear();
+        ForgetResultSetColumns();
+    }
 
     /// @brief The callback slot of @p column, listed for the fetch loop.
     OutputColumnCallbacks& OutputColumnSlot(SQLUSMALLINT column)
@@ -77,6 +108,7 @@ struct SqlStatement::Data
     // Declared SQL type of each parameter of the prepared query, described on first demand (a NULL
     // being bound) and dropped whenever the handle is given a different query.
     std::optional<std::vector<SQLSMALLINT>> describedParameterTypes;
+    std::optional<SqlErrorInfo> inputParameterError; // a binder's refusal, raised by the next failed RequireSuccess()
 
     /// @brief Lifecycle of the transparent block-prefetch on the current result set.
     enum class PrefetchMode : std::uint8_t
@@ -126,6 +158,7 @@ struct SqlStatement::Data
             case SqlStatement::PrefetchTarget::Numeric:
                 return !isTemporal && !isGuid;
             case SqlStatement::PrefetchTarget::Text:
+            case SqlStatement::PrefetchTarget::Exact:
                 return isIntegerOrBit;
             case SqlStatement::PrefetchTarget::Temporal:
                 return isTemporal;
@@ -203,7 +236,16 @@ SQLLEN* SqlStatement::GetIndicatorForColumn(SQLUSMALLINT column) noexcept
 
 SQLLEN* SqlStatement::ProvideInputIndicator()
 {
-    return &m_data->inputIndicators.emplace_back(0);
+    auto& slots = m_data->inputIndicators;
+    if (m_inputIndicatorSlotsInUse < slots.size())
+    {
+        auto& slot = slots[m_inputIndicatorSlotsInUse++];
+        slot = 0;
+        return &slot;
+    }
+    auto& slot = slots.emplace_back(0);
+    m_inputIndicatorSlotsInUse = slots.size();
+    return &slot;
 }
 
 SQLLEN* SqlStatement::ProvideInputIndicators(size_t rowCount)
@@ -215,8 +257,19 @@ SQLLEN* SqlStatement::ProvideInputIndicators(size_t rowCount)
 std::byte* SqlStatement::ProvideBatchStagingBuffer(std::size_t byteCount)
 {
     // std::vector<std::byte> allocates via operator new, which yields max_align_t-aligned storage.
-    m_data->batchStagingBuffers.emplace_back(byteCount);
-    return m_data->batchStagingBuffers.back().data();
+    auto& slots = m_data->batchStagingBuffers;
+    if (m_stagingBufferSlotsInUse < slots.size())
+    {
+        // Growing moves the buffer. The previous execute's binding that pointed at it is replaced in this
+        // binding round, because ReuseParameterSlots() is only called where every parameter is bound again.
+        auto& slot = slots[m_stagingBufferSlotsInUse++];
+        if (slot.size() < byteCount)
+            slot.resize(byteCount);
+        return slot.data();
+    }
+    auto& slot = slots.emplace_back(byteCount);
+    m_stagingBufferSlotsInUse = slots.size();
+    return slot.data();
 }
 
 std::optional<SQLSMALLINT> SqlStatement::DescribeInputParameterType(SQLUSMALLINT column) noexcept
@@ -271,12 +324,24 @@ std::vector<SQLSMALLINT> SqlStatement::DescribeInputParameterTypes() noexcept
     }
 }
 
+std::byte* SqlStatement::ProvideRowWiseFetchIndicators(std::size_t byteCount)
+{
+    // std::vector<std::byte> allocates via operator new, which yields max_align_t-aligned storage.
+    return m_data->fetchIndicatorBuffers.emplace_back(byteCount).data();
+}
+
+void SqlStatement::ReleaseRowWiseFetchIndicators() noexcept
+{
+    m_data->fetchIndicatorBuffers.clear();
+}
+
 void SqlStatement::ClearBatchIndicators()
 {
     m_data->batchIndicators.clear();
     m_data->batchIndicators.shrink_to_fit();
     m_data->batchStagingBuffers.clear();
     m_data->batchStagingBuffers.shrink_to_fit();
+    m_stagingBufferSlotsInUse = 0;
 }
 
 namespace
@@ -343,6 +408,9 @@ void SqlStatement::PlanPostExecuteCallback(std::function<void()>&& cb)
 
 void SqlStatement::ProcessPostExecuteCallbacks()
 {
+    // Every execute of a prepared statement passes here (ExecuteDirect() and ExecuteBatchFetch() forget them in
+    // DropOutputColumnBindings(), the next result set in ConsumePendingResults()): its result set is described anew.
+    m_data->ForgetResultSetColumns();
     for (auto& cb: m_data->postExecuteCallbacks)
         cb();
     m_data->postExecuteCallbacks.clear();
@@ -396,6 +464,24 @@ std::string const& SqlStatement::DriverName() const noexcept
     return m_connection->DriverName();
 }
 
+bool SqlStatement::ConvertsNarrowIntegerCTypes() const noexcept
+{
+    return m_connection == nullptr || m_connection->ConvertsNarrowIntegerCTypes();
+}
+
+SqlOutputColumnStaging* SqlStatement::ProvideOutputColumnStaging(SQLUSMALLINT column)
+{
+    auto& slots = m_data->outputColumnStaging;
+    if (slots.size() < column)
+        slots.resize(column);
+    return &slots[column - 1U];
+}
+
+bool SqlStatement::BooleanTrueMayBeMinusOne() const noexcept
+{
+    return m_connection != nullptr && m_connection->BooleanTrueMayBeMinusOne();
+}
+
 detail::NarrowTextBinding SqlStatement::NarrowTextBindingMode() const noexcept
 {
     return m_connection->NarrowTextBindingMode();
@@ -408,12 +494,17 @@ SqlStatement::SqlStatement():
                  .inputIndicators = {},
                  .batchIndicators = {},
                  .batchStagingBuffers = {},
+                 .fetchIndicatorBuffers = {},
+                 .outputColumnStaging = {},
                  .postExecuteCallbacks = {},
                  .outputColumnCallbacks = {},
                  .columnsWithCallbacks = {},
                  .outputColumnBeingBound = 0,
                  .declaredOutputColumnSizes = {},
+                 .declaredNumericDigits = {},
+                 .resultColumnTypes = {},
                  .describedParameterTypes = {},
+                 .inputParameterError = {},
                  .prefetchMode = Data::PrefetchMode::Unarmed,
                  .prefetch = {},
                  .prefetchBlockRows = 0,
@@ -449,6 +540,8 @@ SqlStatement::SqlStatement(SqlStatement&& other) noexcept:
     m_preparedQuery { std::move(other.m_preparedQuery) },
     m_projectedFieldNames { std::move(other.m_projectedFieldNames) },
     m_projectionHasWildcard { other.m_projectionHasWildcard },
+    m_inputIndicatorSlotsInUse { other.m_inputIndicatorSlotsInUse },
+    m_stagingBufferSlotsInUse { other.m_stagingBufferSlotsInUse },
     m_expectedParameterCount { other.m_expectedParameterCount },
     m_preparedParameterCount { other.m_preparedParameterCount },
     m_reusedPreparedQuery { other.m_reusedPreparedQuery },
@@ -478,6 +571,8 @@ SqlStatement& SqlStatement::operator=(SqlStatement&& other) noexcept
     m_reusedPreparedQuery = other.m_reusedPreparedQuery;
     m_projectedFieldNames = std::move(other.m_projectedFieldNames);
     m_projectionHasWildcard = other.m_projectionHasWildcard;
+    m_inputIndicatorSlotsInUse = other.m_inputIndicatorSlotsInUse;
+    m_stagingBufferSlotsInUse = other.m_stagingBufferSlotsInUse;
     m_preparedStatementCaching = other.m_preparedStatementCaching;
 
     other.m_data.reset();
@@ -830,9 +925,10 @@ void SqlStatement::Prepare(std::string_view query) &
         m_data->describedParameterTypes.reset();
 
     m_data->postExecuteCallbacks.clear();
-    m_data->inputIndicators.clear();
     m_data->batchIndicators.clear();
-    m_data->batchStagingBuffers.clear();
+    // The single-row parameter slots stay allocated for the next binding round, which binds every
+    // parameter of the new query, so re-preparing (as DataMapper's Create() does) reallocates nothing.
+    ReuseParameterSlots();
 
     // Reset parameter-array binding attributes that a preceding batch execution may have left on the
     // handle. SqlStatement handles are reused (e.g. by DataMapper) across single and batched executes;
@@ -1014,7 +1110,8 @@ SqlResultCursor SqlStatement::ExecuteDirect(std::string_view const& query, std::
     RequireSuccess(SQLFreeStmt(m_hStmt, SQL_UNBIND));
     DropOutputColumnBindings();
 
-    m_data->inputIndicators.clear();
+    // Parameters bound by hand before this call stay bound for the new query and keep pointing at their
+    // slots, so the slots stay theirs: they go back only at Prepare() or where every parameter is bound anew.
     m_data->batchIndicators.clear();
 
     SqlLogger::GetLogger().OnExecuteDirect(query);
@@ -1049,6 +1146,10 @@ SqlResultCursor SqlStatement::ExecuteWithVariants(std::vector<SqlVariant> const&
     if (!(m_expectedParameterCount == (std::numeric_limits<decltype(m_expectedParameterCount)>::max)() && args.empty())
         && !(static_cast<size_t>(m_expectedParameterCount) == args.size()))
         throw std::invalid_argument { "Invalid argument count" };
+
+    // Every parameter is bound below; without arguments, those bound by hand keep their slots.
+    if (!args.empty())
+        ReuseParameterSlots();
 
 #if !defined(__cpp_lib_ranges_enumerate)
     int i { -1 };
@@ -1184,7 +1285,8 @@ RowArrayCursor SqlStatement::ExecuteBatchFetch(std::string_view query, std::size
     RequireSuccess(SQLFreeStmt(m_hStmt, SQL_UNBIND));
     DropOutputColumnBindings();
 
-    m_data->inputIndicators.clear();
+    // Parameters bound by hand before this call stay bound for the new query and keep pointing at their
+    // slots, so the slots stay theirs: they go back only at Prepare() or where every parameter is bound anew.
     m_data->batchIndicators.clear();
 
     SqlLogger::GetLogger().OnExecuteDirect(query);
@@ -1328,9 +1430,38 @@ std::size_t SqlStatement::MinimumOutputColumnSize(SQLUSMALLINT column, SqlOutput
     return size;
 }
 
+SqlDataBinder<SqlDynamicNumeric>::DeclaredDigits SqlStatement::DeclaredDynamicNumericDigits(SQLUSMALLINT column) const
+{
+    auto& digits = m_data->declaredNumericDigits;
+    if (digits.size() <= column)
+        digits.resize(static_cast<std::size_t>(column) + 1);
+    auto& declared = digits[column];
+    if (!declared)
+        declared = SqlDataBinder<SqlDynamicNumeric>::ColumnDigits(m_hStmt, column);
+    return *declared;
+}
+
+std::optional<SQLSMALLINT> SqlStatement::DescribeResultColumnType(SQLUSMALLINT column) const noexcept
+{
+    try
+    {
+        auto& types = m_data->resultColumnTypes;
+        if (types.size() <= column)
+            types.resize(static_cast<std::size_t>(column) + 1);
+        auto& type = types[column];
+        if (!type)
+            type = detail::DescribeResultColumnSqlType(m_hStmt, column);
+        return type;
+    }
+    catch (...)
+    {
+        return std::nullopt; // the binder then asks the driver itself
+    }
+}
+
 void SqlStatement::DropOutputColumnBindings() noexcept
 {
-    m_data->declaredOutputColumnSizes.clear(); // the next query's result set may differ
+    m_data->ForgetResultColumnDescriptions(); // the next query's result set may differ
     ResetPrefetchBindings();
     ResetOutputColumnCallbacks();
     m_data->prefetchDeferredBindsIssued = false;
@@ -1345,6 +1476,12 @@ void SqlStatement::NoteOutputColumnBoundDirectly() noexcept
 void SqlStatement::MarkPrefetchBindingUnsupported() noexcept
 {
     m_data->prefetchBindingUnsupported = true;
+}
+
+void SqlStatement::KeepVariantReadsPerRow() noexcept
+{
+    if (m_connection != nullptr && m_connection->ReportsUnconvertibleCellsAsNull())
+        MarkPrefetchBindingUnsupported();
 }
 
 void SqlStatement::RecordPrefetchColumn(SQLUSMALLINT column,
@@ -1503,15 +1640,22 @@ SqlVariant SqlStatement::MakePrefetchVariantCell(RowArrayCursor const& cursor, s
     switch (cursor.ColumnSqlType(column))
     {
         case SQL_BIT:
-            return SqlVariant { SqlVariant::InnerType { static_cast<bool>(cursor.GetI64(row, column).value_or(0)) } };
+            // The rule of the per-row bool read: 0 and 1 (and -1 where the driver reports a boolean true so), else 22003.
+            return SqlVariant { SqlVariant::InnerType {
+                detail::BoolFromInteger(cursor.GetI64(row, column).value_or(0), column, BooleanTrueMayBeMinusOne()) } };
         case SQL_TINYINT:
             // Unsigned 0..255 on SQL Server; int8_t would wrap 128..255 to negatives. Widen to short,
             // matching the per-row SqlVariant path so a prefetched cell compares equal to a per-row one.
             return SqlVariant { SqlVariant::InnerType { static_cast<short>(cursor.GetI64(row, column).value_or(0)) } };
         case SQL_SMALLINT:
             return SqlVariant { SqlVariant::InnerType { static_cast<short>(cursor.GetI64(row, column).value_or(0)) } };
-        case SQL_INTEGER:
-            return SqlVariant { SqlVariant::InnerType { static_cast<int>(cursor.GetI64(row, column).value_or(0)) } };
+        case SQL_INTEGER: {
+            // An int when it fits, as the per-row read gives it; SQLite stores wider integers in INTEGER columns.
+            auto const value = cursor.GetI64(row, column).value_or(0);
+            if (std::in_range<int>(value))
+                return SqlVariant { SqlVariant::InnerType { static_cast<int>(value) } };
+            return SqlVariant { SqlVariant::InnerType { static_cast<long long>(value) } };
+        }
         case SQL_BIGINT:
             return SqlVariant { SqlVariant::InnerType { static_cast<long long>(cursor.GetI64(row, column).value_or(0)) } };
         case SQL_REAL:
@@ -1758,7 +1902,7 @@ void SqlStatement::ConsumePendingResults(std::source_location location)
 {
     // A cursor kept across its connection's Close() must not drain a freed handle: 08003 instead.
     RequireCurrentSession();
-    m_data->declaredOutputColumnSizes.clear(); // the next result set's columns may differ
+    m_data->ForgetResultColumnDescriptions(); // the next result set's columns may differ
     while (true)
     {
         auto const rc = SQLMoreResults(m_hStmt);
@@ -1770,7 +1914,25 @@ void SqlStatement::ConsumePendingResults(std::source_location location)
 
 void SqlStatement::RequireSuccess(SQLRETURN error, std::source_location sourceLocation) const
 {
+    if (!SQL_SUCCEEDED(error) && m_data->inputParameterError)
+    {
+        auto refusal = std::move(*m_data->inputParameterError);
+        m_data->inputParameterError.reset();
+        throw SqlException(std::move(refusal), sourceLocation);
+    }
     Lightweight::RequireSuccess(m_hStmt, error, sourceLocation);
+}
+
+void SqlStatement::ReportInputParameterError(SqlErrorInfo const& error) noexcept
+{
+    try
+    {
+        m_data->inputParameterError = error;
+    }
+    catch (...)
+    {
+        m_data->inputParameterError.reset(); // out of memory: the handle's diagnostic is all there is
+    }
 }
 
 SqlQueryBuilder SqlStatement::Query(std::string_view const& table) const

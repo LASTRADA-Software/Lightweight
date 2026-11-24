@@ -4,6 +4,14 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <cstddef>
+#include <cstdint>
+#include <initializer_list>
+#include <ranges>
+#include <string>
+#include <string_view>
+#include <vector>
+
 #if defined(_WIN32) || defined(_WIN64)
     #ifndef NOMINMAX
         #define NOMINMAX
@@ -162,26 +170,27 @@ TEST_CASE("UTF-16 encoding: BMP non-surrogate above 0xDFFF", "[Unicode]")
     CHECK(u16High[1] == 0xFFFD);
 }
 
-TEST_CASE("UTF-16 encoding: surrogate-range input is dropped", "[Unicode]")
+TEST_CASE("UTF-16 encoding: surrogate-range input is replaced with U+FFFD", "[Unicode]")
 {
     // Path: 0xD800 <= input < 0xE000 (the surrogate range) is invalid in a
-    // UTF-32 source string. UnicodeConverter<char16_t>::Convert drops these
-    // silently to avoid producing structurally-broken UTF-16.
+    // UTF-32 source string. UnicodeConverter<char16_t>::Convert writes U+FFFD
+    // rather than structurally-broken UTF-16, and rather than dropping it unseen.
     std::u32string const surrogateInput { static_cast<char32_t>(0xD800), U'X' };
     auto const u16 = ToUtf16(std::u32string_view { surrogateInput });
-    // Only 'X' should make it through; the orphan surrogate is dropped.
-    REQUIRE(u16.size() == 1);
-    CHECK(u16[0] == u'X');
+    REQUIRE(u16.size() == 2);
+    CHECK(u16[0] == 0xFFFD);
+    CHECK(u16[1] == u'X');
 }
 
-TEST_CASE("UTF-16 encoding: out-of-range code point is dropped", "[Unicode]")
+TEST_CASE("UTF-16 encoding: out-of-range code point is replaced with U+FFFD", "[Unicode]")
 {
     // Path: input >= 0x110000 — the code point exceeds Unicode's defined range,
-    // and UnicodeConverter<char16_t>::Convert drops it silently.
+    // and UnicodeConverter<char16_t>::Convert writes U+FFFD for it.
     std::u32string const tooLarge { static_cast<char32_t>(0x110000), U'Y' };
     auto const u16 = ToUtf16(std::u32string_view { tooLarge });
-    REQUIRE(u16.size() == 1);
-    CHECK(u16[0] == u'Y');
+    REQUIRE(u16.size() == 2);
+    CHECK(u16[0] == 0xFFFD);
+    CHECK(u16[1] == u'Y');
 }
 
 TEST_CASE("UTF-32 from UTF-16: orphan surrogate replaced with U+FFFD", "[Unicode]")
@@ -207,8 +216,8 @@ TEST_CASE("UTF-32 from UTF-16: stray low surrogate replaced with U+FFFD", "[Unic
 
 TEST_CASE("UTF-32 from UTF-8: lone continuation byte is replaced", "[Unicode]")
 {
-    // Utf32Converter::Process: continuation byte (0b10xxxxxx) with codeUnits == 0
-    // is invalid and emits InvalidCodePoint (U+FFFD).
+    // Utf32Converter::Decode: a continuation byte (0b10xxxxxx) that no lead byte opened is
+    // ill-formed on its own and decodes to InvalidCodePoint (U+FFFD).
     std::u8string const malformed { 0x80, u8'A' };
     auto const u32 = ToUtf32(std::u8string_view { malformed });
     // 0x80 → U+FFFD; 'A' → U+0041
@@ -364,5 +373,166 @@ TEST_CASE("UTF-16 to local 8-bit conversion uses the process code page without b
 
     auto const umlaut = u"\u00E4"sv;
     CHECK(ToUtf16(ToLocaleString(umlaut)) == umlaut);
+}
+#endif
+
+namespace
+{
+
+/// @p bytes as a UTF-8 string.
+std::u8string Bytes(std::initializer_list<unsigned> bytes)
+{
+    auto text = std::u8string {};
+    for (auto const byte: bytes)
+        text.push_back(static_cast<char8_t>(byte));
+    return text;
+}
+
+/// Checks that @p input decodes to @p expected through ToUtf32, ToUtf16 and ToStdWideString.
+void CheckDecodes(std::u8string const& input, std::u32string const& expected)
+{
+    CHECK(ToUtf32(std::u8string_view { input }) == expected);
+    CHECK(ToUtf16(std::u8string_view { input }) == ToUtf16(std::u32string_view { expected }));
+    auto const wide = ToStdWideString(std::u8string_view { input });
+    if constexpr (sizeof(wchar_t) == 4)
+        CHECK(std::u32string(wide.begin(), wide.end()) == expected);
+    else
+        CHECK(std::u16string(wide.begin(), wide.end()) == ToUtf16(std::u32string_view { expected }));
+}
+
+} // namespace
+
+TEST_CASE("UTF-8 decoding: a trailing U+FFFD is kept", "[Unicode]")
+{
+    CheckDecodes(Bytes({ 'a', 'b', 0xEF, 0xBF, 0xBD }), U"ab\uFFFD");
+    CheckDecodes(Bytes({ 0xEF, 0xBF, 0xBD }), U"\uFFFD");
+}
+
+TEST_CASE("UTF-8 decoding: an invalid lead byte costs one U+FFFD, the next byte is read", "[Unicode]")
+{
+    CheckDecodes(Bytes({ 'S', 't', 'r', 'a', 0xDF, 'e' }), U"Stra\uFFFDe");
+    CheckDecodes(Bytes({ 0xFF, 'x' }), U"\uFFFDx");
+    CheckDecodes(Bytes({ 0x80, 0x80, 'y' }), U"\uFFFD\uFFFDy");
+}
+
+TEST_CASE("UTF-8 decoding: a truncated sequence costs one U+FFFD, its maximal subpart", "[Unicode]")
+{
+    // Unicode's recommended practice (and MultiByteToWideChar's, WHATWG's): the longest valid prefix of a
+    // sequence is one ill-formed subsequence, replaced by one U+FFFD; the byte that ended it is read again.
+    CheckDecodes(Bytes({ 'a', 0xC3 }), U"a\uFFFD");
+    CheckDecodes(Bytes({ 'a', 0xE2, 0x82 }), U"a\uFFFD");
+    CheckDecodes(Bytes({ 'a', 0xF0, 0x9F, 0x98 }), U"a\uFFFD");
+    CheckDecodes(Bytes({ 0xC3, 'b' }), U"\uFFFDb");
+    CheckDecodes(Bytes({ 0xE2, 0x82, 0x41 }), U"\uFFFDA");
+    CheckDecodes(Bytes({ 0xF0, 0x9F, 0x98, 'b' }), U"\uFFFDb");
+    CheckDecodes(Bytes({ 0xF0, 0x9F, 0xE2, 0x82, 0xAC }), U"\uFFFD\u20AC"); // a new lead byte ends the subpart
+}
+
+TEST_CASE("UTF-8 decoding: overlong encodings and encoded surrogates are ill-formed", "[Unicode]")
+{
+    CheckDecodes(Bytes({ 0xC0, 0x80, 'x' }), U"\uFFFD\uFFFDx");
+    CheckDecodes(Bytes({ 0xC1, 0xBF }), U"\uFFFD\uFFFD");
+    CheckDecodes(Bytes({ 0xE0, 0x80, 0xAF }), U"\uFFFD\uFFFD\uFFFD");
+    CheckDecodes(Bytes({ 0xF0, 0x80, 0x80, 0xAF }), U"\uFFFD\uFFFD\uFFFD\uFFFD");
+    CheckDecodes(Bytes({ 0xED, 0xA0, 0x80 }), U"\uFFFD\uFFFD\uFFFD");             // U+D800
+    CheckDecodes(Bytes({ 0xED, 0xBF, 0xBF }), U"\uFFFD\uFFFD\uFFFD");             // U+DFFF
+    CheckDecodes(Bytes({ 0xF4, 0x90, 0x80, 0x80 }), U"\uFFFD\uFFFD\uFFFD\uFFFD"); // above U+10FFFF
+}
+
+TEST_CASE("UTF-8 decoding: the boundary code points", "[Unicode]")
+{
+    CheckDecodes(Bytes({ 0xF4, 0x8F, 0xBF, 0xBF }), U"\U0010FFFF");
+    CheckDecodes(Bytes({ 0xED, 0x9F, 0xBF }), U"\uD7FF");
+    CheckDecodes(Bytes({ 0xEE, 0x80, 0x80 }), U"\uE000");
+    CheckDecodes(Bytes({ 0xC2, 0x80 }), U"\u0080");
+    CheckDecodes(Bytes({ 0xF0, 0x90, 0x80, 0x80 }), U"\U00010000");
+}
+
+TEST_CASE("UTF-8 decoding: valid text round-trips through every conversion", "[Unicode]")
+{
+    auto const text = std::u32string { U"ASCII \u00E4\u00DF \u4E2D\u6587 \U0001F600 \uFFFD \U0010FFFF end" };
+    auto const utf8 = ToUtf8(std::u32string_view { text });
+    CHECK(ToUtf32(std::u8string_view { utf8 }) == text);
+    auto const utf16 = ToUtf16(std::u8string_view { utf8 });
+    CHECK(utf16 == ToUtf16(std::u32string_view { text }));
+    CHECK(ToUtf8(std::u16string_view { utf16 }) == utf8);
+    CHECK(ToUtf32(std::u16string_view { utf16 }) == text);
+    CheckDecodes(utf8, text);
+}
+
+namespace
+{
+/// Unpaired surrogates in UTF-16 input, and what decoding them must give: one U+FFFD per unpaired unit,
+/// every other unit decoded on its own.
+struct UnpairedSurrogateCase
+{
+    std::u16string input;
+    std::u32string expected;
+};
+
+std::vector<UnpairedSurrogateCase> UnpairedSurrogateCases()
+{
+    constexpr auto High = char16_t { 0xD83D };
+    constexpr auto Low = char16_t { 0xDE00 };
+    return {
+        { .input = { High, u'A' }, .expected = U"�A" },               // high, then a BMP character
+        { .input = { u'C', High }, .expected = U"C�" },               // high at the end
+        { .input = { Low, u'B' }, .expected = U"�B" },                // low without a high
+        { .input = { High, High, Low }, .expected = U"�\U0001F600" }, // high, then a complete pair
+        { .input = { Low, High }, .expected = U"��" },                // reversed pair
+        { .input = { High, u'ä', Low }, .expected = U"�ä�" },
+    };
+}
+} // namespace
+
+TEST_CASE("UTF-16 decoding: an unpaired surrogate costs one U+FFFD and swallows nothing", "[Unicode]")
+{
+    auto const cases = UnpairedSurrogateCases();
+    for (auto const index: std::views::iota(std::size_t { 0 }, cases.size()))
+    {
+        INFO("case " << index);
+        auto const& [input, expected] = cases[index];
+        auto const view = std::u16string_view { input };
+        CHECK(ToUtf32(view) == expected);
+        CHECK(ToUtf8(view) == ToUtf8(std::u32string_view { expected }));
+        if constexpr (sizeof(wchar_t) == 2)
+        {
+            auto const wide = std::wstring(input.begin(), input.end());
+            CHECK(ToUtf8(std::wstring_view { wide }) == ToUtf8(std::u32string_view { expected }));
+        }
+    }
+}
+
+TEST_CASE("UTF-32 encoding: a code point that is no Unicode scalar value becomes U+FFFD", "[Unicode]")
+{
+    for (auto const invalid: { char32_t { 0xD800 }, char32_t { 0xDFFF }, char32_t { 0x110000 } })
+    {
+        INFO("code point " << static_cast<std::uint32_t>(invalid));
+        auto const input = std::u32string { invalid, U'X' };
+        CHECK(ToUtf16(std::u32string_view { input }) == u"�X");
+        CHECK(ToUtf8(std::u32string_view { input }) == u8"�X");
+    }
+}
+
+#if defined(_WIN32) || defined(_WIN64)
+TEST_CASE("UTF-8 decoding replaces truncated and stray bytes as the Windows code-page conversion does", "[Unicode]")
+{
+    // The library's own decoder and MultiByteToWideChar(CP_UTF8), which the code-page paths use, agree on how
+    // many U+FFFD a truncated sequence or a stray byte costs. (They differ where a lead byte's second byte is out
+    // of its range, an overlong form or an encoded surrogate: Windows takes the two bytes as one subpart, Unicode's
+    // recommended practice and WHATWG, which the library follows, each byte on its own.)
+    for (auto const& input: { Bytes({ 0xE2, 0x82, 0x41 }),
+                              Bytes({ 'a', 0xF0, 0x9F, 0x98 }),
+                              Bytes({ 0xF0, 0x9F, 0xE2, 0x82, 0xAC }),
+                              Bytes({ 0xC0, 0x80, 'x' }),
+                              Bytes({ 0x80, 0x80, 'y' }) })
+    {
+        auto const* const bytes = reinterpret_cast<char const*>(input.data());
+        auto const length = static_cast<int>(input.size());
+        auto platform =
+            std::wstring(static_cast<std::size_t>(MultiByteToWideChar(CP_UTF8, 0, bytes, length, nullptr, 0)), L'\0');
+        MultiByteToWideChar(CP_UTF8, 0, bytes, length, platform.data(), static_cast<int>(platform.size()));
+        CHECK((ToUtf16(std::u8string_view { input }) == std::u16string(platform.begin(), platform.end())));
+    }
 }
 #endif

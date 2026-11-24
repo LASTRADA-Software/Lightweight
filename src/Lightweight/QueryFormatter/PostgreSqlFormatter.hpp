@@ -39,6 +39,24 @@ class PostgreSqlFormatter final: public SQLiteQueryFormatter
         return true;
     }
 
+    /// PostgreSQL enforces its column types: undoes the SQLite formatter's answer.
+    [[nodiscard]] bool ReportsUnconvertibleCellsAsNull() const noexcept override
+    {
+        return false;
+    }
+
+    /// psqlODBC reports a boolean true as -1 under the connection option TrueIsMinus1=1.
+    [[nodiscard]] bool BooleanTrueMayBeMinusOne() const noexcept override
+    {
+        return true;
+    }
+
+    /// The PostgreSQL driver converts every integer C type over its range: undoes the SQLite formatter's answer.
+    [[nodiscard]] bool ConvertsNarrowIntegerCTypes() const noexcept override
+    {
+        return true;
+    }
+
     [[nodiscard]] bool BoundsBulkLoadTransactionSize() const noexcept override
     {
         return false;
@@ -390,6 +408,13 @@ class PostgreSqlFormatter final: public SQLiteQueryFormatter
 
     /// PostgreSQL has no SQLite settings: undoes the PRAGMAs inherited from the SQLite formatter.
     [[nodiscard]] StringList SqliteSettingsStatements(SqliteConnectionSettings const& /*settings*/) const override
+    {
+        return {};
+    }
+
+    /// PostgreSQL has no SQLite settings: undoes the driver attribute inherited from the SQLite formatter.
+    [[nodiscard]] SqlConnectionStringMap DriverConnectionAttributes(
+        SqliteConnectionSettings const& /*settings*/) const override
     {
         return {};
     }

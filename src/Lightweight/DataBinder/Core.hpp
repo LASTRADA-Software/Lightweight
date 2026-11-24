@@ -9,6 +9,7 @@
 #include "../SqlServerType.hpp"
 
 #include <algorithm>
+#include <array>
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
@@ -16,7 +17,9 @@
 #include <functional>
 #include <memory>
 #include <optional>
+#include <ranges>
 #include <string_view>
+#include <type_traits>
 #include <utility>
 
 #include <sql.h>
@@ -65,7 +68,84 @@ namespace detail
     /// @brief Elements a growable container is bound with at least, where the driver can read a bound
     /// column again (see @ref SqlDataBinderCallback::MinimumOutputColumnSize).
     inline constexpr std::size_t DefaultBoundColumnSize = 255;
+
+    /// @brief Throws SQLSTATE 22003 for a value of column @p column that the variable it is read into cannot
+    /// hold, as a driver that checks the range reports it.
+    /// @param column The 1-based column index.
+    /// @param value The value as read.
+    /// @param lowest The smallest value the variable accepts.
+    /// @param highest The largest value the variable accepts.
+    template <typename Value, typename Bound>
+    [[noreturn]] void ThrowNumericValueOutOfRange(SQLUSMALLINT column, Value value, Bound lowest, Bound highest)
+    {
+        throw SqlException(SqlErrorInfo {
+            .nativeErrorCode = 0,
+            .sqlState = "22003",
+            .message = std::format(
+                "Numeric value out of range: column {} holds {}, outside [{}, {}].", column, value, lowest, highest),
+        });
+    }
+
+    /// @brief Whether @p serverType's driver may report a boolean true as -1; forwards to
+    /// @c SqlQueryFormatter::BooleanTrueMayBeMinusOne.
+    /// @param serverType The backend.
+    /// @return The formatter's answer; @c false for a backend without a formatter.
+    [[nodiscard]] LIGHTWEIGHT_API bool BooleanTrueMayBeMinusOne(SqlServerType serverType) noexcept;
+
+    /// @brief The @c bool a number read for a @c bool stands for: 0 is @c false, 1 is @c true, and -1 is @c true
+    /// where @p minusOneIsTrue (a driver that reports a boolean true as -1).
+    /// @param value The number.
+    /// @param column The 1-based column index, for the error.
+    /// @param minusOneIsTrue Whether -1 is the dialect's form of a boolean true.
+    /// @return The @c bool.
+    /// @throws SqlException 22003 for any other number, as SQL Server's driver fails it.
+    [[nodiscard]] inline bool BoolFromInteger(std::int64_t value, SQLUSMALLINT column, bool minusOneIsTrue)
+    {
+        if (value == 1 || (value == -1 && minusOneIsTrue))
+            return true;
+        if (value != 0)
+            ThrowNumericValueOutOfRange(column, value, minusOneIsTrue ? -1 : 0, 1);
+        return false;
+    }
+
+    /// @brief The @c bool a floating-point number read for a @c bool stands for, as ODBC converts a number to
+    /// @c SQL_C_BIT: its integral part where the number is in [0, 2).
+    /// @param value The number.
+    /// @param column The 1-based column index, for the error.
+    /// @return The @c bool.
+    /// @throws SqlException 22003 for a number outside [0, 2) or NaN.
+    [[nodiscard]] inline bool BoolFromFloatingPoint(double value, SQLUSMALLINT column)
+    {
+        if (!(value >= 0.0 && value < 2.0))
+            ThrowNumericValueOutOfRange(column, value, 0, 1);
+        return value >= 1.0;
+    }
+
+    /// @brief Whether @p serverType's driver converts the @c int8_t and @c uint32_t C types over their full
+    /// range; forwards to @c SqlQueryFormatter::ConvertsNarrowIntegerCTypes, which the binders cannot include.
+    /// @param serverType The backend.
+    /// @return @c true where those binders bind in place; @c false where they stage a wider C type.
+    [[nodiscard]] LIGHTWEIGHT_API bool ConvertsNarrowIntegerCTypes(SqlServerType serverType) noexcept;
+
+    /// @brief Whether @p serverType's driver reports a cell its column type cannot convert as NULL; forwards to
+    /// @c SqlQueryFormatter::ReportsUnconvertibleCellsAsNull.
+    /// @param serverType The backend.
+    /// @return The formatter's answer; @c false for a backend without a formatter.
+    [[nodiscard]] LIGHTWEIGHT_API bool ReportsUnconvertibleCellsAsNull(SqlServerType serverType) noexcept;
 } // namespace detail
+
+/// The staging a statement keeps for one bound output column whose binder converts a staged value per row (see
+/// @c SqlDataBinderCallback::ProvideOutputColumnStaging): the value the driver writes, and what the binder's
+/// post-fetch step needs to convert it.
+struct SqlOutputColumnStaging
+{
+    alignas(std::int64_t) std::array<std::byte, sizeof(std::int64_t)> value {}; //!< The value the driver writes.
+    void* target = nullptr;                                                     //!< The bound variable.
+    SQLLEN* indicator = nullptr;                                                //!< The column's indicator.
+    SQLUSMALLINT column = 0;                                                    //!< The 1-based column index.
+    std::uint8_t kind = 0;                 //!< Which C type the binder bound, in the binder's own terms.
+    bool booleanTrueMayBeMinusOne = false; //!< The dialect's form of a boolean true, for the @c bool binder.
+};
 
 /// Callback interface for SqlDataBinder to allow post-processing of output columns.
 ///
@@ -193,10 +273,259 @@ class LIGHTWEIGHT_API SqlDataBinderCallback
         (void) column;
         return std::nullopt;
     }
+
+    /// The SQL type the driver describes for result column @p column (see detail::DescribeResultColumnSqlType()),
+    /// asked of the driver once per result set and column, so a binder that picks its read by the column's type
+    /// for every row's cell (SqlVariant) asks nothing after the first row.
+    /// @param column The 1-based column index.
+    /// @return The SQL type, or @c std::nullopt when the callback keeps none or the driver cannot describe the
+    ///         column (the binder then asks the driver itself, and reports its error).
+    [[nodiscard]] virtual std::optional<SQLSMALLINT> DescribeResultColumnType(SQLUSMALLINT column) const noexcept
+    {
+        (void) column;
+        return std::nullopt;
+    }
+
+    /// Records why a binder refused to bind a value, which it then answers with @c SQL_ERROR: the driver
+    /// posted no diagnostic for it, so the error the caller raises is this one.
+    ///
+    /// @param error The SQLSTATE and message to report.
+    virtual void ReportInputParameterError(SqlErrorInfo const& error) noexcept
+    {
+        (void) error;
+    }
+
+    /// Whether the driver converts an @c int8_t bound as @c SQL_C_STINYINT and a @c uint32_t bound as
+    /// @c SQL_C_ULONG over the type's full range (see @c SqlQueryFormatter::ConvertsNarrowIntegerCTypes); the
+    /// binders of those types stage a wider C type where it does not. A statement answers from its connection,
+    /// which decides it once per connect.
+    /// @return @c true where those binders bind in place.
+    [[nodiscard]] virtual bool ConvertsNarrowIntegerCTypes() const noexcept
+    {
+        return detail::ConvertsNarrowIntegerCTypes(ServerType());
+    }
+
+    /// Provides the staging of output column @p column, which stays valid as long as the callback: a binder that
+    /// converts a staged value per row binds its value there instead of the variable, keeps what its post-fetch
+    /// step needs in it, so that step captures only a pointer (no allocation per bind), and binding the same column
+    /// again reuses it.
+    /// @param column The 1-based column index.
+    /// @return The staging, or @c nullptr when the callback keeps none (the binder then allocates its own).
+    [[nodiscard]] virtual SqlOutputColumnStaging* ProvideOutputColumnStaging(SQLUSMALLINT column)
+    {
+        (void) column;
+        return nullptr;
+    }
+
+    /// Whether the driver may report a boolean true as -1 (see @c SqlQueryFormatter::BooleanTrueMayBeMinusOne). A
+    /// statement answers from its connection, which decides it once per connect.
+    /// @return @c true where a @c bool read takes -1 as @c true.
+    [[nodiscard]] virtual bool BooleanTrueMayBeMinusOne() const noexcept
+    {
+        return detail::BooleanTrueMayBeMinusOne(ServerType());
+    }
 };
+
+namespace detail
+{
+    /// Asks the driver for the concise SQL type of result column @p column with @c SQLDescribeColW.
+    ///
+    /// SQLDescribeCol reports the concise SQL type code (e.g. SQL_TYPE_DATE, SQL_TYPE_TIME, SQL_TYPE_TIMESTAMP). It
+    /// is asked rather than SQLColAttribute(SQL_DESC_CONCISE_TYPE), which the SQLite driver answers with SQL_WCHAR
+    /// for a BLOB column. The W variant keeps the ODBC call surface on the Unicode-app path the rest of the library
+    /// uses. The column name is not needed, but a real buffer with its true length is passed: psqlODBC under
+    /// unixODBC fails a null or zero-length name buffer with HY001 ("Could not allocate memory for column name").
+    /// On the stack, and a name longer than it is only truncated (01004, a success).
+    /// @param stmt The statement handle.
+    /// @param column The 1-based column index.
+    /// @param columnType Receives the SQL type.
+    /// @return The driver's return code.
+    inline SQLRETURN DescribeResultColumnSqlType(SQLHSTMT stmt, SQLUSMALLINT column, SQLSMALLINT* columnType) noexcept
+    {
+        SQLULEN columnSize {};
+        SQLSMALLINT decimalDigits {};
+        SQLSMALLINT nullable {};
+        auto columnName = std::array<SQLWCHAR, 64> {};
+        SQLSMALLINT columnNameLength {};
+        return SQLDescribeColW(stmt,
+                               column,
+                               columnName.data(),
+                               static_cast<SQLSMALLINT>(columnName.size()),
+                               &columnNameLength,
+                               columnType,
+                               &columnSize,
+                               &decimalDigits,
+                               &nullable);
+    }
+
+    /// Asks the driver for the concise SQL type of result column @p column (see the overload above).
+    /// @param stmt The statement handle.
+    /// @param column The 1-based column index.
+    /// @return The SQL type, or @c std::nullopt when the driver cannot describe the column.
+    inline std::optional<SQLSMALLINT> DescribeResultColumnSqlType(SQLHSTMT stmt, SQLUSMALLINT column) noexcept
+    {
+        SQLSMALLINT columnType {};
+        if (!SQL_SUCCEEDED(DescribeResultColumnSqlType(stmt, column, &columnType)))
+            return std::nullopt;
+        return columnType;
+    }
+
+    /// Prepares the staging of output column @p fields.column for a binder that binds its value there and converts
+    /// it into @p fields.target after every fetch with @p Convert: the statement's staging of the column, else one
+    /// the planned step owns. With the statement's staging the step captures one pointer, so it fits
+    /// @c std::function's inline buffer and binding the column again allocates nothing. Everything the conversion
+    /// needs is in @p fields: nothing is written to the staging once the step is handed to @p cb.
+    /// @tparam Convert The conversion, called with the staging after every fetch.
+    /// @param cb The binder callback.
+    /// @param fields The column, variable, indicator and conversion details; its @c value is ignored.
+    /// @return The address of the staged value, which the binder binds; valid as long as the planned step.
+    template <auto Convert>
+    std::byte* PlanStagedOutputColumn(SqlDataBinderCallback& cb, SqlOutputColumnStaging const& fields)
+    {
+        if (auto* const slot = cb.ProvideOutputColumnStaging(fields.column); slot != nullptr)
+        {
+            *slot = fields;
+            slot->value = {};
+            auto* const bound = slot->value.data();
+            auto step = [slot] {
+                Convert(*slot);
+            };
+            // libstdc++ keeps a callable inline only if it is trivially copyable and fits two pointers.
+            static_assert(sizeof(step) <= 2 * sizeof(void*) && std::is_trivially_copyable_v<decltype(step)>,
+                          "kept within std::function's inline buffer");
+            cb.PlanPostProcessOutputColumn(step);
+            return bound;
+        }
+        auto staging = std::make_shared<SqlOutputColumnStaging>(fields);
+        staging->value = {};
+        auto* const bound = staging->value.data();
+        auto step = [staging = std::move(staging)] {
+            Convert(*staging);
+        };
+        cb.PlanPostProcessOutputColumn(std::move(step));
+        return bound;
+    }
+} // namespace detail
+
+namespace detail
+{
+    /// The layout of the parameter array that is being bound.
+    struct SqlParameterArrayLayout
+    {
+        /// The byte distance from one row's value to the next.
+        std::size_t rowStride {};
+        /// The number of rows.
+        std::size_t rowCount {};
+    };
+
+    /// Reads the layout of the parameter array the statement is bound with.
+    ///
+    /// @param stmt The statement whose parameters are being bound.
+    /// @param valueSize The size of one value, which is the stride of a column-wise array.
+    /// @param columnWiseRowCount The row count of a column-wise (or single-row) binding.
+    /// @return The row size and parameter set size of a row-wise binding, otherwise the column-wise layout.
+    [[nodiscard]] inline SqlParameterArrayLayout CurrentParameterArrayLayout(SQLHSTMT stmt,
+                                                                             std::size_t valueSize,
+                                                                             std::size_t columnWiseRowCount) noexcept
+    {
+        auto bindType = SQLULEN { SQL_PARAM_BIND_BY_COLUMN };
+        if (!SQL_SUCCEEDED(SQLGetStmtAttr(stmt, SQL_ATTR_PARAM_BIND_TYPE, &bindType, 0, nullptr))
+            || bindType == SQL_PARAM_BIND_BY_COLUMN)
+            return { .rowStride = valueSize, .rowCount = columnWiseRowCount };
+
+        auto parameterSetSize = SQLULEN { 1 };
+        if (!SQL_SUCCEEDED(SQLGetStmtAttr(stmt, SQL_ATTR_PARAMSET_SIZE, &parameterSetSize, 0, nullptr)))
+            parameterSetSize = 1;
+        return { .rowStride = static_cast<std::size_t>(bindType), .rowCount = static_cast<std::size_t>(parameterSetSize) };
+    }
+
+    /// @brief Whether a date or timestamp with year @p year can be written so that it reads back: a negative
+    /// year cannot (SQLite stores text no reader accepts, SQL Server rejects it, PostgreSQL makes it a BC date
+    /// its driver reads back without the sign). Years 0 to 9999 are written as before.
+    /// @param year The year to write.
+    /// @return @c true if it can be written.
+    [[nodiscard]] constexpr bool IsWritableYear(SQLSMALLINT year) noexcept
+    {
+        return year >= 0;
+    }
+
+    /// @brief The error of writing a date or timestamp with year @p year, which IsWritableYear() refuses.
+    /// @param year The refused year.
+    /// @return SQLSTATE 22008 (datetime field overflow) and a message naming the year.
+    [[nodiscard]] inline SqlErrorInfo UnwritableYearError(SQLSMALLINT year)
+    {
+        return SqlErrorInfo {
+            .nativeErrorCode = 0,
+            .sqlState = "22008",
+            .message = std::format("A date with the year {} cannot be written: no supported database stores a negative "
+                                   "year so that it reads back.",
+                                   year),
+        };
+    }
+
+    /// @brief Refuses a date or timestamp of year @p year that cannot be written (see IsWritableYear()),
+    /// reporting why to @p cb.
+    /// @return @c true if the value was refused: the binder then answers @c SQL_ERROR.
+    [[nodiscard]] inline bool RefuseUnwritableYear(SQLSMALLINT year, SqlDataBinderCallback& cb) noexcept
+    {
+        if (IsWritableYear(year))
+            return false;
+        try
+        {
+            cb.ReportInputParameterError(UnwritableYearError(year));
+        }
+        catch (...)
+        {
+            cb.ReportInputParameterError(SqlErrorInfo {});
+        }
+        return true;
+    }
+
+    /// @brief Refuses an array of dates or timestamps at @p first, laid out @p stride bytes apart, of which one
+    /// cannot be written; rows whose @p indicators slot says NULL are skipped.
+    /// @return @c true if a value was refused.
+    template <typename Value>
+    [[nodiscard]] bool RefuseUnwritableYears(Value const* first,
+                                             std::size_t stride,
+                                             std::size_t rowCount,
+                                             SQLLEN const* indicators,
+                                             SqlDataBinderCallback& cb) noexcept
+    {
+        auto const* const bytes = reinterpret_cast<std::byte const*>(first);
+        for (auto const row: std::views::iota(std::size_t { 0 }, rowCount))
+        {
+            if (indicators != nullptr
+                && *reinterpret_cast<SQLLEN const*>(reinterpret_cast<std::byte const*>(indicators) + (row * stride))
+                       == SQL_NULL_DATA)
+                continue;
+            if (RefuseUnwritableYear(reinterpret_cast<Value const*>(bytes + (row * stride))->sqlValue.year, cb))
+                return true;
+        }
+        return false;
+    }
+
+    /// @brief The year @p year if a date or timestamp of that year cannot be written (see IsWritableYear()).
+    /// @param year The year to write.
+    /// @return @p year if it is refused, otherwise @c std::nullopt.
+    [[nodiscard]] constexpr std::optional<SQLSMALLINT> UnwritableYearOf(SQLSMALLINT year) noexcept
+    {
+        if (IsWritableYear(year))
+            return std::nullopt;
+        return year;
+    }
+} // namespace detail
 
 template <typename>
 struct SqlDataBinder;
+
+/// @brief Whether the binder of @p T can tell, before anything is bound, that a value of @p T holds a date or
+/// timestamp whose year cannot be written (see detail::IsWritableYear()): the dates themselves and the
+/// wrappers that bind through them. A batch that executes row by row checks every row through it first, so
+/// that no row is stored when one would be refused; a type without it costs nothing.
+template <typename T>
+concept SqlBinderChecksYear = requires(T const& value) {
+    { SqlDataBinder<T>::UnwritableYear(value) } -> std::same_as<std::optional<SQLSMALLINT>>;
+};
 
 // Default traits for output string parameters
 // This needs to be implemented for each string type that should be used as output parameter via
@@ -385,7 +714,8 @@ namespace detail
     /// @param getData Reads the next chunk: @c SQLGetData of the column as @p cType, given the target, its
     ///                length in bytes and the indicator.
     /// @param maxBytes The most bytes the container grows to.
-    /// @return The value's length in elements.
+    /// @return The value's length in elements; 0 for a NULL, which leaves @p indicator at @c SQL_NULL_DATA (a
+    ///         column unbound after a failed re-bind is read through here, NULL rows included).
     /// @throws SqlException 22001 when the driver cannot read the bound column again (see
     ///         @ref ThrowBoundValueNotReadable) or the value exceeds @p maxBytes; HY000 when the driver reports
     ///         a length that contradicts the call.
@@ -418,6 +748,8 @@ namespace detail
             }
             if (!SQL_SUCCEEDED(rv))
                 ThrowBoundValueNotReadable(stmt, column, SQL_NO_TOTAL);
+            if (first && *indicator == SQL_NULL_DATA)
+                return 0; // a NULL: nothing to read, the indicator says so
             first = false;
             if (rv == SQL_SUCCESS)
             {

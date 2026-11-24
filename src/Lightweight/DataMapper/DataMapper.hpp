@@ -1202,6 +1202,32 @@ namespace detail
         return SqlConnection::RoundTripsNarrowTextByteExact(serverType) && narrowTextBinding == NarrowTextBinding::Narrow;
     }
 
+    /// @return Whether @p FieldType is a result column whose binder stages its value on a driver that does
+    /// not convert its C type over the full range (see @ref SqlColumnMayStage).
+    template <typename FieldType>
+    constexpr bool ColumnMayStage()
+    {
+        if constexpr (IsField<FieldType> || IsBelongsTo<FieldType>)
+            return SqlColumnMayStage<RowWiseColumnValueType<FieldType>>();
+        else
+            return false;
+    }
+
+    /// @brief Whether any of @p Record's members @p Is is a column whose binder may stage (see ColumnMayStage()).
+    template <typename Record, std::size_t... Is>
+    constexpr bool RecordHasStagedColumnImpl(std::index_sequence<Is...> /*indices*/)
+    {
+        return (ColumnMayStage<RecordMemberTypeOf<Is, Record>>() || ...);
+    }
+
+    /// @brief Whether @p Record has a result column whose binder stages its value on some drivers. The
+    /// row-wise fetch binds such a column in place, so on such a driver the record is read per row.
+    template <typename Record>
+    constexpr bool RecordHasStagedColumn()
+    {
+        return RecordHasStagedColumnImpl<Record>(std::make_index_sequence<RecordMemberCount<Record>> {});
+    }
+
     /// @brief Whether @p Record may use the row-wise fetch fast path on @p serverType: it is row-wise
     /// fetchable, the driver supports row-array fetch, and any narrow fixed-string column round-trips
     /// byte-exact there. Single runtime gate composed from connection capabilities + the compile-time
@@ -1213,7 +1239,8 @@ namespace detail
             return false;
         else
             return SqlConnection::SupportsNativeRowArrayFetch(serverType)
-                   && (!RecordHasNarrowFixedStringColumn<Record>() || NarrowTextBindsInPlace(serverType, narrowTextBinding));
+                   && (!RecordHasNarrowFixedStringColumn<Record>() || NarrowTextBindsInPlace(serverType, narrowTextBinding))
+                   && (!RecordHasStagedColumn<Record>() || ConvertsNarrowIntegerCTypes(serverType));
     }
 
     // --- Two-record tuple (JOIN) fast path ----------------------------------------------------------
@@ -1262,7 +1289,9 @@ namespace detail
         else
             return SqlConnection::SupportsNativeRowArrayFetch(serverType)
                    && ((!RecordHasNarrowFixedStringColumn<First>() && !RecordHasNarrowFixedStringColumn<Second>())
-                       || NarrowTextBindsInPlace(serverType, narrowTextBinding));
+                       || NarrowTextBindsInPlace(serverType, narrowTextBinding))
+                   && ((!RecordHasStagedColumn<First>() && !RecordHasStagedColumn<Second>())
+                       || ConvertsNarrowIntegerCTypes(serverType));
     }
 
     /// Accessor tuple for member @p I of the @p TupleIndex-th sub-record, or empty for non-columns.
@@ -2803,15 +2832,10 @@ std::vector<Record> DataMapper::Query(std::string_view sqlQueryString, InputPara
     if constexpr (std::same_as<Record, SqlVariantRow>)
     {
         _stmt.Prepare(sqlQueryString);
-        SqlResultCursor cursor = _stmt.Execute(std::forward<InputParameters>(inputParameters)...);
-        size_t const numResultColumns = cursor.NumColumnsAffected();
-        while (cursor.FetchRow())
-        {
-            auto& record = result.emplace_back();
-            record.reserve(numResultColumns);
-            for (auto const i: std::views::iota(1U, numResultColumns + 1))
-                record.emplace_back(cursor.GetColumn<SqlVariant>(static_cast<SQLUSMALLINT>(i)));
-        }
+        // Through the variant row cursor, which keeps the result set on the per-row path where a typed read
+        // reports a cell not of its column's type as NULL (SQLite): the cell's text comes back, not NULL.
+        for (auto& row: SqlVariantRowCursor { _stmt.Execute(std::forward<InputParameters>(inputParameters)...) })
+            result.emplace_back(std::move(row));
     }
     else
     {
