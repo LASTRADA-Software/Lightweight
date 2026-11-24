@@ -154,6 +154,25 @@ another one (returning `std::optional<int>`, say, or not `noexcept`) does not co
 `static_assert` that names the expected signature, rather than skipping the hook and storing the rows before
 a bad one.
 
+## A NULL row in a bound variable
+
+A bound output column that is not a `std::optional` reads a NULL row as `T{}`, on every database, per row
+and under block prefetch alike, so it never keeps the previous row's value. SQL Server's and PostgreSQL's
+drivers leave a buffer bound in place untouched on NULL, so the statement resets a variable whose type is
+trivially copyable (the integers, floating point, `char`, `SqlGuid`, `SqlDate`, `SqlTime`, `SqlDateTime`,
+`SqlNumeric`, and a custom type of that kind) after its binder's own post-processing. A `Field` or a
+`BelongsTo` has the value it wraps reset, so whether it is modified is the same after a NULL row as after any
+other. A custom binder of a type that is not trivially copyable (one that owns memory) must set the value
+itself on NULL, in the step it plans with `PlanPostProcessOutputColumn()`, as the string and binary binders do.
+
+For a trivially copyable custom type:
+
+- The reset reads the `indicator` passed to its `OutputColumn()`. A binder that binds an indicator of its own
+  instead must still write `SQL_NULL_DATA` (or the length) to the one it was passed, or the reset reads a stale
+  indicator.
+- The reset overwrites whatever the binder wrote into the value on a NULL row (a NULL sentinel, say) with
+  `T{}`. There is no opt-out; read such a column into a `std::optional<T>` instead.
+
 ## `SqlGuid` and `SqlTime`: what a read returns
 
 - **`SqlGuid` on SQLite.** SQLite stores a GUID as text. Reading a column whose text is not a GUID (see

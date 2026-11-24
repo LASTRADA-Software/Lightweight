@@ -64,6 +64,15 @@ struct SqlStatement::Data
     std::vector<OutputColumnCallbacks> outputColumnCallbacks;
     // The columns whose slot may hold callbacks: the fetch loop visits only these.
     std::vector<SQLUSMALLINT> columnsWithCallbacks;
+    /// @brief A bound output variable reset to its default value on a NULL row (see SqlStatement::PlanNullReset()).
+    struct NullReset
+    {
+        SQLLEN const* indicator = nullptr;          //!< the column's length indicator
+        void* target = nullptr;                     //!< the value to reset
+        SqlStatement::NullResetFunction reset = {}; //!< resets the value; none planned while null
+    };
+    // Indexed by column; run after every per-row fetch, after the post-process callbacks.
+    std::vector<NullReset> nullResets;
     SQLUSMALLINT outputColumnBeingBound = 0; // column the running OutputColumn binder plans callbacks for
     // The bound buffer size each column's declared lengths ask for (by SqlOutputColumnLength), asked of
     // the driver once per result set and column, so binding a column again for every row asks nothing
@@ -440,6 +449,15 @@ void SqlStatement::DropOutputColumnCallbacks(SQLUSMALLINT column) noexcept
         slot.preFetch.clear();
         slot.postProcess.clear();
     }
+    if (column < m_data->nullResets.size())
+        m_data->nullResets[column] = {};
+}
+
+void SqlStatement::PlanNullReset(SQLUSMALLINT column, SQLLEN const* indicator, void* target, NullResetFunction reset)
+{
+    if (m_data->nullResets.size() <= column)
+        m_data->nullResets.resize(static_cast<std::size_t>(column) + 1);
+    m_data->nullResets[column] = { .indicator = indicator, .target = target, .reset = reset };
 }
 
 void SqlStatement::ResetOutputColumnCallbacks() noexcept
@@ -452,6 +470,7 @@ void SqlStatement::ResetOutputColumnCallbacks() noexcept
         slot.listed = false;
     }
     m_data->columnsWithCallbacks.clear();
+    m_data->nullResets.clear();
 }
 
 SqlServerType SqlStatement::ServerType() const noexcept
@@ -499,6 +518,7 @@ SqlStatement::SqlStatement():
                  .postExecuteCallbacks = {},
                  .outputColumnCallbacks = {},
                  .columnsWithCallbacks = {},
+                 .nullResets = {},
                  .outputColumnBeingBound = 0,
                  .declaredOutputColumnSizes = {},
                  .declaredNumericDigits = {},
@@ -1849,6 +1869,10 @@ std::expected<void, SqlErrorInfo> SqlStatement::RunPostProcessCallbacks(std::sou
         for (auto const column: m_data->columnsWithCallbacks)
             for (auto const& postProcess: m_data->outputColumnCallbacks[column].postProcess)
                 postProcess();
+        // After the binders' own steps, which may write the value on a NULL row too.
+        for (auto const& nullReset: m_data->nullResets)
+            if (nullReset.reset != nullptr && *nullReset.indicator == SQL_NULL_DATA)
+                nullReset.reset(nullReset.target);
         return {};
     }
     catch (...)

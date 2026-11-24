@@ -4558,10 +4558,8 @@ TEST_CASE_METHOD(SqlTestFixture,
             .Column("Small", SqlColumnTypeDefinitions::Bigint {})
             .Column("Large", SqlColumnTypeDefinitions::Bigint {});
     });
-    // Bound in place, SQL Server's and PostgreSQL's drivers leave a non-optional variable untouched on NULL, as for
-    // every other type; only SQLite stages these two types, and its staged read resets the variable as prefetch does.
-    UNSUPPORTED_DATABASE(stmt, SqlServerType::MICROSOFT_SQL);
-    UNSUPPORTED_DATABASE(stmt, SqlServerType::POSTGRESQL);
+    // SQLite stages these two types, and its staged read resets the variable; SQL Server and PostgreSQL bind them in
+    // place, and the statement resets the variable there, as for every type bound in place.
     (void) stmt.ExecuteDirect(R"(INSERT INTO "NarrowNull" ("Id", "Small", "Large") VALUES (1, 5, 7), (2, NULL, NULL))"sv);
     for (auto const depth: { std::size_t { 1 }, PrefetchDepthDefault })
     {
@@ -5750,4 +5748,163 @@ TEST_CASE_METHOD(SqlTestFixture,
         // docs/data-binder.md).
         CHECK(read == (depth == 1 ? "--true" : "---"));
     }
+}
+
+namespace
+{
+
+/// What a variable bound to a column read after each fetch of the rows @p value, NULL, NULL, @p value, per
+/// prefetch depth: 'V' for the value, 'D' for a default-constructed value, 'X' for anything else.
+/// @param stmt The statement to run on.
+/// @param table The table to create for the type.
+/// @param value The non-NULL value of the first and the last row.
+/// @return The reads per row, the per-row fetch (depth 1) first, then the default block prefetch, e.g. "VDDV VDDV".
+template <typename T>
+std::string BoundNullReads(SqlStatement& stmt, std::string const& table, T const& value)
+{
+    stmt.MigrateDirect([&](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable(table)
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Bigint {})
+            .Column("V", SqlDataBinder<T>::ColumnType);
+    });
+    stmt.Prepare(std::format(R"(INSERT INTO "{}" ("Id", "V") VALUES (?, ?))", table));
+    for (auto const id: { 1, 2, 3, 4 })
+        (void) stmt.Execute(id, (id == 1 || id == 4) ? std::optional<T> { value } : std::optional<T> {});
+
+    auto reads = std::string {};
+    for (auto const depth: { std::size_t { 1 }, PrefetchDepthDefault })
+    {
+        stmt.Connection().SetDefaultPrefetchDepth(depth);
+        auto target = T {};
+        auto cursor = stmt.ExecuteDirect(std::format(R"(SELECT "V" FROM "{}" ORDER BY "Id")", table));
+        cursor.BindOutputColumns(&target);
+        if (!reads.empty())
+            reads += ' ';
+        while (cursor.FetchRow())
+        {
+            if (target == value)
+                reads += 'V';
+            else if (target == T {})
+                reads += 'D';
+            else
+                reads += 'X';
+        }
+    }
+    stmt.Connection().SetDefaultPrefetchDepth(PrefetchDepthDefault);
+    return reads;
+}
+
+} // namespace
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "A NULL read into a bound non-optional variable resets it, with and without prefetch",
+                 "[SqlDataBinder]")
+{
+    using namespace std::chrono;
+    auto stmt = SqlStatement {};
+    // Each type is read per row (prefetch depth 1) and under the default block prefetch, which falls back to the
+    // per-row fetch for a type it cannot convert (char, SqlGuid, SqlTime, SqlNumeric). SQL Server's and
+    // PostgreSQL's drivers leave a buffer bound in place untouched on NULL; SQLite's zeroes it.
+    auto const expected = std::string { "VDDV VDDV" };
+    auto const check = [&](std::string_view name, auto const& value) {
+        INFO(name);
+        CHECK(BoundNullReads(stmt, std::format("BoundNull_{}", name), value) == expected);
+    };
+    check("int16", std::int16_t { 7 });
+    check("int32", std::int32_t { 7 });
+    check("int64", std::int64_t { 7 });
+    check("int8", std::int8_t { 5 }); // TINYINT is 0..255 on SQL Server
+    check("uint32", std::uint32_t { 7 });
+    check("bool", true);
+    check("float", 1.5F);
+    check("double", 2.5);
+    check("char", 'x');
+    check("guid", SqlGuid::UnsafeParse("0b5a9e2c-3d4f-4a1b-9c8d-7e6f5a4b3c2d"));
+    check("string", std::string { "hello" });
+    check("u16string", std::u16string { u"hello" });
+    check("fixed", SqlFixedString<8> { "abcdefgh" });
+    check("dynstring", SqlDynamicString<16> { "hello" });
+    check("date", SqlDate { year { 2024 }, January, day { 2 } });
+    check("time", SqlTime { hours { 3 }, minutes { 4 }, seconds { 5 } });
+    check("datetime", SqlDateTime { year { 2024 }, January, day { 2 }, hours { 3 }, minutes { 4 }, seconds { 5 } });
+    check("numeric", SqlNumeric<10, 2> { 12.34 });
+    check("binary", SqlDynamicBinary<16> { 1, 2, 3 });
+}
+
+/// A record of required (NOT NULL in C++) members bound with BindOutputColumnsToRecord() in the NULL reset test.
+/// At namespace scope, not in an anonymous namespace: MSVC cannot reflect a type with internal linkage.
+struct NullResetRecord
+{
+    Field<std::int64_t> v;
+    Field<SqlDate> d;
+};
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "A NULL read into a bound Field, record member or std::optional resets the value it holds",
+                 "[SqlDataBinder]")
+{
+    using namespace std::chrono;
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("NullResetWrapped")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Bigint {})
+            .Column("V", SqlColumnTypeDefinitions::Bigint {})
+            .Column("D", SqlColumnTypeDefinitions::Date {});
+    });
+    auto const date = SqlDate { year { 2024 }, January, day { 2 } };
+    stmt.Prepare(R"(INSERT INTO "NullResetWrapped" ("Id", "V", "D") VALUES (?, ?, ?))");
+    for (auto const id: { 1, 2, 3, 4 })
+    {
+        auto const set = id == 1 || id == 4;
+        (void) stmt.Execute(id,
+                            set ? std::optional<std::int64_t> { 7 } : std::optional<std::int64_t> {},
+                            set ? std::optional<SqlDate> { date } : std::optional<SqlDate> {});
+    }
+
+    // 'V' for the value, 'D' for T{} ('N' for an empty std::optional), 'X' for anything else.
+    auto const readOf = []<typename T>(T const& actual, T const& value) {
+        if (actual == value)
+            return 'V';
+        if constexpr (SqlIsStdOptional<T>)
+            return actual.has_value() ? 'X' : 'N';
+        else
+            return actual == T {} ? 'D' : 'X';
+    };
+    // Per row only: a Field (and a record of Fields) is not prefetch-convertible, so the block prefetch would read
+    // these bindings per row too.
+    stmt.Connection().SetDefaultPrefetchDepth(1);
+
+    // A required Field and a std::optional, bound directly: 'V' value, 'D' T{} / 'N' nullopt; whether the Field is
+    // modified does not change with NULL rows.
+    auto field = Field<std::int64_t> { 0 };
+    field.SetModified(false);
+    auto maybe = std::optional<std::int64_t> {};
+    auto reads = std::string {};
+    auto cursor = stmt.ExecuteDirect(R"(SELECT "V", "V" FROM "NullResetWrapped" ORDER BY "Id")"sv);
+    cursor.BindOutputColumns(&field, &maybe);
+    auto modified = std::vector<char> {};
+    while (cursor.FetchRow())
+    {
+        reads += readOf(field.Value(), std::int64_t { 7 });
+        reads += readOf(maybe, std::optional<std::int64_t> { 7 });
+        reads += ' ';
+        modified.push_back(field.IsModified() ? 'm' : '-');
+    }
+    CHECK(reads == "VV DN DN VV ");
+    REQUIRE(!modified.empty());
+    CHECK(std::ranges::count(modified, modified[0]) == std::ranges::ssize(modified));
+
+    // The required members of a record bound with BindOutputColumnsToRecord().
+    auto record = NullResetRecord { .v = 0, .d = SqlDate {} };
+    auto recordReads = std::string {};
+    auto recordCursor = stmt.ExecuteDirect(R"(SELECT "V", "D" FROM "NullResetWrapped" ORDER BY "Id")"sv);
+    recordCursor.BindOutputColumnsToRecord(&record);
+    while (recordCursor.FetchRow())
+    {
+        recordReads += readOf(record.v.Value(), std::int64_t { 7 });
+        recordReads += readOf(record.d.Value(), date);
+        recordReads += ' ';
+    }
+    CHECK(recordReads == "VV DD DD VV ");
+    stmt.Connection().SetDefaultPrefetchDepth(PrefetchDepthDefault);
 }

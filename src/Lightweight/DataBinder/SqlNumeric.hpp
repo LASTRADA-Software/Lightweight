@@ -118,7 +118,8 @@ struct SqlNumeric
 
     /// The SQL numeric struct for ODBC binding. A default-constructed numeric is zero with this type's
     /// precision and scale: the accessors divide by @c sqlValue.scale, also where a driver fills only
-    /// @c nativeValue, such as in the rows a row-wise array fetch reads after the one it binds.
+    /// @c nativeValue, such as in the rows a row-wise array fetch reads after the one it binds, or after a bound
+    /// variable was reset to @c SqlNumeric{} on a NULL row.
     SQL_NUMERIC_STRUCT sqlValue {
         .precision = static_cast<SQLCHAR>(Precision), .scale = static_cast<SQLSCHAR>(Scale), .sign = 1, .val = {}
     };

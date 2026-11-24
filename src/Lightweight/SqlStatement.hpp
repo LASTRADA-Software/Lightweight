@@ -592,6 +592,15 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     /// @param arg The variable the column is fetched into.
     template <SqlOutputColumnBinder T>
     void BindOutputColumnNow(SQLUSMALLINT column, T* arg);
+    /// @brief Resets a bound output variable to its default value; see @ref PlanNullReset.
+    using NullResetFunction = void (*)(void* target) noexcept;
+    /// @brief Plans that output column @p column's bound variable @p target is reset by @p reset after every
+    /// fetch whose row is NULL there, as @p indicator tells; replaces an earlier plan for the column.
+    /// @param column The 1-based column index.
+    /// @param indicator The column's length indicator.
+    /// @param target The value to reset.
+    /// @param reset Resets @p target.
+    LIGHTWEIGHT_API void PlanNullReset(SQLUSMALLINT column, SQLLEN const* indicator, void* target, NullResetFunction reset);
     /// @brief Drops the pre-fetch and post-process callbacks of every bound output column.
     LIGHTWEIGHT_API void ResetOutputColumnCallbacks() noexcept;
     /// @brief Drops the pre-fetch and post-process callbacks planned for output column @p column.
@@ -1674,6 +1683,31 @@ inline LIGHTWEIGHT_FORCE_INLINE void SqlStatement::BindOutputColumns(Args*... ar
     ((++i, BindOutputColumnNow<Args>(i, args)), ...);
 }
 
+namespace detail
+{
+    /// @brief Whether a bound output variable of type @p T is a fixed-size value the driver may write in
+    /// place, so that the statement resets it to @c T{} on a NULL row: SQL Server's and PostgreSQL's drivers
+    /// leave such a buffer untouched on NULL, which would keep the previous row's value. A @c std::optional
+    /// resets itself, and a fixed-capacity string's binder empties it.
+    template <typename T>
+    concept ResetsBoundValueOnNull = std::is_trivially_copyable_v<T> && std::is_default_constructible_v<T>
+                                     && std::is_assignable_v<T&, T> && !SqlIsStdOptional<T> && !IsSqlFixedString<T>;
+
+    /// @brief The value a NULL row resets in the bound variable @p value: the variable itself, or the value a
+    /// wrapper that binds through its @c MutableValue() (a @c Field, a @c BelongsTo) holds, so the wrapper's own
+    /// state (whether it is modified) is the same after a NULL row as after any other.
+    /// @param value The bound variable.
+    /// @return The value to reset.
+    template <typename T>
+    [[nodiscard]] constexpr auto& BoundNullResetTarget(T& value) noexcept
+    {
+        if constexpr (requires { requires std::is_lvalue_reference_v<decltype(value.MutableValue())>; })
+            return BoundNullResetTarget(value.MutableValue());
+        else
+            return value;
+    }
+} // namespace detail
+
 /// @brief Out-of-line definition of `SqlStatement::BindOutputColumnNow`: binds @p arg as output column
 /// @p column with @c SqlDataBinder<T>::OutputColumn right away, replacing the column's planned callbacks.
 /// @tparam T The bound variable's type.
@@ -1683,12 +1717,23 @@ template <SqlOutputColumnBinder T>
 inline LIGHTWEIGHT_FORCE_INLINE void SqlStatement::BindOutputColumnNow(SQLUSMALLINT column, T* arg)
 {
     BeginOutputColumnBinding(column);
-    auto const sqlReturn = SqlDataBinder<T>::OutputColumn(m_hStmt, column, arg, GetIndicatorForColumn(column), *this);
+    auto* const indicator = GetIndicatorForColumn(column);
+    auto const sqlReturn = SqlDataBinder<T>::OutputColumn(m_hStmt, column, arg, indicator, *this);
     // A binder can have planned callbacks before it failed; the column is not bound, so they must not
     // run on the following fetches (the diagnostics stay on the handle for RequireSuccess).
     if (!SQL_SUCCEEDED(sqlReturn))
         DropOutputColumnCallbacks(column);
     RequireSuccess(sqlReturn);
+
+    // A NULL row reads as T{}, on every driver and as under block prefetch; run after the binders' own steps.
+    // A plain entry per column rather than a planned callback: no std::function, and the column is not added
+    // to the ones the pre-fetch steps visit.
+    auto& target = detail::BoundNullResetTarget(*arg);
+    using Target = std::remove_cvref_t<decltype(target)>;
+    if constexpr (detail::ResetsBoundValueOnNull<Target>)
+        PlanNullReset(column, indicator, std::addressof(target), [](void* value) noexcept {
+            *static_cast<Target*>(value) = Target {};
+        });
 }
 
 template <typename... Records>

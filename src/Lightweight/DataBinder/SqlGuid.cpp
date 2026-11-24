@@ -190,8 +190,8 @@ SQLRETURN SqlDataBinder<SqlGuid>::OutputColumn(
             auto rv = SqlDataBinder<std::string>::OutputColumn(stmt, column, text.get(), indicator, cb);
             if (SQL_SUCCEEDED(rv))
                 cb.PlanPostProcessOutputColumn([text = std::move(text), result, indicator, column] {
-                    if (*indicator != SQL_NULL_DATA)
-                        *result = ParseGuidColumnText(*text, column);
+                    // A NULL row reads as the all-zero GUID, as for every other bound type.
+                    *result = *indicator != SQL_NULL_DATA ? ParseGuidColumnText(*text, column) : SqlGuid {};
                 });
             return rv;
         }
@@ -199,8 +199,14 @@ SQLRETURN SqlDataBinder<SqlGuid>::OutputColumn(
         case SqlServerType::POSTGRESQL:
         case SqlServerType::MICROSOFT_SQL:
         case SqlServerType::UNKNOWN:
-            // The driver fills `result->data` in wire order; see SwapGuidWireByteOrder().
-            cb.PlanPostProcessOutputColumn([result] { detail::SwapGuidWireByteOrder(result->data); });
+            // The driver fills `result->data` in wire order (see SwapGuidWireByteOrder()), and leaves it untouched
+            // on a NULL row: that row reads as the all-zero GUID, and only a value the driver wrote is swapped.
+            cb.PlanPostProcessOutputColumn([result, indicator] {
+                if (*indicator == SQL_NULL_DATA)
+                    *result = SqlGuid {};
+                else
+                    detail::SwapGuidWireByteOrder(result->data);
+            });
             return SQLBindCol(stmt, column, SQL_C_GUID, (SQLPOINTER) result->data, sizeof(result->data), indicator);
     }
 
@@ -225,8 +231,8 @@ SQLRETURN SqlDataBinder<SqlGuid>::GetColumn(
         case SqlServerType::POSTGRESQL:
         case SqlServerType::UNKNOWN: {
             auto const rv = SQLGetData(stmt, column, SQL_C_GUID, result->data, sizeof(result->data), indicator);
-            if (SQL_SUCCEEDED(rv))
-                // The driver wrote wire order; see SwapGuidWireByteOrder().
+            if (SQL_SUCCEEDED(rv) && *indicator != SQL_NULL_DATA)
+                // The driver wrote wire order; see SwapGuidWireByteOrder(). On NULL it wrote nothing.
                 detail::SwapGuidWireByteOrder(result->data);
             return rv;
         }

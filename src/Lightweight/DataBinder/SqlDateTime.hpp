@@ -523,7 +523,8 @@ struct LIGHTWEIGHT_API SqlDataBinder<SqlDateTime>
     static LIGHTWEIGHT_FORCE_INLINE SQLRETURN OutputColumn(
         SQLHSTMT stmt, SQLUSMALLINT column, SqlDateTime* result, SQLLEN* indicator, SqlDataBinderCallback& /*cb*/) noexcept
     {
-        // TODO: handle indicator to check for NULL values
+        // The driver leaves the value untouched on a NULL row; a bound variable is reset to SqlDateTime{} there by the
+        // statement (see detail::ResetsBoundValueOnNull), as every value bound in place.
         *indicator = sizeof(result->sqlValue);
         return SQLBindCol(stmt, column, SQL_C_TYPE_TIMESTAMP, &result->sqlValue, 0, indicator);
     }

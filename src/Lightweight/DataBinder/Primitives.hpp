@@ -541,7 +541,8 @@ struct SqlDataBinder<char>
     /// Binds @p result as the output column @p column, filled in on every fetch.
     ///
     /// The driver writes into a NUL-terminated staging buffer, which a post-process callback copies into
-    /// @p result; a NULL leaves @p result untouched (@c std::optional<char> resets itself on it).
+    /// @p result; a NULL leaves @p result untouched here (the statement resets a bound @c char to @c '\0' on it,
+    /// see @c SqlStatement::BindOutputColumnNow, and @c std::optional<char> resets itself).
     ///
     /// @param stmt The ODBC statement handle.
     /// @param column The 1-based column index.
