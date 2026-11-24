@@ -587,6 +587,35 @@ TEST_CASE("BatchManager: StringTime column (for MSSQL/PostgreSQL/SQLite)", "[Sql
     REQUIRE(capturedIndicators[4] == SQL_NULL_DATA);
 }
 
+TEST_CASE("BatchManager: StringTime keeps every character of a long time text", "[SqlBackup]")
+{
+    std::vector<SqlColumnDeclaration> cols = { { .name = "tm", .type = SqlColumnTypeDefinitions::Time {} } };
+
+    std::vector<std::string> capturedValues;
+    SqlRawColumnMetadata capturedMetadata {};
+
+    BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
+        auto const& col = rawCols[0];
+        capturedMetadata = col.metadata;
+        auto const* data = reinterpret_cast<char const*>(col.data.data());
+        for (auto const i: std::views::iota(size_t { 0 }, count))
+            capturedValues.emplace_back(data + (i * col.metadata.bufferLength), static_cast<size_t>(col.indicators[i]));
+    };
+
+    // Longer than "HH:MM:SS.ffffff": a 7th fractional digit, a time zone, a date in front.
+    RunBatchManagerTest(executor,
+                        cols,
+                        { { std::string("12:34:56.1234567") },
+                          { std::string("12:34:56.789+02:00") },
+                          { std::string("2026-01-01 12:34:56") } },
+                        10,
+                        SqlServerType::SQLITE);
+
+    CHECK(capturedValues == std::vector<std::string> { "12:34:56.1234567", "12:34:56.789+02:00", "2026-01-01 12:34:56" });
+    CHECK(capturedMetadata.size == 19);
+    CHECK(capturedMetadata.decimalDigits == 7);
+}
+
 TEST_CASE("BatchManager: StringTime PushFromBatch", "[SqlBackup]")
 {
     std::vector<SqlColumnDeclaration> cols = { { .name = "tm", .type = SqlColumnTypeDefinitions::Time {} } };

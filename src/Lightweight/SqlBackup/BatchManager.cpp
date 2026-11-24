@@ -799,22 +799,24 @@ struct TimeBatchColumn: BatchColumn
 };
 
 /// A batch column for Time columns that binds as string (SQL_C_CHAR).
-/// This preserves fractional seconds for databases like PostgreSQL that support them
-/// but where SQL_TIME_STRUCT binding would lose the fractional part.
-/// Format: "HH:MM:SS.ffffff" (up to 6 digits of fractional seconds).
+/// This preserves fractional seconds - TIME(7) on SQL Server, microseconds on PostgreSQL - and, on SQLite,
+/// whatever text the column held, which SQL_TIME_STRUCT binding would lose.
+/// Each value is stored at its full length; the fixed-stride buffer the batch binds is laid out at flush
+/// time, as wide as the longest value, so no text is cut.
 struct StringTimeBatchColumn: BatchColumn
 {
     SqlRawColumnMetadata metadata;
-    std::vector<std::array<char, 16>> data; // "HH:MM:SS.ffffff\0"
+    std::vector<std::string> values; // variable-length; fixed-stride buffer built in ToRaw()
+    std::vector<char> buffer;        // ToRaw() staging (stride x rows), rebuilt per flush
     std::vector<SQLLEN> indicators;
+    size_t maxActual = 0;        // longest value in this batch -> the ToRaw() stride and column size
+    SQLSMALLINT maxFraction = 0; // most fractional-second digits in this batch -> the decimal digits
 
     explicit StringTimeBatchColumn(SqlRawColumnMetadata meta):
         metadata(meta)
     {
         metadata.cType = SQL_C_CHAR;
         metadata.sqlType = SQL_TYPE_TIME;
-        metadata.size = 15; // "HH:MM:SS.ffffff"
-        metadata.decimalDigits = 6;
     }
 
     /// Appends the time @p text for the server to parse, or NULL for a NULL text.
@@ -825,12 +827,16 @@ struct StringTimeBatchColumn: BatchColumn
             PushNull();
             return;
         }
-        std::array<char, 16> buf {};
-        auto const len = std::min(text.size(), size_t { 15 });
-        std::memcpy(buf.data(), text.data(), len);
-        buf[len] = '\0';
-        data.push_back(buf);
-        indicators.push_back(static_cast<SQLLEN>(len));
+        maxActual = std::max(maxActual, text.size());
+        if (auto const dot = text.find('.'); dot != std::string_view::npos)
+        {
+            auto const digits = text.substr(dot + 1);
+            auto const count =
+                std::ranges::find_if_not(digits, [](char c) { return c >= '0' && c <= '9'; }) - digits.begin();
+            maxFraction = std::max(maxFraction, static_cast<SQLSMALLINT>(std::min<std::ptrdiff_t>(count, 9)));
+        }
+        indicators.push_back(static_cast<SQLLEN>(text.size()));
+        values.emplace_back(text);
     }
 
     void Push(BackupValue const& val) override
@@ -868,16 +874,25 @@ struct StringTimeBatchColumn: BatchColumn
 
     void PushNull() override
     {
-        data.push_back(std::array<char, 16> {});
+        values.emplace_back();
         indicators.push_back(SQL_NULL_DATA);
     }
 
     void Clear() override
     {
-        data.clear();
-        data.shrink_to_fit();
+        values.clear();
+        values.shrink_to_fit();
+        buffer.clear();
+        buffer.shrink_to_fit();
         indicators.clear();
         indicators.shrink_to_fit();
+        maxActual = 0;
+        maxFraction = 0;
+    }
+
+    [[nodiscard]] size_t ProjectedRawBytes() const override
+    {
+        return std::max(maxActual, size_t { 1 }) * values.size();
     }
 
     [[nodiscard]] size_t PendingRows() const override
@@ -887,11 +902,19 @@ struct StringTimeBatchColumn: BatchColumn
 
     SqlRawColumn ToRaw() override
     {
+        size_t const stride = std::max(maxActual, size_t { 1 });
+        buffer.assign(stride * values.size(), 0);
+        for (auto const i: std::views::iota(size_t { 0 }, values.size()))
+            if (!values[i].empty())
+                std::memcpy(buffer.data() + (i * stride), values[i].data(), values[i].size());
+
         SqlRawColumnMetadata meta = metadata;
-        meta.bufferLength = 16;
+        // "HH:MM:SS" at least; as wide as the longest text, so the driver takes every digit it holds.
+        meta.size = std::max(maxActual, size_t { 8 });
+        meta.decimalDigits = maxFraction;
+        meta.bufferLength = stride;
         return SqlRawColumn { .metadata = meta,
-                              .data = std::span<std::byte const> { reinterpret_cast<std::byte const*>(data.data()),
-                                                                   data.size() * 16 },
+                              .data = std::as_bytes(std::span(buffer)),
                               .indicators = std::span<SQLLEN const> { indicators.data(), indicators.size() } };
     }
 };

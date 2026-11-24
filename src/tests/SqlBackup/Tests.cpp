@@ -32,6 +32,10 @@
 #include <iostream>
 #include <map>
 #include <mutex>
+#include <ranges>
+#include <string>
+#include <string_view>
+#include <vector>
 
 using namespace Lightweight;
 
@@ -1050,6 +1054,88 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlBackup: Time Columns", "[SqlBackup]")
         // Cleanup
         stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) { migration.DropTableIfExists("time_backup_test"); });
     }
+}
+
+namespace
+{
+
+/// A TIME value as inserted, and the text the column reads back as.
+struct TimeSample
+{
+    std::string_view literal;
+    std::string_view text;
+};
+
+/// TIME values that carry more than whole seconds, per DBMS, each with the text it reads back as.
+std::vector<TimeSample> TimeSamplesFor(SqlServerType serverType)
+{
+    switch (serverType)
+    {
+        case SqlServerType::SQLITE:
+            // SQLite's TIME column holds the text it was given, whatever its form or length.
+            return {
+                { .literal = "12:34:56.789", .text = "12:34:56.789" },
+                { .literal = "12:34:56.789+02:00", .text = "12:34:56.789+02:00" },
+                { .literal = "2026-01-01 12:34:56", .text = "2026-01-01 12:34:56" },
+            };
+        case SqlServerType::MICROSOFT_SQL:
+            // TIME(7): 100 ns.
+            return {
+                { .literal = "12:34:56.789", .text = "12:34:56.7890000" },
+                { .literal = "12:34:56.1234567", .text = "12:34:56.1234567" },
+            };
+        default:
+            // PostgreSQL TIME: microseconds.
+            return {
+                { .literal = "12:34:56.789", .text = "12:34:56.789" },
+                { .literal = "12:34:56.123456", .text = "12:34:56.123456" },
+            };
+    }
+}
+
+} // namespace
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlBackup: a TIME value keeps its fraction of a second", "[SqlBackup]")
+{
+    // TIME values with fractions of a second go through backup and restore and must come back as they
+    // were: every digit the column type holds, and on SQLite, whose TIME column holds text, that text.
+    using namespace SqlColumnTypeDefinitions;
+
+    auto const backupFileCleaner = ScopedFileRemoved { BackupFile };
+
+    SqlConnection conn;
+    REQUIRE(conn.Connect(GetConnectionString()));
+    SqlStatement stmt { conn };
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.DropTableIfExists("time_fraction_test");
+        migration.CreateTable("time_fraction_test").PrimaryKey("id", Integer {}).Column("event_time", Time {});
+    });
+    auto const samples = TimeSamplesFor(conn.ServerType());
+    for (auto const id: std::views::iota(std::size_t { 0 }, samples.size()))
+        (void) stmt.ExecuteDirect(std::format(
+            R"(INSERT INTO "time_fraction_test" ("id", "event_time") VALUES ({}, '{}'))", id + 1, samples[id].literal));
+    (void) stmt.ExecuteDirect(R"(INSERT INTO "time_fraction_test" ("id", "event_time") VALUES (0, NULL))");
+
+    LambdaProgressManager failOnError { [](SqlBackup::Progress const& p) {
+        if (p.state == SqlBackup::Progress::State::Error)
+            FAIL_CHECK("Backup/Restore error: " << p.message);
+    } };
+    SqlBackup::Backup(BackupFile, GetConnectionString(), 1, failOnError);
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) { migration.DropTable("time_fraction_test"); });
+    SqlBackup::Restore(BackupFile, GetConnectionString(), 1, failOnError);
+
+    // Read as text: SqlTime carries no fraction (SQL_C_TYPE_TIME has none).
+    for (auto const id: std::views::iota(std::size_t { 0 }, samples.size()))
+    {
+        INFO("inserted " << samples[id].literal);
+        auto const restored = stmt.ExecuteDirectScalar<std::string>(
+            std::format(R"(SELECT "event_time" FROM "time_fraction_test" WHERE "id" = {})", id + 1));
+        CHECK(restored.value_or("<NULL>") == samples[id].text);
+    }
+    CHECK_FALSE(stmt.ExecuteDirectScalar<std::string>(R"(SELECT "event_time" FROM "time_fraction_test" WHERE "id" = 0)")
+                    .has_value());
+
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) { migration.DropTableIfExists("time_fraction_test"); });
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlBackup: Decimal Precision", "[SqlBackup]")

@@ -57,9 +57,9 @@ bool TableIsArrayFetchable(SqlSchema::Table const& table, SqlServerType serverTy
     if (table.columns.empty())
         return false;
 
-    // TIME is admitted only where the single-row path already reads it as driver text (SQL_C_CHAR,
-    // preserving fractional seconds): PostgreSQL and MSSQL. SQLite's single-row path decodes the
-    // native SqlTime struct instead, so the text form would not match — Time stays single-row there.
+    // TIME is admitted only where the array path's text form is known to match the single-row path's
+    // driver text (SQL_C_CHAR, preserving fractional seconds): PostgreSQL and MSSQL. SQLite's
+    // single-row path reads TIME as text too, but its array path is unverified — Time stays single-row there.
     bool const timeIsText = serverType == SqlServerType::POSTGRESQL || serverType == SqlServerType::MICROSOFT_SQL;
     // GUID is admitted only where the driver reports SQL_GUID and the single-row path reads raw
     // SQL_C_GUID bytes (MSSQL uniqueidentifier, PostgreSQL uuid). SQLite stores GUIDs as text and
