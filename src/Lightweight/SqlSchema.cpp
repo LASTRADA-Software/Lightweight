@@ -1483,6 +1483,7 @@ namespace detail
     /// @param database Catalog the table belongs to; may be empty.
     /// @param tableSchema Schema the table belongs to; may be empty.
     /// @param tableName Table to describe.
+    /// @param searchPatternEscape The driver's @c SQL_SEARCH_PATTERN_ESCAPE, queried once by the caller.
     /// @param eventHandler Receives the primary keys, foreign keys, indexes and columns.
     /// @param scope With @ref TableReadScope::ColumnsAndPrimaryKey the foreign-key and index
     ///              queries are skipped and no foreign-key or index event is raised.
@@ -1491,6 +1492,7 @@ namespace detail
                             std::string_view database,
                             std::string const& tableSchema,
                             std::string const& tableName,
+                            std::string_view searchPatternEscape,
                             EventHandler& eventHandler,
                             TableReadScope scope)
     {
@@ -1523,6 +1525,12 @@ namespace detail
             eventHandler.OnIndexes(indexes);
         }
 
+        // SQLColumns takes the schema and table names as search patterns, in which '_' and '%' are
+        // wildcards: escaped, a table named "a_b" does not also report the columns of a table "aXb".
+        // A driver without an escape gets the names as they are.
+        auto const schemaPattern = EscapeSearchPattern(tableSchema, searchPatternEscape).value_or(tableSchema);
+        auto const tablePattern = EscapeSearchPattern(tableName, searchPatternEscape).value_or(tableName);
+
         auto columnStmt = SqlStatement { stmt.Connection() };
         auto const sqlResult = CallWithOdbcText(
             columnStmt.Connection().AcceptsWideQueryText(),
@@ -1538,8 +1546,8 @@ namespace detail
                                                                        0 /* column name length */);
             },
             database,
-            tableSchema,
-            tableName);
+            schemaPattern,
+            tablePattern);
         if (!SQL_SUCCEEDED(sqlResult))
             throw std::runtime_error(std::format("SQLColumns failed: {}", columnStmt.LastError()));
 
@@ -1742,6 +1750,7 @@ namespace detail
             ZoneTextObject(schema);
 
         auto const tablesWithSchema = AllTables(stmt, database, schema);
+        auto const escape = ConnectionInfoString(stmt, SQL_SEARCH_PATTERN_ESCAPE);
 
         // Extract just table names for the EventHandler interface
         std::vector<std::string> tableNames;
@@ -1763,7 +1772,7 @@ namespace detail
             if (!eventHandler.OnTable(tableSchema, tableName))
                 continue;
 
-            ReadOneTableLegacy(stmt, database, tableSchema, tableName, eventHandler, TableReadScope::Full);
+            ReadOneTableLegacy(stmt, database, tableSchema, tableName, escape, eventHandler, TableReadScope::Full);
         }
     }
 
@@ -2188,7 +2197,7 @@ std::optional<Table> ReadTable(SqlStatement& stmt, FullyQualifiedTableName const
     handler.table.schema = entry.schema.empty() ? std::string(table.schema) : entry.schema;
     handler.table.name = entry.name;
 
-    detail::ReadOneTableLegacy(stmt, table.catalog, handler.table.schema, entry.name, handler, scope);
+    detail::ReadOneTableLegacy(stmt, table.catalog, handler.table.schema, entry.name, escape, handler, scope);
 
     // SQL Server's catalog functions name every table as its catalog spells it; a driver such as
     // SQLite's reports a foreign-key target as its REFERENCES clause wrote it, so only those need the lookups.

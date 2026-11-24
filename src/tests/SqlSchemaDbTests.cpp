@@ -1104,11 +1104,19 @@ std::vector<std::string> const QuotingTableNames {
     R"(Sn"); DROP TABLE "SnVictim"; --)", R"(SnParent") --)", R"(Sn"Quote)", "Sn'Apostrophe", "Sn Space", "Sn\xC3\x9Cmlaut",
 };
 
+/// Table names holding the two LIKE wildcards of a catalog search pattern.
+std::vector<std::string> const WildcardTableNames { "SnPct%x", "SnUnder_x" };
+
+/// Tables that the wildcard names, read as search patterns, would also match.
+std::vector<std::string> const DecoyTableNames { "SnPctDecoyx", "SnUnderYx" };
+
 /// Drops every table the unusual-name tests create, children before the parent; the fixture's own
 /// sweep cannot drop a table whose name holds a double quote.
 void DropUnusualNameTables(SqlStatement& stmt)
 {
     auto names = QuotingTableNames;
+    names.insert(names.end(), WildcardTableNames.begin(), WildcardTableNames.end());
+    names.insert(names.end(), DecoyTableNames.begin(), DecoyTableNames.end());
     names.emplace_back("SnVictim");
     names.emplace_back("SnParent");
     for (auto const& name: names)
@@ -1119,7 +1127,7 @@ void DropUnusualNameTables(SqlStatement& stmt)
 class UnusualNameTables
 {
   public:
-    /// Creates the parent and the victim table, and one child table per name in @p names.
+    /// Creates the parent, the victim and the decoy tables, and one child table per name in @p names.
     /// @param stmt The statement to create and later drop the tables with.
     /// @param names The child tables: each has the columns "own_pk" (its primary key) and "parent_ref"
     ///              (a foreign key to "SnParent").
@@ -1129,6 +1137,10 @@ class UnusualNameTables
         DropUnusualNameTables(stmt);
         (void) stmt.ExecuteDirect(R"(CREATE TABLE "SnParent" ("pk" INT NOT NULL PRIMARY KEY))");
         (void) stmt.ExecuteDirect(R"(CREATE TABLE "SnVictim" ("pk" INT NOT NULL PRIMARY KEY))");
+        for (auto const& decoy: DecoyTableNames)
+            (void) stmt.ExecuteDirect(
+                std::format(R"(CREATE TABLE {} ("decoy_pk" INT NOT NULL PRIMARY KEY, "decoy_col" INT NULL))",
+                            SqlQueryFormatter::QuoteIdentifier(decoy)));
         for (auto const& name: names)
             (void) stmt.ExecuteDirect(std::format(R"(CREATE TABLE {} ("own_pk" INT NOT NULL PRIMARY KEY,
                                                                       "parent_ref" INT NOT NULL,
@@ -1188,5 +1200,32 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlSchema::ReadAllTables reads a table whose n
         auto const table = std::ranges::find(schema, name, &SqlSchema::Table::name);
         REQUIRE(table != schema.end());
         CheckDescribesOwnTable(*table);
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "SqlSchema reads a table whose name holds a search-pattern wildcard as that table alone",
+                 "[SqlSchema]")
+{
+    auto stmt = SqlStatement {};
+    auto const created = UnusualNameTables { stmt, WildcardTableNames };
+    auto const database = stmt.Connection().DatabaseName();
+
+    auto const schema = SqlSchema::ReadAllTables(stmt, database, /*schema=*/"");
+    for (auto const& name: WildcardTableNames)
+    {
+        INFO("ReadAllTables, table " << name);
+        auto const table = std::ranges::find(schema, name, &SqlSchema::Table::name);
+        REQUIRE(table != schema.end());
+        CheckDescribesOwnTable(*table);
+    }
+
+    for (auto const& name: WildcardTableNames)
+    {
+        INFO("ReadTable, table " << name);
+        auto const table = SqlSchema::ReadTable(
+            stmt, SqlSchema::FullyQualifiedTableName { .catalog = database, .schema = "", .table = name });
+        REQUIRE(table.has_value());
+        CheckDescribesOwnTable(table.value_or(SqlSchema::Table {}));
     }
 }
