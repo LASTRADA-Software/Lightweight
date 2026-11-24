@@ -215,7 +215,7 @@ Raw SQL Queries</h1>
 <div class="line">   <span class="keyword">auto</span> c = stmt.GetColumn&lt;<span class="keywordtype">int</span>&gt;(3);</div>
 <div class="line">   std::println(<span class="stringliteral">&quot;{}|{}|{}&quot;</span>, a, b,c);</div>
 <div class="line">}</div>
-</div><!-- fragment --><p>A NULL value: <code>GetColumn&lt;T&gt;(i)</code> of a non-nullable <code>T</code> throws, <code>GetNullableColumn&lt;T&gt;(i)</code> and <code>GetColumn&lt;std::optional&lt;T&gt;&gt;(i)</code> return <code>std::nullopt</code>, and <code>GetColumn(i, &amp;value)</code> returns <code>false</code> and leaves <code>value</code> holding its empty value (<code>std::nullopt</code>, a NULL <code>SqlVariant</code>, or <code>T {}</code>), whatever it held before.</p>
+</div><!-- fragment --><p>A NULL value: <code>GetColumn&lt;T&gt;(i)</code> of a non-nullable <code>T</code> throws <code>std::runtime_error</code> (every built-in type, with or without block prefetch), <code>GetNullableColumn&lt;T&gt;(i)</code> and <code>GetColumn&lt;std::optional&lt;T&gt;&gt;(i)</code> return <code>std::nullopt</code>, and <code>GetColumn(i, &amp;value)</code> returns <code>false</code> and leaves <code>value</code> holding its empty value (<code>std::nullopt</code>, a NULL <code>SqlVariant</code>, or <code>T {}</code>), whatever it held before.</p>
 <h1><a class="anchor" id="transparent-block-prefetch-fewer-network-round-trips"></a>
 Transparent block-prefetch (fewer network round-trips)</h1>
 <p>Classic per-row fetch loops like the one above issue <b>one <code>SQLFetch</code> per row</b>, i.e. one network round-trip per row. On TCP-backed drivers (Microsoft SQL Server, PostgreSQL) that latency dominates the wall-clock time of large result sets.</p>

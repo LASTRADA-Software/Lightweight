@@ -445,16 +445,16 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "annotated.html",
-"d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html#a91bfca7ee0426ab2e20aa926dc627293",
-"d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a48ed86737153cbf627f517f3b0d11322",
-"d6/d46/classLightweight_1_1Zip_1_1ZipEntry.html#a2299e18f28f3ace1f4f16512a58dcc7d",
-"d7/d53/structLightweight_1_1SqlTime.html#a73c0290cf0447b30a69f3144853bb598",
-"d8/db2/SqlColumnTypeDefinitions_8hpp_source.html",
-"da/d07/structLightweight_1_1SqlRawColumnMetadata.html#a76a7fc936dc18d3af22496f7e3d88017",
-"db/dad/classLightweight_1_1SqlStatement.html#a1dbd5345afd309378028c7ea6f455666",
-"dd/db3/classLightweight_1_1Async_1_1IAsyncBackend.html#a64ef8c995e4ed96b421f10144e9fe3c5",
-"de/dae/classLightweight_1_1SqlFixedString.html#a9da9b618656a2afc3a7748d302dc06e5",
-"functions_f.html"
+"d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html#a627d7b07c47d18ead08a3ed33784652c",
+"d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a437a43b5ea953c5b3dce72f8f5aefa07",
+"d6/d46/classLightweight_1_1Zip_1_1ZipEntry.html#a210b66a08504827ce69e7dec9cf2a8b6",
+"d7/d53/structLightweight_1_1SqlTime.html#a4b2b723b5ba31ad66427081d3016f937",
+"d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#aedb47de8e25f2f4eaae7373d65e3b4bd",
+"da/d07/structLightweight_1_1SqlRawColumnMetadata.html",
+"db/dad/classLightweight_1_1SqlStatement.html#a1a71ae6cfe36477d1b0e2632e50312ef",
+"dd/db1/ManualExecutor_8hpp_source.html",
+"de/dae/classLightweight_1_1SqlFixedString.html#a9a0a5a2905dd9edbb54f9ef32a84a00a",
+"functions_e.html"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

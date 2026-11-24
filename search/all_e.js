@@ -1,7 +1,7 @@
 var searchData=
 [
   ['fail_0',['fail',['../d2/d3e/classLightweight_1_1ProgressTask.html#af70981ae846bad2e861d96276f54559f',1,'Lightweight::ProgressTask::Fail()'],['../d0/db8/classLightweight_1_1NullProgressTask.html#a6cbb3e44f8cb2b1f77975af72f5b7481',1,'Lightweight::NullProgressTask::Fail()']]],
-  ['failed_1',['failed',['../d4/d7d/structLightweight_1_1SqlOperationStatistics.html#a938239d2dcd83da1bfc6408536aac72d',1,'Lightweight::SqlOperationStatistics::failed'],['../d9/d5c/classLightweight_1_1SqlStatisticsScope.html#ad1cb26a4081b6404d8d8be216f235170',1,'Lightweight::SqlStatisticsScope::Failed()'],['../de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#lock-acquisition-failed',1,'Lock Acquisition Failed']]],
+  ['failed_1',['failed',['../d9/d5c/classLightweight_1_1SqlStatisticsScope.html#ad1cb26a4081b6404d8d8be216f235170',1,'Lightweight::SqlStatisticsScope::Failed()'],['../d4/d7d/structLightweight_1_1SqlOperationStatistics.html#a938239d2dcd83da1bfc6408536aac72d',1,'Lightweight::SqlOperationStatistics::failed'],['../de/d60/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2dbtool.html#lock-acquisition-failed',1,'Lock Acquisition Failed']]],
   ['failed_20transiently_2',['Retrying a connect that failed transiently',['../d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#retrying-a-connect-that-failed-transiently',1,'']]],
   ['failedat_3',['failedAt',['../d1/de7/structLightweight_1_1SqlMigration_1_1RevertResult.html#a44e625e09b82ed9a3612acc9faf3eac8',1,'Lightweight::SqlMigration::RevertResult']]],
   ['failedrowcount_4',['failedRowCount',['../d7/d37/structLightweight_1_1SqlBackup_1_1TableRestoreReport.html#a4596d9f80ca2455d7a1818a9d7c943bc',1,'Lightweight::SqlBackup::TableRestoreReport']]],

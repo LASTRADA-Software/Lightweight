@@ -1,5 +1,7 @@
 var NAVTREEINDEX10 =
 {
+"functions_e.html":[22,2,0,5],
+"functions_enum.html":[22,2,4],
 "functions_f.html":[22,2,0,6],
 "functions_func.html":[22,2,1],
 "functions_func.html":[22,2,1,0],
@@ -74,8 +76,8 @@ var NAVTREEINDEX10 =
 "functions_z.html":[22,2,0,25],
 "functions_~.html":[22,2,0,26],
 "hierarchy.html":[22,1],
-"index.html":[],
 "index.html":[0],
+"index.html":[],
 "index.html#asynchronous-api":[0,9],
 "index.html#backup-and-restore":[0,8],
 "index.html#building-with-c20-modules":[0,13],

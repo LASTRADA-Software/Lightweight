@@ -1,5 +1,6 @@
 var NAVTREEINDEX2 =
 {
+"d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a437a43b5ea953c5b3dce72f8f5aefa07":[20,7,14,23],
 "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a48ed86737153cbf627f517f3b0d11322":[20,7,14,35],
 "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a4a3c08e9053c7409a170abd9891e15bf":[20,7,14,56],
 "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a500e17dc06f73a877dc7e7a99342feaa":[20,7,14,44],
@@ -248,6 +249,5 @@ var NAVTREEINDEX2 =
 "d6/d3b/structLightweight_1_1SqlLockError.html#ac84025dddd1fc79469d13504b5c733cf":[22,0,0,64,1],
 "d6/d3b/structLightweight_1_1SqlLockError.html#aedcac377e528618f190b2cb4deb5f48a":[22,0,0,64,4],
 "d6/d45/BatchManager_8hpp_source.html":[23,0,1,4,1],
-"d6/d46/classLightweight_1_1Zip_1_1ZipEntry.html":[22,0,0,5,2],
-"d6/d46/classLightweight_1_1Zip_1_1ZipEntry.html#a210b66a08504827ce69e7dec9cf2a8b6":[22,0,0,5,2,6]
+"d6/d46/classLightweight_1_1Zip_1_1ZipEntry.html":[22,0,0,5,2]
 };

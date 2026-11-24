@@ -1,5 +1,7 @@
 var NAVTREEINDEX6 =
 {
+"da/d07/structLightweight_1_1SqlRawColumnMetadata.html":[22,0,0,82],
+"da/d07/structLightweight_1_1SqlRawColumnMetadata.html#a2838b8c9fd55745b05cc38a622836419":[22,0,0,82,0],
 "da/d07/structLightweight_1_1SqlRawColumnMetadata.html#a76a7fc936dc18d3af22496f7e3d88017":[22,0,0,82,2],
 "da/d07/structLightweight_1_1SqlRawColumnMetadata.html#a7cc9f36813cfe7afbb318d8c0c99963e":[22,0,0,82,5],
 "da/d07/structLightweight_1_1SqlRawColumnMetadata.html#a8ce0577acded3840d02009304a73888a":[22,0,0,82,3],
@@ -247,7 +249,5 @@ var NAVTREEINDEX6 =
 "db/dad/classLightweight_1_1SqlStatement.html":[20,6,9],
 "db/dad/classLightweight_1_1SqlStatement.html#a0123c0f721c9374f8992e7c454294721":[20,6,9,13],
 "db/dad/classLightweight_1_1SqlStatement.html#a0783a366bc0c8fd7d9f2639236b3fc36":[20,6,9,12],
-"db/dad/classLightweight_1_1SqlStatement.html#a1805c1161886e575c4b9c16658ae84ef":[20,6,9,18],
-"db/dad/classLightweight_1_1SqlStatement.html#a1a71ae6cfe36477d1b0e2632e50312ef":[20,6,9,11],
-"db/dad/classLightweight_1_1SqlStatement.html#a1c1302b59a4e88fae7cb709df44699ea":[20,6,9,47]
+"db/dad/classLightweight_1_1SqlStatement.html#a1805c1161886e575c4b9c16658ae84ef":[20,6,9,18]
 };

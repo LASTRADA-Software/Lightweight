@@ -220,6 +220,9 @@ virtual <a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.h
 <tr class="memitem:a8aad2dcdc6cd722dd563c42799acba49" id="r_a8aad2dcdc6cd722dd563c42799acba49"><td class="memItemLeft" align="right" valign="top">virtual <a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#abf21ac12103c4b8224cc68fb0cc114c0">StringList</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a8aad2dcdc6cd722dd563c42799acba49">SqliteSettingsStatements</a> (<a class="el" href="../../d9/d23/structLightweight_1_1SqliteConnectionSettings.html">SqliteConnectionSettings</a> const &amp;settings) const</td></tr>
 <tr class="memdesc:a8aad2dcdc6cd722dd563c42799acba49"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the statements a connection executes after connecting to realise <code>settings</code>.  <br /></td></tr>
 <tr class="separator:a8aad2dcdc6cd722dd563c42799acba49"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a447a6a179a2543ff9ce16808ef0fb63e" id="r_a447a6a179a2543ff9ce16808ef0fb63e"><td class="memItemLeft" align="right" valign="top">virtual std::string_view&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a447a6a179a2543ff9ce16808ef0fb63e">ResyncEndedTransactionStatement</a> () const noexcept</td></tr>
+<tr class="memdesc:a447a6a179a2543ff9ce16808ef0fb63e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns a statement that opens a transaction on the database directly, bypassing the driver's own transaction bookkeeping.  <br /></td></tr>
+<tr class="separator:a447a6a179a2543ff9ce16808ef0fb63e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2f3e6e88b1fb6af51bf4d0d65c5a52e6" id="r_a2f3e6e88b1fb6af51bf4d0d65c5a52e6"><td class="memItemLeft" align="right" valign="top">virtual <a class="el" href="../../d4/d61/classLightweight_1_1SqlAdvisoryLockHandler.html">SqlAdvisoryLockHandler</a> const &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a2f3e6e88b1fb6af51bf4d0d65c5a52e6">AdvisoryLockOps</a> () const =0</td></tr>
 <tr class="memdesc:a2f3e6e88b1fb6af51bf4d0d65c5a52e6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the dialect-specific handler used by <code><a class="el" href="../../d3/de6/classLightweight_1_1SqlScopedLock.html">SqlScopedLock</a></code> to acquire and release named cross-process advisory locks.  <br /></td></tr>
 <tr class="separator:a2f3e6e88b1fb6af51bf4d0d65c5a52e6"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -270,6 +273,8 @@ virtual <a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.h
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-static-methods" name="pub-static-methods"></a>
 Static Public Member Functions</h2></td></tr>
+<tr class="memitem:a6dd5d1a4e6a675a2ebe3372e84588b16" id="r_a6dd5d1a4e6a675a2ebe3372e84588b16"><td class="memItemLeft" align="right" valign="top">static std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a6dd5d1a4e6a675a2ebe3372e84588b16">QuoteIdentifier</a> (std::string_view name)</td></tr>
+<tr class="separator:a6dd5d1a4e6a675a2ebe3372e84588b16"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a753b7937196e9c5990fce9fa52bea990" id="r_a753b7937196e9c5990fce9fa52bea990"><td class="memItemLeft" align="right" valign="top"><a id="a753b7937196e9c5990fce9fa52bea990" name="a753b7937196e9c5990fce9fa52bea990"></a>
 static <a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html">SqlQueryFormatter</a> const &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>Sqlite</b> ()</td></tr>
 <tr class="memdesc:a753b7937196e9c5990fce9fa52bea990"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the SQL query formatter for SQLite. <br /></td></tr>
@@ -290,6 +295,8 @@ static <a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.ht
 <tr class="memitem:a36631dad45de6ee327dac3fb204c29e0"><td class="memTemplItemLeft" align="right" valign="top">static std::string&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a36631dad45de6ee327dac3fb204c29e0">BuildForeignKeyConstraintName</a> (std::string_view tableName, Range const &amp;columns)</td></tr>
 <tr class="memdesc:a36631dad45de6ee327dac3fb204c29e0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Builds the canonical foreign-key constraint name for a set of columns.  <br /></td></tr>
 <tr class="separator:a36631dad45de6ee327dac3fb204c29e0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7049e593ee11f0a38d62a48ab2b7c472" id="r_a7049e593ee11f0a38d62a48ab2b7c472"><td class="memItemLeft" align="right" valign="top">static std::string_view&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a7049e593ee11f0a38d62a48ab2b7c472">ResyncEndedTransactionStatementFor</a> (SqlServerType serverType) noexcept</td></tr>
+<tr class="separator:a7049e593ee11f0a38d62a48ab2b7c472"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pro-static-methods" name="pro-static-methods"></a>
 Static Protected Member Functions</h2></td></tr>
@@ -319,11 +326,44 @@ static std::string&#160;</td><td class="memItemRight" valign="bottom"><b>FormatT
 
 <p>Alias for a list of SQL statement strings. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00139">139</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00146">146</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>
 <h2 class="groupheader">Member Function Documentation</h2>
+<a id="a6dd5d1a4e6a675a2ebe3372e84588b16" name="a6dd5d1a4e6a675a2ebe3372e84588b16"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a6dd5d1a4e6a675a2ebe3372e84588b16">&#9670;&#160;</a></span>QuoteIdentifier()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">static std::string Lightweight::SqlQueryFormatter::QuoteIdentifier </td>
+          <td>(</td>
+          <td class="paramtype">std::string_view&#160;</td>
+          <td class="paramname"><em>name</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Quotes <code>name</code> as an identifier: between double quotes, with every double quote it holds doubled - the quoting every supported dialect accepts - so that any name, one taken from the catalog included, can be spliced into statement text without ending the identifier early. </p><dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">name</td><td>The identifier, as the catalog spells it. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The quoted identifier. </dd></dl>
+
+</div>
+</div>
 <a id="a28d630a4ecd3bb5946d20de498d95176" name="a28d630a4ecd3bb5946d20de498d95176"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a28d630a4ecd3bb5946d20de498d95176">&#9670;&#160;</a></span>QualifiedTableName()</h2>
 
@@ -818,7 +858,7 @@ static std::string&#160;</td><td class="memItemRight" valign="bottom"><b>FormatT
 <p>Whether the dialect must rebuild a table to apply an <code>ALTER TABLE</code> schema change that it cannot express in place — adding/dropping a foreign-key constraint, or altering a column's type/nullability (<code>ALTER TABLE … ADD/DROP CONSTRAINT</code> / <code>… ALTER COLUMN</code>). </p>
 <p>SQLite returns <code>true</code>; every other backend defaults to <code>false</code>. The migration executor consults this (via <a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#ad03129b17daf9ea6829425473db12877">SqlConnection::RequiresTableRebuildForSchemaChange</a>) to decide whether to take the table-rebuild path for the <code>-- LIGHTWEIGHT_SQLITE_GUARD:</code> sentinels these dialects emit. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00200">200</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00207">207</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>
@@ -850,7 +890,7 @@ static std::string&#160;</td><td class="memItemRight" valign="bottom"><b>FormatT
 <p>Defaults to an empty string, meaning the dialect has no per-table hint and renders the statement unchanged. SQL Server returns <code>" WITH (READUNCOMMITTED)"</code>.</p>
 <dl class="section return"><dt>Returns</dt><dd>The hint text including its leading space, or an empty string. The text must stay valid for as long as the formatter does. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00216">216</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00223">223</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>
@@ -881,7 +921,7 @@ static std::string&#160;</td><td class="memItemRight" valign="bottom"><b>FormatT
 <p>Defaults to <code>false</code>, meaning the generic per-table catalog reader is used. SQL Server returns <code>true</code>: it can answer the entire schema with a handful of <code>sys.*</code> queries, collapsing thousands of per-table round-trips into a few. The batched path must produce byte-identical schema metadata to the legacy path.</p>
 <dl class="section return"><dt>Returns</dt><dd><code>true</code> if the dialect supports the batched fast path, <code>false</code> otherwise. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00231">231</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00238">238</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>
@@ -912,7 +952,7 @@ static std::string&#160;</td><td class="memItemRight" valign="bottom"><b>FormatT
 <p>Defaults to <code>false</code> (PostgreSQL and SQLite store both the same way). SQL Server returns <code>true</code>.</p>
 <dl class="section return"><dt>Returns</dt><dd><code>true</code> if narrow and wide text are distinct types in this dialect. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00245">245</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00252">252</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>
@@ -943,7 +983,7 @@ static std::string&#160;</td><td class="memItemRight" valign="bottom"><b>FormatT
 <p>The batched relation loading behind <code>Query&lt;Record&gt;().With&lt;&amp;Record::relation&gt;()</code> resolves a whole result set through <code>IN</code> predicates over the collected keys. Those keys are rendered as literals, so a large batch would otherwise produce one enormous expression — SQL Server raises "an expression services limit has been reached", and SQLite has its own parser limits. Splitting the batch into chunks of this size keeps every generated statement inside what the dialect accepts; the cost is one extra round-trip per chunk, still a constant number of queries per relation instead of one per record.</p>
 <dl class="section return"><dt>Returns</dt><dd>The maximum number of values per <code>IN</code> predicate. Defaults to 1000 for every dialect. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00262">262</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00269">269</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>
@@ -987,7 +1027,7 @@ template&lt;typename Range &gt; </div>
 <p>Produces <code>FK_&lt;table&gt;_&lt;col1&gt;[_&lt;col2&gt;…]</code>. A single-column FK collapses to <code>FK_&lt;table&gt;_&lt;col&gt;</code>; a composite FK includes every column so that a composite FK whose first column matches an existing single-column FK doesn't collide on the constraint name (which MSSQL enforces as globally unique per DB).</p>
 <p>Consumers include the SQL Server, PostgreSQL and SQLite formatters — centralising the convention here keeps CREATE/ALTER emission in sync with DROP CONSTRAINT lookup (e.g. <code>SQLiteRebuildDropForeignKey</code>). </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00278">278</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00285">285</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>
@@ -1019,7 +1059,7 @@ template&lt;typename Range &gt; </div>
 <p>Returns an empty string when the DBMS has no session-level concept of a default schema (SQL Server, SQLite). Callers must skip emission for empty results. PostgreSQL implements this via <code>SET search_path TO ...</code>.</p>
 <p>The <code>schema</code> value is interpolated into the statement; callers must validate it (e.g. whitelist <code>[A-Za-z0-9_]</code>) before invoking. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00299">299</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00306">306</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>
@@ -1057,7 +1097,75 @@ template&lt;typename Range &gt; </div>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The statements to execute, in order; empty when there is nothing to apply. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00312">312</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00319">319</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+
+</div>
+</div>
+<a id="a447a6a179a2543ff9ce16808ef0fb63e" name="a447a6a179a2543ff9ce16808ef0fb63e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a447a6a179a2543ff9ce16808ef0fb63e">&#9670;&#160;</a></span>ResyncEndedTransactionStatement()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">virtual std::string_view Lightweight::SqlQueryFormatter::ResyncEndedTransactionStatement </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">virtual</span><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Returns a statement that opens a transaction on the database directly, bypassing the driver's own transaction bookkeeping. </p>
+<p>Used after a failed rollback. The defect it works around belongs to one driver, not to a DBMS: the SQLite ODBC driver keeps its own "in a transaction" flag, clears it only when a COMMIT or ROLLBACK succeeds, and opens its transaction lazily (an implicit BEGIN before the first statement after autocommit went off). When the database ended the transaction on its own (<code>INSERT</code> <code>OR</code> <code>ROLLBACK</code>, <code>RAISE(ROLLBACK)</code>), both COMMIT and ROLLBACK are refused, the flag stays set, and every later transaction on the connection gets no BEGIN and silently runs in autocommit mode. Executing this statement opens a real transaction, which the driver then ends with <code>SQLEndTran</code>, clearing its flag. The answer assumes that driver: on another driver for the same DBMS that follows the database's state, the statement fails ("cannot start a transaction within a
+transaction" once the driver opened its own) or opens a transaction that the following rollback ends - either way the connection is left in manual-commit mode or rolled back, never committed.</p>
+<p>Only a formatter that answers for itself returns a statement: this base class returns none, and the SQLite formatter returns one only as the SQLite formatter, not as the base of another dialect (a BEGIN on MySQL or MariaDB would implicitly commit). A derived dialect opts in by overriding.</p>
+<dl class="section return"><dt>Returns</dt><dd>The statement; empty for a dialect whose driver needs no such resynchronisation. </dd></dl>
+
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00345">345</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+
+</div>
+</div>
+<a id="a7049e593ee11f0a38d62a48ab2b7c472" name="a7049e593ee11f0a38d62a48ab2b7c472"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a7049e593ee11f0a38d62a48ab2b7c472">&#9670;&#160;</a></span>ResyncEndedTransactionStatementFor()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">static std::string_view Lightweight::SqlQueryFormatter::ResyncEndedTransactionStatementFor </td>
+          <td>(</td>
+          <td class="paramtype">SqlServerType&#160;</td>
+          <td class="paramname"><em>serverType</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">static</span><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>The statement <a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a447a6a179a2543ff9ce16808ef0fb63e" title="Returns a statement that opens a transaction on the database directly, bypassing the driver&#39;s own tra...">ResyncEndedTransactionStatement()</a> names for <code>serverType</code>, or none for a server type without a formatter (MySQL, an unrecognised server). </p><dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">serverType</td><td>The connection's server type. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The statement, or empty. </dd></dl>
+
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00354">354</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>
@@ -1144,7 +1252,7 @@ template&lt;typename Range &gt; </div>
 <p>New hooks are appended at the end of the class: that keeps the slots of the earlier ones for callers, but a subclass outside this library must still be rebuilt.</p>
 <dl class="section return"><dt>Returns</dt><dd><code>true</code> if identifiers differing only in ASCII letter case name the same object. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00347">347</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00389">389</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>
@@ -1175,7 +1283,7 @@ template&lt;typename Range &gt; </div>
 <p>Defaults to <code>true</code>. SQLite returns <code>false</code>: it has no schemas, only attached databases.</p>
 <dl class="section return"><dt>Returns</dt><dd><code>true</code> if a table can be created in a named schema. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00357">357</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00399">399</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>
@@ -1213,7 +1321,7 @@ template&lt;typename Range &gt; </div>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The statement to execute, or an empty string when there is nothing to execute. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00368">368</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00410">410</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>
@@ -1244,7 +1352,7 @@ template&lt;typename Range &gt; </div>
 <p>Defaults to an empty string, meaning the dialect always reports them. SQL Server returns <code>SET NOCOUNT OFF</code>: under <code>NOCOUNT ON</code> the driver may report 0 rows for a statement that changed rows. The setting stays in effect for the session after the statement ran.</p>
 <dl class="section return"><dt>Returns</dt><dd>The statement to execute, or an empty string when there is nothing to execute. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00381">381</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00423">423</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>
@@ -1274,7 +1382,7 @@ template&lt;typename Range &gt; </div>
 <p>A query estimating a table's row count from the catalog's statistics, without reading the table. It takes two parameters, the schema name and then the table name, and yields one integer. </p>
 <dl class="section return"><dt>Returns</dt><dd>The query, or empty when the dialect keeps no such statistics; callers then count with <code>SELECT COUNT(*)</code>, which reads the whole table. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00391">391</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00433">433</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>
@@ -1305,7 +1413,7 @@ template&lt;typename Range &gt; </div>
 <p>Defaults to <code>false</code>. SQL Server (<code>UNIQUEIDENTIFIER</code>) and PostgreSQL (<code>UUID</code>) return <code>true</code>.</p>
 <dl class="section return"><dt>Returns</dt><dd><code>true</code> if GUID columns are stored in a dedicated binary type. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00401">401</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00443">443</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>
@@ -1336,7 +1444,7 @@ template&lt;typename Range &gt; </div>
 <p>Defaults to <code>true</code>. SQLite returns <code>false</code>: it stores CHAR(n) as plain text and compares it verbatim.</p>
 <dl class="section return"><dt>Returns</dt><dd><code>true</code> if trailing spaces of CHAR(n) values are insignificant in comparisons. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00411">411</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00453">453</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>
@@ -1374,7 +1482,7 @@ template&lt;typename Range &gt; </div>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The identifier as the catalog stores it. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00423">423</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00465">465</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>
@@ -1405,7 +1513,7 @@ template&lt;typename Range &gt; </div>
 <p>Defaults to <code>false</code>. SQL Server returns <code>true</code>: ODBC Driver 18 executes every parameter set and marks only the failing ones <code>SQL_PARAM_ERROR</code>. PostgreSQL's psqlodbc marks every parameter set of a failed array <code>SQL_PARAM_ERROR</code>, and the SQLite ODBC driver does not fill the array at all, so their failing rows are found by bisection instead.</p>
 <dl class="section return"><dt>Returns</dt><dd><code>true</code> if the rows marked <code>SQL_PARAM_ERROR</code> may be trusted to be the failing ones. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00437">437</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00479">479</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>
@@ -1436,7 +1544,7 @@ template&lt;typename Range &gt; </div>
 <p>Defaults to <code>false</code>. SQLite returns <code>true</code>: its write-ahead log grows with the open transaction, so a restore commits every <code>RestoreSettings::maxRowsPerCommit</code> rows of a chunk.</p>
 <dl class="section return"><dt>Returns</dt><dd><code>true</code> if a bulk load bounds the rows per transaction. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00449">449</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00491">491</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>
@@ -1467,7 +1575,7 @@ template&lt;typename Range &gt; </div>
 <p>Defaults to <code>true</code>. SQLite returns <code>false</code>: its driver stores an <code>SQL_C_STINYINT</code> -1 as 255 and an <code>SQL_C_ULONG</code> above <code>INT32_MAX</code> as a negative number, and reads such a value back as <code>INT32_MAX</code>. The binders of those two types then stage each value through a wider C type.</p>
 <dl class="section return"><dt>Returns</dt><dd><code>true</code> if those C types round-trip their full range on this backend. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00462">462</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00504">504</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>
@@ -1505,7 +1613,7 @@ template&lt;typename Range &gt; </div>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The attributes by upper-case key; empty when the driver needs none. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00477">477</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00519">519</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>
@@ -1535,7 +1643,7 @@ template&lt;typename Range &gt; </div>
 <p>Whether the driver reports a cell whose stored value its declared column type cannot convert (text in an INTEGER or DATE column) as NULL when the cell is read as that type. </p>
 <p>Defaults to <code>false</code>. SQLite returns <code>true</code>: its columns' types are declarations only, and its driver answers such a typed read with <code>SQL_NULL_DATA</code>, so a <a class="el" href="../../df/d3f/structLightweight_1_1SqlVariant.html" title="Represents a value that can be any of the supported SQL data types.">SqlVariant</a> reads the cell again as text. </p><dl class="section return"><dt>Returns</dt><dd><code>true</code> if a typed read's NULL may hide a value of another type. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00489">489</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00531">531</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>
@@ -1565,7 +1673,7 @@ template&lt;typename Range &gt; </div>
 <p>Whether the driver may report a boolean true as -1. </p>
 <p>Defaults to <code>false</code>. PostgreSQL returns <code>true</code>: psqlODBC with the connection option <code>TrueIsMinus1=1</code> reports a boolean true as -1 (through <code>SQL_C_BIT</code> the byte 0xFF), so a <code>bool</code> read there takes -1 as <code>true</code>. </p><dl class="section return"><dt>Returns</dt><dd><code>true</code> if -1 is a form of a boolean true on this backend. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00499">499</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00541">541</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>

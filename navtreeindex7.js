@@ -1,5 +1,7 @@
 var NAVTREEINDEX7 =
 {
+"db/dad/classLightweight_1_1SqlStatement.html#a1a71ae6cfe36477d1b0e2632e50312ef":[20,6,9,11],
+"db/dad/classLightweight_1_1SqlStatement.html#a1c1302b59a4e88fae7cb709df44699ea":[20,6,9,47],
 "db/dad/classLightweight_1_1SqlStatement.html#a1dbd5345afd309378028c7ea6f455666":[20,6,9,41],
 "db/dad/classLightweight_1_1SqlStatement.html#a1e5572123ab0d006d3ae3defee9c4f89":[20,6,9,35],
 "db/dad/classLightweight_1_1SqlStatement.html#a29cec4857dff71c1d19a1c023fce84ed":[20,6,9,46],
@@ -247,7 +249,5 @@ var NAVTREEINDEX7 =
 "dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html#afa1437023353d4ab52d977c4575e6289":[20,8,2,12],
 "dd/da7/conceptLightweight_1_1FieldWithStorage.html":[20,3,3],
 "dd/da9/DataMapperAsync_8hpp_source.html":[23,0,1,0,5],
-"dd/dad/SqlText_8hpp_source.html":[23,0,1,1,15],
-"dd/db1/ManualExecutor_8hpp_source.html":[23,0,1,0,8],
-"dd/db3/classLightweight_1_1Async_1_1IAsyncBackend.html":[20,0,1]
+"dd/dad/SqlText_8hpp_source.html":[23,0,1,1,15]
 };

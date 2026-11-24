@@ -300,9 +300,7 @@ Static Public Member Functions</h2></td></tr>
 <tr class="separator:aa33c11dd502607734cfecf81488e1fea"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae98ebd9171d27e28807fac1aa0cf38b3" id="r_ae98ebd9171d27e28807fac1aa0cf38b3"><td class="memItemLeft" align="right" valign="top">static LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#ae98ebd9171d27e28807fac1aa0cf38b3">SetDefaultDataSource</a> (<a class="el" href="../../d6/d8d/structLightweight_1_1SqlConnectionDataSource.html">SqlConnectionDataSource</a> const &amp;dataSource)</td></tr>
 <tr class="separator:ae98ebd9171d27e28807fac1aa0cf38b3"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:afcb9fb85486b720ba570ac72d3ddf5be" id="r_afcb9fb85486b720ba570ac72d3ddf5be"><td class="memItemLeft" align="right" valign="top"><a id="afcb9fb85486b720ba570ac72d3ddf5be" name="afcb9fb85486b720ba570ac72d3ddf5be"></a>
-static LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><b>SetPostConnectedHook</b> (std::function&lt; void(<a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html">SqlConnection</a> &amp;)&gt; hook)</td></tr>
-<tr class="memdesc:afcb9fb85486b720ba570ac72d3ddf5be"><td class="mdescLeft">&#160;</td><td class="mdescRight">Sets a callback to be called after each connection being established. <br /></td></tr>
+<tr class="memitem:afcb9fb85486b720ba570ac72d3ddf5be" id="r_afcb9fb85486b720ba570ac72d3ddf5be"><td class="memItemLeft" align="right" valign="top">static LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#afcb9fb85486b720ba570ac72d3ddf5be">SetPostConnectedHook</a> (std::function&lt; void(<a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html">SqlConnection</a> &amp;)&gt; hook)</td></tr>
 <tr class="separator:afcb9fb85486b720ba570ac72d3ddf5be"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0b3647d6ae196fc982e28179829cf315" id="r_a0b3647d6ae196fc982e28179829cf315"><td class="memItemLeft" align="right" valign="top"><a id="a0b3647d6ae196fc982e28179829cf315" name="a0b3647d6ae196fc982e28179829cf315"></a>
 static LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><b>ResetPostConnectedHook</b> ()</td></tr>
@@ -627,6 +625,34 @@ static LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><
 
 </div>
 </div>
+<a id="afcb9fb85486b720ba570ac72d3ddf5be" name="afcb9fb85486b720ba570ac72d3ddf5be"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#afcb9fb85486b720ba570ac72d3ddf5be">&#9670;&#160;</a></span>SetPostConnectedHook()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">static LIGHTWEIGHT_API void Lightweight::SqlConnection::SetPostConnectedHook </td>
+          <td>(</td>
+          <td class="paramtype">std::function&lt; void(<a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html">SqlConnection</a> &amp;)&gt;&#160;</td>
+          <td class="paramname"><em>hook</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Sets a callback to be called after each connection being established.</p>
+<p>An exception the callback throws fails the connect: <a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#aff53cd88345bf8822f5fd34e676c48d0">Connect()</a> returns false, <a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#ab40ae26f82d6690050a2a6a622f7cdec">LastError()</a> names the exception (the <a class="el" href="../../d8/d5b/structLightweight_1_1SqlErrorInfo.html" title="Represents an ODBC SQL error.">SqlErrorInfo</a> of a SqlException), and the session is disconnected. </p>
+
+</div>
+</div>
 <a id="a46985714d93ffff89ede02166524eebc" name="a46985714d93ffff89ede02166524eebc"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a46985714d93ffff89ede02166524eebc">&#9670;&#160;</a></span>DefaultStringTruncationMode()</h2>
 
@@ -705,7 +731,7 @@ static LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><
 
 <p>This connection's string-truncation mode. See <a class="el" href="../../d9/d8a/group__CoreApi.html#ga99e5e92107ae68dfd09cca5fc6ef1106">SqlStringTruncationMode</a>. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00275">275</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00278">278</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
 
 </div>
 </div>
@@ -1014,7 +1040,7 @@ static LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><
 <p>Retrieves the connection ID. </p>
 <p>This is a unique identifier for the connection, which is useful for debugging purposes. Note, this ID will not change if the connection is moved nor when it is reused via the connection pool. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00367">367</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00370">370</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
 
 </div>
 </div>
@@ -1190,9 +1216,9 @@ static LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><
 
 <p>Retrieves the type of the server. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00840">840</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00851">851</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02091">Lightweight::DataMapper::CreateTable()</a>, <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00944">SupportsNativeRowArrayFetch()</a>, <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00885">SupportsNativeRowBatch()</a>, and <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00921">SupportsPreparedStatementReuse()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02091">Lightweight::DataMapper::CreateTable()</a>, <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00955">SupportsNativeRowArrayFetch()</a>, <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00896">SupportsNativeRowBatch()</a>, and <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00932">SupportsPreparedStatementReuse()</a>.</p>
 
 </div>
 </div>
@@ -1221,7 +1247,7 @@ static LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><
 
 <p>Retrieves the name of the driver used for this connection. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00845">845</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00856">856</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
 
 </div>
 </div>
@@ -1250,7 +1276,7 @@ static LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><
 <p>Tells whether text reaches the driver intact through the ODBC wide (W) entry points.</p>
 <p>Off Windows, a driver that implements only the ANSI entry points (such as the SQLite ODBC driver some Linux distributions ship) receives wide text from the driver manager narrowed one UTF-16 code unit to one byte, which corrupts every non-ASCII character. For such a driver the library hands over query text, catalog-function arguments and connection text as UTF-8 through the ANSI entry points, and reads its diagnostics through them. Always true on Windows, whose driver manager converts wide text to the code page an ANSI driver expects. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00850">850</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00861">861</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
 
 </div>
 </div>
@@ -1282,7 +1308,7 @@ static LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><
 <p>The option is decided as the driver decides it: the connection string's <code>OEMCP</code> key (case-insensitive), else the <code>OEMCP</code> of the data source's profile (user DSN, then system DSN), else the driver default, which is on for a data-source connect (<a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#aff53cd88345bf8822f5fd34e676c48d0">Connect(SqlConnectionDataSource const&amp;)</a>) and off for a connection string. A value is true when it starts with Y, T or a non-zero digit. A borrowed connection handle carries neither, so it keeps the narrow binding.</p>
 <dl class="section return"><dt>Returns</dt><dd>The binding the narrow string binders use on this connection. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00855">855</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00866">866</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
 
 </div>
 </div>
@@ -1310,7 +1336,7 @@ static LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><
 </div><div class="memdoc">
 <p>Whether the driver can read a column bound with <code>SQLBindCol</code> again with <code>SQLGetData</code> (<code>SQL_GD_BOUND</code> in <code>SQL_GETDATA_EXTENSIONS</code>). The SQLite and PostgreSQL drivers can; MS SQL Server's cannot, so there a bound value longer than its buffer cannot be read in full. Asked once per connect. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00860">860</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00871">871</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
 
 <p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02880">Lightweight::DataMapper::Query()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02965">Lightweight::DataMapper::Query()</a>, and <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02826">Lightweight::DataMapper::Query()</a>.</p>
 
@@ -1340,7 +1366,7 @@ static LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><
 </div><div class="memdoc">
 <p>Whether the driver converts an <code>int8_t</code> and a <code>uint32_t</code> over their full range in place (see <a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a8ac7b33550dea498d70b6b9e15668c48" title="Whether the driver converts an int8_t bound as SQL_C_STINYINT and a uint32_t bound as SQL_C_ULONG ove...">SqlQueryFormatter::ConvertsNarrowIntegerCTypes</a>). Decided once per connect, so the binders of those types ask a flag rather than the formatter. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00865">865</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00876">876</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
 
 </div>
 </div>
@@ -1368,7 +1394,7 @@ static LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><
 </div><div class="memdoc">
 <p>Whether the driver reports a cell its column type cannot convert as NULL (see <a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#afec9ab58a6e0cff80972ab2893df371a" title="Whether the driver reports a cell whose stored value its declared column type cannot convert (text in...">SqlQueryFormatter::ReportsUnconvertibleCellsAsNull</a>); <code>false</code> for a backend without a formatter. Decided once per connect. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00870">870</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00881">881</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
 
 </div>
 </div>
@@ -1396,7 +1422,7 @@ static LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><
 </div><div class="memdoc">
 <p>Whether the driver may report a boolean true as -1 (see <a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#ab0bc358f93fca71227fe152bf346c25d" title="Whether the driver may report a boolean true as -1.">SqlQueryFormatter::BooleanTrueMayBeMinusOne</a>); <code>false</code> for a backend without a formatter. Decided once per connect. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00875">875</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00886">886</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
 
 </div>
 </div>
@@ -1425,9 +1451,9 @@ static LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><
 
 <p>Retrieves a query formatter suitable for the SQL server being connected. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00880">880</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00891">891</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l03154">Lightweight::SqlStatement::MigrateDirect()</a>, and <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00492">Lightweight::DataMapper::Query()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l03165">Lightweight::SqlStatement::MigrateDirect()</a>, and <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00492">Lightweight::DataMapper::Query()</a>.</p>
 
 </div>
 </div>
@@ -1486,9 +1512,9 @@ static LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><
 <p>The batched <code>SqlStatement::ExecuteBatch(rows, accessors...)</code> consults this to decide whether it may submit the whole batch in a single row-wise <code>SQLExecute</code>, or must fall back to a single prepare followed by consecutive per-row executes. This is a driver/backend capability — not a SQL-dialect concern — so it belongs to the connection, which knows both the server type and the driver name (either of which a future carve-out can branch on).</p>
 <dl class="section return"><dt>Returns</dt><dd><code>true</code> if the driver honours parameter arrays. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00885">885</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00896">896</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00840">ServerType()</a>.</p>
+<p class="reference">References <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00851">ServerType()</a>.</p>
 
 </div>
 </div>
@@ -1519,11 +1545,11 @@ static LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><
 <p>The fast retrieval path in <code>SqlStatement::FetchAllRowWise</code> consults this to decide whether it may bind the result columns row-wise over a record block and materialize whole row blocks per <code>SQLFetchScroll</code> round-trip, or must fall back to the per-row <code>SQLFetch</code> path. Like <a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#ac4ea8b83a43459581e2a52a568c595c5">SupportsNativeRowBatch</a> this is a driver/backend capability — not a SQL-dialect concern — so it lives on the connection. Kept distinct from the parameter-array flag so a backend that honours one but not the other can be carved out independently.</p>
 <dl class="section return"><dt>Returns</dt><dd><code>true</code> if the driver honours row-array fetching. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00944">944</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00955">955</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00840">ServerType()</a>, and <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00944">SupportsNativeRowArrayFetch()</a>.</p>
+<p class="reference">References <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00851">ServerType()</a>, and <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00955">SupportsNativeRowArrayFetch()</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00944">SupportsNativeRowArrayFetch()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00955">SupportsNativeRowArrayFetch()</a>.</p>
 
 </div>
 </div>
@@ -1560,7 +1586,7 @@ static LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><
 </dl>
 <dl class="section return"><dt>Returns</dt><dd><code>true</code> if that backend honours row-array fetching. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00926">926</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00937">937</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
 
 </div>
 </div>
@@ -1598,7 +1624,7 @@ static LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><
 </dl>
 <dl class="section return"><dt>Returns</dt><dd><code>true</code> if narrow character data round-trips byte-exact on that backend. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00949">949</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00960">960</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
 
 </div>
 </div>
@@ -1692,11 +1718,11 @@ static LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><
 <p>Gates the prepared-statement cache: a backend not known to keep a prepared statement re-executable across an intervening cursor close never pools handles, no matter what capacity was configured. Like <a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#ac4ea8b83a43459581e2a52a568c595c5">SupportsNativeRowBatch</a> this is a driver/backend capability rather than a SQL-dialect concern, so it lives on the connection instead of a <code>switch</code> in the caller.</p>
 <dl class="section return"><dt>Returns</dt><dd><code>true</code> if prepared handles may be pooled and re-executed on this backend. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00921">921</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00932">932</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00840">ServerType()</a>, and <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00921">SupportsPreparedStatementReuse()</a>.</p>
+<p class="reference">References <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00851">ServerType()</a>, and <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00932">SupportsPreparedStatementReuse()</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00921">SupportsPreparedStatementReuse()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00932">SupportsPreparedStatementReuse()</a>.</p>
 
 </div>
 </div>
@@ -1733,7 +1759,7 @@ static LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><
 </dl>
 <dl class="section return"><dt>Returns</dt><dd><code>true</code> if prepared handles may be pooled and re-executed on <code>serverType</code>. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00903">903</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00914">914</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
 
 </div>
 </div>
@@ -1947,9 +1973,7 @@ static LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><
 
 <p>Retrieves the native handle. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00666">666</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
-
-<p class="reference">Referenced by <a class="el" href="../../d0/ddc/classLightweight_1_1SqlTransaction.html#a0bd596d2a637709abc81b396c7b2ce70">Lightweight::SqlTransaction::TryCommit()</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00669">669</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
 
 </div>
 </div>

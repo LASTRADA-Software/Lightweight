@@ -305,15 +305,16 @@ var group__CoreApi =
       [ "SqlTransactionException", "d5/d19/classLightweight_1_1SqlTransactionException.html#a14af02cd69dee3168a5cc92a88e8b38e", null ]
     ] ],
     [ "Lightweight::SqlTransaction", "d0/ddc/classLightweight_1_1SqlTransaction.html", [
-      [ "SqlTransaction", "d0/ddc/classLightweight_1_1SqlTransaction.html#a0501946d1f67680a66891ab39675a195", null ],
+      [ "SqlTransaction", "d0/ddc/classLightweight_1_1SqlTransaction.html#a9f60a0dfb2a5a157aafbede1da5115ae", null ],
       [ "SqlTransaction", "d0/ddc/classLightweight_1_1SqlTransaction.html#a0c3e9dfaf889f3d5efc73683daf4328a", null ],
       [ "~SqlTransaction", "d0/ddc/classLightweight_1_1SqlTransaction.html#a08cd992cb104b7a6f40e71c6956d2c93", null ],
-      [ "operator=", "d0/ddc/classLightweight_1_1SqlTransaction.html#af5c3bc13ef4fe7ba0823b0d51080ce9e", null ],
+      [ "operator=", "d0/ddc/classLightweight_1_1SqlTransaction.html#ac85d8181f4f31f57b8071e226ad8105d", null ],
       [ "Connection", "d0/ddc/classLightweight_1_1SqlTransaction.html#a52d573eb151960d042cab0bd2eda54b2", null ],
       [ "Rollback", "d0/ddc/classLightweight_1_1SqlTransaction.html#a6ed3f7b26252e7d105675187cd37d71b", null ],
       [ "TryRollback", "d0/ddc/classLightweight_1_1SqlTransaction.html#ad2c493184413ef5bb279704c66febaad", null ],
       [ "Commit", "d0/ddc/classLightweight_1_1SqlTransaction.html#abf53df501043f0a82fb306232e339e0a", null ],
-      [ "TryCommit", "d0/ddc/classLightweight_1_1SqlTransaction.html#a0bd596d2a637709abc81b396c7b2ce70", null ]
+      [ "TryCommit", "d0/ddc/classLightweight_1_1SqlTransaction.html#a0bd596d2a637709abc81b396c7b2ce70", null ],
+      [ "LastError", "d0/ddc/classLightweight_1_1SqlTransaction.html#a5829c6436eb4d08dbbfe215560e68fa0", null ]
     ] ],
     [ "Lightweight::SqlEncryptionMode", "d9/d8a/group__CoreApi.html#ga8be4e3766b268b1d751ef7df237af144", [
       [ "Lightweight::SqlEncryptionMode::DriverDefault", "d9/d8a/group__CoreApi.html#gga8be4e3766b268b1d751ef7df237af144a94e2c1bbb08c3b4ddbaead16d30c7f64", null ],

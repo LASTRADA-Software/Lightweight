@@ -35,15 +35,16 @@ var NAVTREEINDEX0 =
 "d0/dd4/structLightweight_1_1SqlSchema_1_1ColumnIdentifierSequence.html#a09ab6874cce33ad8a2310dcfaf8e2094":[22,0,0,4,2,1],
 "d0/dd4/structLightweight_1_1SqlSchema_1_1ColumnIdentifierSequence.html#abd91e979c4a5422f364be23c7f95efdd":[22,0,0,4,2,0],
 "d0/ddc/classLightweight_1_1SqlTransaction.html":[20,6,18],
-"d0/ddc/classLightweight_1_1SqlTransaction.html#a0501946d1f67680a66891ab39675a195":[20,6,18,0],
 "d0/ddc/classLightweight_1_1SqlTransaction.html#a08cd992cb104b7a6f40e71c6956d2c93":[20,6,18,2],
 "d0/ddc/classLightweight_1_1SqlTransaction.html#a0bd596d2a637709abc81b396c7b2ce70":[20,6,18,8],
 "d0/ddc/classLightweight_1_1SqlTransaction.html#a0c3e9dfaf889f3d5efc73683daf4328a":[20,6,18,1],
 "d0/ddc/classLightweight_1_1SqlTransaction.html#a52d573eb151960d042cab0bd2eda54b2":[20,6,18,4],
+"d0/ddc/classLightweight_1_1SqlTransaction.html#a5829c6436eb4d08dbbfe215560e68fa0":[20,6,18,9],
 "d0/ddc/classLightweight_1_1SqlTransaction.html#a6ed3f7b26252e7d105675187cd37d71b":[20,6,18,5],
+"d0/ddc/classLightweight_1_1SqlTransaction.html#a9f60a0dfb2a5a157aafbede1da5115ae":[20,6,18,0],
 "d0/ddc/classLightweight_1_1SqlTransaction.html#abf53df501043f0a82fb306232e339e0a":[20,6,18,7],
+"d0/ddc/classLightweight_1_1SqlTransaction.html#ac85d8181f4f31f57b8071e226ad8105d":[20,6,18,3],
 "d0/ddc/classLightweight_1_1SqlTransaction.html#ad2c493184413ef5bb279704c66febaad":[20,6,18,6],
-"d0/ddc/classLightweight_1_1SqlTransaction.html#af5c3bc13ef4fe7ba0823b0d51080ce9e":[20,6,18,3],
 "d0/df7/classLightweight_1_1BelongsTo.html":[20,3,6],
 "d0/df7/classLightweight_1_1BelongsTo.html#a0645bc64e5f24bf31241aac597cf45d6":[20,3,6,14],
 "d0/df7/classLightweight_1_1BelongsTo.html#a07472abfd8c6bcd51dc60e7970be3c45":[20,3,6,27],
@@ -248,6 +249,5 @@ var NAVTREEINDEX0 =
 "d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html#a12d42709c2340a72d2739a77957894b6":[20,5,4,12],
 "d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html#a288e37cbeb6478a6b73c04d26dbc3d3d":[20,5,4,5],
 "d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html#a4a9389bbea21719f1856d7c461af4066":[20,5,4,7],
-"d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html#a4e2b371cc4658c3e205254cb2623ae3b":[20,5,4,8],
-"d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html#a627d7b07c47d18ead08a3ed33784652c":[20,5,4,3]
+"d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html#a4e2b371cc4658c3e205254cb2623ae3b":[20,5,4,8]
 };
