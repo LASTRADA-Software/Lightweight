@@ -236,8 +236,11 @@ namespace
     [[nodiscard]] std::vector<ForeignKeyConstraint> AllForeignKeysFromSqlite(SqlStatement& stmt,
                                                                              FullyQualifiedTableName const& table)
     {
-        auto query = !table.schema.empty() ? std::format(R"(PRAGMA "{}".foreign_key_list("{}"))", table.schema, table.table)
-                                           : std::format(R"(PRAGMA foreign_key_list("{}"))", table.table);
+        auto query = !table.schema.empty()
+                         ? std::format(R"(PRAGMA {}.foreign_key_list({}))",
+                                       SqlQueryFormatter::QuoteIdentifier(table.schema),
+                                       SqlQueryFormatter::QuoteIdentifier(table.table))
+                         : std::format(R"(PRAGMA foreign_key_list({}))", SqlQueryFormatter::QuoteIdentifier(table.table));
 
         auto cursor = stmt.ExecuteDirect(query);
 
@@ -424,9 +427,11 @@ namespace
             // SQLite ODBC driver might return incorrect KEY_SEQ. Use PRAGMA table_info instead.
             std::string query;
             if (!table.schema.empty())
-                query = std::format(R"(PRAGMA "{}".table_info("{}"))", table.schema, table.table);
+                query = std::format("PRAGMA {}.table_info({})",
+                                    SqlQueryFormatter::QuoteIdentifier(table.schema),
+                                    SqlQueryFormatter::QuoteIdentifier(table.table));
             else
-                query = std::format("PRAGMA table_info(\"{}\")", table.table);
+                query = std::format("PRAGMA table_info({})", SqlQueryFormatter::QuoteIdentifier(table.table));
 
             auto cursor = stmt.ExecuteDirect(query);
 

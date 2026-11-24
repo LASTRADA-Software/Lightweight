@@ -15,11 +15,16 @@ using namespace std::string_view_literals;
 namespace Lightweight
 {
 
+std::string SqlQueryFormatter::QuoteIdentifier(std::string_view name)
+{
+    return std::format(R"("{}")", DoubleQuoteCharacter(name, '"'));
+}
+
 std::string SqlQueryFormatter::FormatTableName(std::string_view schema, std::string_view table)
 {
     if (schema.empty())
-        return std::format(R"("{}")", DoubleQuoteCharacter(table, '"'));
-    return std::format(R"("{}"."{}")", DoubleQuoteCharacter(schema, '"'), DoubleQuoteCharacter(table, '"'));
+        return QuoteIdentifier(table);
+    return std::format("{}.{}", QuoteIdentifier(schema), QuoteIdentifier(table));
 }
 
 std::string SqlQueryFormatter::DoubleQuoteCharacter(std::string_view text, char quote)

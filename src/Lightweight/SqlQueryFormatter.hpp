@@ -47,6 +47,13 @@ class [[nodiscard]] LIGHTWEIGHT_API SqlQueryFormatter
     /// Converts a binary value to a hex-encoded string literal.
     [[nodiscard]] virtual std::string BinaryLiteral(std::span<uint8_t const> data) const = 0;
 
+    /// Quotes @p name as an identifier: between double quotes, with every double quote it holds doubled -
+    /// the quoting every supported dialect accepts - so that any name, one taken from the catalog
+    /// included, can be spliced into statement text without ending the identifier early.
+    /// @param name The identifier, as the catalog spells it.
+    /// @return The quoted identifier.
+    [[nodiscard]] static std::string QuoteIdentifier(std::string_view name);
+
     /// Formats a qualified table name with proper quoting for this database.
     /// @param schema The schema name (can be empty for default schema)
     /// @param table The table name

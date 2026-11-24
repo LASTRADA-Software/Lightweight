@@ -8,6 +8,10 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <algorithm>
+#include <cstdio>
+#include <exception>
+#include <format>
+#include <print>
 #include <ranges>
 #include <string>
 #include <variant>
@@ -1086,5 +1090,103 @@ TEST_CASE_METHOD(SqlTestFixture,
         REQUIRE(table.has_value());
         REQUIRE(UnwrapOptional(table).columns.size() == 1);
         CHECK(UnwrapOptional(table).columns[0].isAutoIncrement);
+    }
+}
+
+namespace
+{
+
+/// Table names that are legal on every DBMS once quoted, but carry a character the schema reader
+/// must not interpret: a double quote, a single quote, a space and a non-ASCII letter. The first two
+/// close the quote of a naively spliced statement: one continues it with a second statement, the
+/// other turns it into a read of another table.
+std::vector<std::string> const QuotingTableNames {
+    R"(Sn"); DROP TABLE "SnVictim"; --)", R"(SnParent") --)", R"(Sn"Quote)", "Sn'Apostrophe", "Sn Space", "Sn\xC3\x9Cmlaut",
+};
+
+/// Drops every table the unusual-name tests create, children before the parent; the fixture's own
+/// sweep cannot drop a table whose name holds a double quote.
+void DropUnusualNameTables(SqlStatement& stmt)
+{
+    auto names = QuotingTableNames;
+    names.emplace_back("SnVictim");
+    names.emplace_back("SnParent");
+    for (auto const& name: names)
+        (void) stmt.ExecuteDirect(std::format("DROP TABLE IF EXISTS {}", SqlQueryFormatter::QuoteIdentifier(name)));
+}
+
+/// Drops the unusual-name tables before a test and again when it ends, whichever way it ends.
+class UnusualNameTables
+{
+  public:
+    /// Creates the parent and the victim table, and one child table per name in @p names.
+    /// @param stmt The statement to create and later drop the tables with.
+    /// @param names The child tables: each has the columns "own_pk" (its primary key) and "parent_ref"
+    ///              (a foreign key to "SnParent").
+    UnusualNameTables(SqlStatement& stmt, std::vector<std::string> const& names):
+        _stmt { stmt }
+    {
+        DropUnusualNameTables(stmt);
+        (void) stmt.ExecuteDirect(R"(CREATE TABLE "SnParent" ("pk" INT NOT NULL PRIMARY KEY))");
+        (void) stmt.ExecuteDirect(R"(CREATE TABLE "SnVictim" ("pk" INT NOT NULL PRIMARY KEY))");
+        for (auto const& name: names)
+            (void) stmt.ExecuteDirect(std::format(R"(CREATE TABLE {} ("own_pk" INT NOT NULL PRIMARY KEY,
+                                                                      "parent_ref" INT NOT NULL,
+                                                                      FOREIGN KEY ("parent_ref") REFERENCES "SnParent" ("pk")))",
+                                                  SqlQueryFormatter::QuoteIdentifier(name)));
+    }
+
+    UnusualNameTables(UnusualNameTables const&) = delete;
+    UnusualNameTables(UnusualNameTables&&) = delete;
+    UnusualNameTables& operator=(UnusualNameTables const&) = delete;
+    UnusualNameTables& operator=(UnusualNameTables&&) = delete;
+
+    ~UnusualNameTables()
+    {
+        try
+        {
+            DropUnusualNameTables(_stmt);
+        }
+        catch (std::exception const& error)
+        {
+            std::println(stderr, "Dropping the unusual-name tables failed: {}", error.what());
+        }
+    }
+
+  private:
+    SqlStatement& _stmt;
+};
+
+/// Checks that @p table describes a child table that UnusualNameTables created, and nothing else.
+void CheckDescribesOwnTable(SqlSchema::Table const& table)
+{
+    auto columnNames = std::vector<std::string> {};
+    for (auto const& column: table.columns)
+        columnNames.emplace_back(column.name);
+    CHECK(columnNames == std::vector<std::string> { "own_pk", "parent_ref" });
+    CHECK(table.primaryKeys == std::vector<std::string> { "own_pk" });
+    REQUIRE(table.foreignKeys.size() == 1);
+    CHECK(table.foreignKeys.front().foreignKey.columns == std::vector<std::string> { "parent_ref" });
+    CHECK(table.foreignKeys.front().primaryKey.table.table == "SnParent");
+}
+
+} // namespace
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlSchema::ReadAllTables reads a table whose name holds a quote", "[SqlSchema]")
+{
+    auto stmt = SqlStatement {};
+    auto const created = UnusualNameTables { stmt, QuotingTableNames };
+
+    auto const schema = SqlSchema::ReadAllTables(stmt, stmt.Connection().DatabaseName(), /*schema=*/"");
+
+    // A name that closes the quote must not have run the statement it continues with.
+    CHECK(std::ranges::contains(schema, "SnVictim", &SqlSchema::Table::name));
+
+    for (auto const& name: QuotingTableNames)
+    {
+        INFO("table " << name);
+        auto const table = std::ranges::find(schema, name, &SqlSchema::Table::name);
+        REQUIRE(table != schema.end());
+        CheckDescribesOwnTable(*table);
     }
 }

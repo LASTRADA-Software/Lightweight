@@ -1076,22 +1076,6 @@ namespace
         return out;
     }
 
-    /// @brief Escape a value for embedding inside a double-quoted SQL identifier (doubles `"`).
-    /// @param value The raw identifier (e.g. a table name) to embed.
-    /// @return The escaped text, to be placed between the surrounding double quotes.
-    [[nodiscard]] std::string EscapeSqlIdentifier(std::string_view value)
-    {
-        std::string out;
-        out.reserve(value.size());
-        for (auto const ch: value)
-        {
-            out += ch;
-            if (ch == '"')
-                out += '"';
-        }
-        return out;
-    }
-
     /// Fetch the stored `CREATE TABLE` SQL for a SQLite table.
     [[nodiscard]] std::string FetchSqliteCreateTableSql(SqlStatement& stmt, std::string_view tableName)
     {
@@ -1109,7 +1093,8 @@ namespace
     /// columns may appear in an `INSERT`, so the rebuild's data-copy column list must skip the rest.
     [[nodiscard]] std::vector<std::string> FetchSqliteColumnNames(SqlStatement& stmt, std::string_view tableName)
     {
-        auto cursor = stmt.ExecuteDirect(std::format(R"(PRAGMA table_xinfo("{}"))", EscapeSqlIdentifier(tableName)));
+        auto cursor =
+            stmt.ExecuteDirect(std::format("PRAGMA table_xinfo({})", SqlQueryFormatter::QuoteIdentifier(tableName)));
         std::vector<std::string> columns;
         while (cursor.FetchRow())
             // table_xinfo columns: 1=cid 2=name 3=type 4=notnull 5=dflt_value 6=pk 7=hidden.
