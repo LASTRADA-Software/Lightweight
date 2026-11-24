@@ -8,8 +8,10 @@
 
 #include <cstdint>
 #include <format>
+#include <optional>
 #include <source_location>
 #include <stdexcept>
+#include <string>
 #include <system_error>
 
 #include <sql.h>
@@ -55,11 +57,21 @@ struct SqlErrorInfo
         return FromHandle(SQL_HANDLE_ENV, hEnv);
     }
 
+    /// Constructs an ODBC error info object from the first diagnostic record of @p hStmt that is not a warning.
+    ///
+    /// ODBC orders the records of a block fetch by row, so a warning of an earlier row (01S07, 01004) comes
+    /// before the error of a later one.
+    /// @param hStmt The statement handle.
+    /// @return The first record whose SQLSTATE class is not 01; record 1 when every record is a warning.
+    LIGHTWEIGHT_API static SqlErrorInfo FirstErrorFromStatementHandle(SQLHSTMT hStmt);
+
     /// Asserts that the given result is a success code, otherwise throws an exception.
     static void RequireStatementSuccess(SQLRETURN result, SQLHSTMT hStmt, std::string_view message);
 
   private:
     LIGHTWEIGHT_API static SqlErrorInfo FromHandle(SQLSMALLINT handleType, SQLHANDLE handle);
+    /// Reads diagnostic record @p record of @p handle; std::nullopt where there is none.
+    static std::optional<SqlErrorInfo> FromRecord(SQLSMALLINT handleType, SQLHANDLE handle, SQLSMALLINT record);
 };
 
 /// @brief Supplies diagnostics for an ODBC handle.

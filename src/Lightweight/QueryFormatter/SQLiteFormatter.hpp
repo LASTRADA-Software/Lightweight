@@ -52,6 +52,16 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
         return false;
     }
 
+    [[nodiscard]] bool ReportsUnconvertibleCellsAsNull() const noexcept override
+    {
+        return true;
+    }
+
+    [[nodiscard]] bool ConvertsNarrowIntegerCTypes() const noexcept override
+    {
+        return false;
+    }
+
     [[nodiscard]] bool BoundsBulkLoadTransactionSize() const noexcept override
     {
         return true;
@@ -710,6 +720,14 @@ ALTER TABLE {2} DROP COLUMN "{1}";)",
         if (auto const mode = JournalModeKeyword(settings.journalMode); !mode.empty())
             statements.emplace_back(std::format("PRAGMA journal_mode = {}", mode));
         return statements;
+    }
+
+    /// The SQLite ODBC driver's @c Timeout: the busy timeout in milliseconds, at least 1 (see the base).
+    [[nodiscard]] SqlConnectionStringMap DriverConnectionAttributes(SqliteConnectionSettings const& settings) const override
+    {
+        auto const busyTimeoutMs =
+            std::clamp<std::chrono::milliseconds::rep>(settings.busyTimeout.count(), 1, std::numeric_limits<int>::max());
+        return { { "TIMEOUT", std::to_string(busyTimeoutMs) } };
     }
 
     /// Maps a journal mode onto its @c PRAGMA @c journal_mode keyword.

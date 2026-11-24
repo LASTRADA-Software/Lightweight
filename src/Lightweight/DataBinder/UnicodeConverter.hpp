@@ -4,9 +4,14 @@
 
 #include "../Api.hpp"
 
+#include <algorithm>
+#include <array>
 #include <concepts>
+#include <cstddef>
+#include <cstdint>
 #include <iterator>
 #include <optional>
+#include <ranges>
 #include <string>
 #include <string_view>
 
@@ -16,13 +21,18 @@ namespace Lightweight
 namespace detail
 {
 
+    /// U+FFFD REPLACEMENT CHARACTER: what every ill-formed code unit and every code point that is no Unicode
+    /// scalar value converts to, one per unit, so that no well-formed unit next to it is lost.
+    inline constexpr auto ReplacementCharacter = char32_t { 0xFFFD };
+
     template <typename>
     struct UnicodeConverter;
 
     template <>
     struct LIGHTWEIGHT_API UnicodeConverter<char8_t>
     {
-        // Converts a UTF-32 code point to one to four UTF-8 code units.
+        // Converts a UTF-32 code point to one to four UTF-8 code units. A surrogate or a code point above
+        // U+10FFFF has no UTF-8 form and becomes U+FFFD.
         template <typename OutputIterator>
         static constexpr OutputIterator Convert(char32_t input, OutputIterator output) noexcept
         {
@@ -37,9 +47,15 @@ namespace detail
             }
             else if (input <= 0xFFFF)
             {
+                if (input >= 0xD800 && input <= 0xDFFF)
+                    input = ReplacementCharacter;
                 *output++ = static_cast<char8_t>(((input >> 12) & 0b0000'1111) | 0b1110'0000);
                 *output++ = static_cast<char8_t>(((input >> 6) & 0b0011'1111) | 0b1000'0000);
                 *output++ = static_cast<char8_t>(((input >> 0) & 0b0011'1111) | 0b1000'0000);
+            }
+            else if (input > 0x10FFFF)
+            {
+                return Convert(ReplacementCharacter, output);
             }
             else
             {
@@ -55,7 +71,8 @@ namespace detail
     template <>
     struct LIGHTWEIGHT_API UnicodeConverter<char16_t>
     {
-        // Converts a UTF-32 code point to one or two UTF-16 code units.
+        // Converts a UTF-32 code point to one or two UTF-16 code units. A surrogate or a code point above
+        // U+10FFFF has no UTF-16 form and becomes U+FFFD.
         template <typename OutputIterator>
         static constexpr OutputIterator Convert(char32_t input, OutputIterator output) noexcept
         {
@@ -66,11 +83,8 @@ namespace detail
             }
             else if (input < 0x10000)
             {
-                if (input < 0xE000)
-                    return output; // The UTF-16 code point can not be in surrogate range.
-
-                // [0xE000 .. 0xFFFF]
-                *output++ = char16_t(input);
+                // A surrogate code point is no scalar value; written as is it would pair up with a neighbour.
+                *output++ = char16_t(input < 0xE000 ? ReplacementCharacter : input);
                 return output;
             }
             else if (input < 0x110000) // [0xD800 .. 0xDBFF] [0xDC00 .. 0xDFFF]
@@ -80,123 +94,164 @@ namespace detail
                 return output;
             }
             else
-                return output; // Too large UTF-16 code point.
+            {
+                *output++ = char16_t(ReplacementCharacter); // Too large for UTF-16.
+                return output;
+            }
         }
     };
 
+    /// Decodes UTF-8 one code point at a time (Unicode 15, table 3-7, "well-formed UTF-8 byte sequences").
+    ///
+    /// An ill-formed sequence gives one U+FFFD for its maximal subpart, Unicode's recommended practice (section
+    /// 3.9, "U+FFFD Substitution of Maximal Subparts") and what WHATWG's decoder produces (MultiByteToWideChar(CP_UTF8)
+    /// agrees on truncated sequences and stray bytes, but takes a lead byte and an out-of-range second byte as one):
+    /// a lead byte and the continuation bytes that can still begin a well-formed sequence after it (E2 82 41
+    /// gives U+FFFD A), or a single byte that begins none (an overlong lead, an encoded surrogate's second byte,
+    /// a stray continuation byte). Decoding resumes at the byte that ended the subpart, so no valid byte is lost.
     struct Utf32Converter
     {
-        char32_t codePoint = 0;
-        int codeUnits = 0;
+        /// The code point an ill-formed byte decodes to.
+        static constexpr auto InvalidCodePoint = ReplacementCharacter;
 
-        static constexpr auto InvalidCodePoint = char32_t { 0xFFFD };
-
-        constexpr std::optional<char32_t> Process(char8_t c8) noexcept
+        /// One decoded code point and the bytes it took.
+        struct Decoded
         {
-            if ((c8 & 0b1100'0000) == 0b1000'0000)
+            char32_t codePoint; //!< The code point, or InvalidCodePoint.
+            std::size_t length; //!< Bytes consumed: the sequence's length, or the maximal subpart's if ill-formed.
+        };
+
+        /// The well-formed multi-byte sequences, by lead byte: how many bytes they take, and the range of the
+        /// second byte, which rules out overlong encodings, surrogates and code points above U+10FFFF.
+        struct SequenceRule
+        {
+            char8_t firstLead;   //!< The first lead byte the rule covers.
+            char8_t lastLead;    //!< The last lead byte the rule covers.
+            std::uint8_t length; //!< The sequence's length in bytes, lead byte included.
+            char8_t secondMin;   //!< The smallest second byte of a well-formed sequence.
+            char8_t secondMax;   //!< The largest second byte of a well-formed sequence.
+        };
+
+        static constexpr auto SequenceRules = std::array {
+            SequenceRule { .firstLead = 0xC2, .lastLead = 0xDF, .length = 2, .secondMin = 0x80, .secondMax = 0xBF },
+            SequenceRule { .firstLead = 0xE0, .lastLead = 0xE0, .length = 3, .secondMin = 0xA0, .secondMax = 0xBF },
+            SequenceRule { .firstLead = 0xE1, .lastLead = 0xEC, .length = 3, .secondMin = 0x80, .secondMax = 0xBF },
+            SequenceRule { .firstLead = 0xED, .lastLead = 0xED, .length = 3, .secondMin = 0x80, .secondMax = 0x9F },
+            SequenceRule { .firstLead = 0xEE, .lastLead = 0xEF, .length = 3, .secondMin = 0x80, .secondMax = 0xBF },
+            SequenceRule { .firstLead = 0xF0, .lastLead = 0xF0, .length = 4, .secondMin = 0x90, .secondMax = 0xBF },
+            SequenceRule { .firstLead = 0xF1, .lastLead = 0xF3, .length = 4, .secondMin = 0x80, .secondMax = 0xBF },
+            SequenceRule { .firstLead = 0xF4, .lastLead = 0xF4, .length = 4, .secondMin = 0x80, .secondMax = 0x8F },
+        };
+
+        /// The rule of the sequences lead byte @p lead begins.
+        /// @param lead The lead byte.
+        /// @return The rule, or @c nullptr for a byte that begins no well-formed multi-byte sequence.
+        static constexpr SequenceRule const* FindSequenceRule(char8_t lead) noexcept
+        {
+            for (auto const& rule: SequenceRules)
+                if (lead >= rule.firstLead && lead <= rule.lastLead)
+                    return &rule;
+            return nullptr;
+        }
+
+        /// Decodes the code point @p text starts with.
+        /// @param text The input; not empty.
+        /// @return The code point and the bytes it took.
+        static constexpr Decoded Decode(std::u8string_view text) noexcept
+        {
+            auto const lead = text.front();
+            if (lead < 0x80)
+                return { .codePoint = static_cast<char32_t>(lead), .length = 1 };
+
+            SequenceRule const* const rule = FindSequenceRule(lead);
+            // A byte that begins no well-formed sequence, or a lead byte whose second byte cannot follow it, is a
+            // maximal subpart of its own.
+            if (rule == nullptr || text.size() < 2 || text[1] < rule->secondMin || text[1] > rule->secondMax)
+                return { .codePoint = InvalidCodePoint, .length = 1 };
+
+            // The lead byte keeps 7 - length payload bits; each continuation byte six. Past the second byte, any
+            // continuation byte can follow; the first that is missing or is none ends the subpart before it.
+            auto codePoint = static_cast<char32_t>(lead & (0b0111'1111 >> rule->length));
+            for (auto const index: std::views::iota(std::size_t { 1 }, std::size_t { rule->length }))
             {
-                if (codeUnits == 0)
-                    return InvalidCodePoint;
-                codePoint <<= 6;
-                codePoint |= c8 & 0b0011'1111;
-                if (--codeUnits == 0)
-                {
-                    auto result = codePoint;
-                    codePoint = 0;
-                    return result;
-                }
-                return std::nullopt;
+                if (index >= text.size() || (text[index] & 0b1100'0000) != 0b1000'0000)
+                    return { .codePoint = InvalidCodePoint, .length = index };
+                codePoint = (codePoint << 6) | (text[index] & 0b0011'1111);
             }
-            if (codeUnits == 0)
-            {
-                if ((c8 & 0b1000'0000) == 0)
-                    return c8;
-                if ((c8 & 0b1110'0000) == 0b1100'0000)
-                {
-                    codePoint = c8 & 0b0001'1111;
-                    codeUnits = 1;
-                    return std::nullopt;
-                }
-                if ((c8 & 0b1111'0000) == 0b1110'0000)
-                {
-                    codePoint = c8 & 0b0000'1111;
-                    codeUnits = 2;
-                    return std::nullopt;
-                }
-                if ((c8 & 0b1111'1000) == 0b1111'0000)
-                {
-                    codePoint = c8 & 0b0000'0111;
-                    codeUnits = 3;
-                    return std::nullopt;
-                }
-                return InvalidCodePoint;
-            }
-            return InvalidCodePoint;
+            return { .codePoint = codePoint, .length = rule->length };
         }
     };
 
+    /// Decodes UTF-16 one code point at a time. An unpaired surrogate (a high one not followed by a low one,
+    /// or a low one not preceded by a high one) gives U+FFFD and decoding resumes at the next code unit, so
+    /// the unit after it is decoded on its own and never swallowed.
+    struct Utf16Decoder
+    {
+        /// One decoded code point and the code units it took.
+        struct Decoded
+        {
+            char32_t codePoint; //!< The code point, or ReplacementCharacter.
+            std::size_t length; //!< Code units consumed: 2 for a surrogate pair, else 1.
+        };
+
+        /// Decodes the code point @p text starts with.
+        /// @param text The input; not empty.
+        /// @return The code point and the code units it took.
+        [[nodiscard]] static constexpr Decoded Decode(std::u16string_view text) noexcept
+        {
+            auto const first = text.front();
+            if (first < 0xD800 || first > 0xDFFF)
+                return { .codePoint = first, .length = 1 };
+            if (first <= 0xDBFF && text.size() > 1 && text[1] >= 0xDC00 && text[1] <= 0xDFFF)
+                return { .codePoint = 0x10000 + ((static_cast<char32_t>(first) - 0xD800) << 10)
+                                      + (static_cast<char32_t>(text[1]) - 0xDC00),
+                         .length = 2 };
+            return { .codePoint = ReplacementCharacter, .length = 1 };
+        }
+    };
+
+    /// The code points of a UTF-8 string (see Utf32Converter::Decode()).
     struct [[nodiscard]] Utf32Iterator
     {
         std::u8string_view u8InputString;
 
         struct [[nodiscard]] iterator
         {
-            std::u8string_view::iterator current {};
-            std::u8string_view::iterator end {};
-            char32_t codePoint = Utf32Converter::InvalidCodePoint;
-
-            constexpr explicit iterator(std::u8string_view::iterator current, std::u8string_view::iterator end) noexcept:
-                current { current },
-                end { end }
-            {
-                if (current != end)
-                    operator++();
-            }
+            std::u8string_view rest {}; //!< The input from the current code point on.
 
             constexpr char32_t operator*() const noexcept
             {
-                return codePoint;
+                return Utf32Converter::Decode(rest).codePoint;
             }
 
             constexpr iterator& operator++() noexcept
             {
-                auto converter = Utf32Converter {};
-                codePoint = Utf32Converter::InvalidCodePoint;
-                while (current != end)
-                {
-                    if (auto const result = converter.Process(*current++); result.has_value())
-                    {
-                        codePoint = *result;
-                        break;
-                    }
-                }
+                rest.remove_prefix(Utf32Converter::Decode(rest).length);
                 return *this;
             }
 
-            constexpr iterator& operator++(int) noexcept
+            constexpr iterator operator++(int) noexcept
             {
-                return ++*this;
+                auto const previous = *this;
+                ++*this;
+                return previous;
             }
 
+            /// Positions compare equal: the end is where the input ends, whatever was decoded last.
             constexpr bool operator==(iterator const& other) const noexcept
             {
-                return current == other.current && codePoint == other.codePoint;
-            }
-
-            constexpr bool operator!=(iterator const& other) const noexcept
-            {
-                return !(*this == other);
+                return rest.data() == other.rest.data();
             }
         };
 
         iterator begin() const noexcept
         {
-            return iterator { u8InputString.begin(), u8InputString.end() };
+            return iterator { .rest = u8InputString };
         }
 
         iterator end() const noexcept
         {
-            return iterator { u8InputString.end(), u8InputString.end() };
+            return iterator { .rest = u8InputString.substr(u8InputString.size()) };
         }
     };
 
@@ -206,12 +261,14 @@ namespace detail
 ///
 /// @brief Functions for converting between different (Unicode) encodings.
 
-/// Converts from UTF-32 to UTF-8.
+/// Converts from UTF-32 to UTF-8. A code point that is no Unicode scalar value (a surrogate, or one above
+/// U+10FFFF) becomes U+FFFD.
 ///
 /// @ingroup Unicode
 LIGHTWEIGHT_API std::u8string ToUtf8(std::u32string_view u32InputString);
 
-/// Converts from UTF-16 to UTF-8.
+/// Converts from UTF-16 to UTF-8. Each unpaired surrogate becomes one U+FFFD, and the code unit after it is
+/// decoded on its own.
 ///
 /// @ingroup Unicode
 LIGHTWEIGHT_API std::u8string ToUtf8(std::u16string_view u16InputString);
@@ -236,7 +293,8 @@ inline LIGHTWEIGHT_FORCE_INLINE std::u8string ToUtf8(std::basic_string_view<T> u
     return ToUtf8(std::u32string_view(reinterpret_cast<char32_t const*>(u32InputString.data()), u32InputString.size()));
 }
 
-/// Converts from UTF-32 to UTF-16.
+/// Converts from UTF-32 to UTF-16. A code point that is no Unicode scalar value (a surrogate, or one above
+/// U+10FFFF) becomes U+FFFD.
 ///
 /// @ingroup Unicode
 template <typename T>
@@ -263,7 +321,9 @@ inline LIGHTWEIGHT_FORCE_INLINE std::u16string ToUtf16(std::basic_string_view<T>
     return { reinterpret_cast<char16_t const*>(u16InputString.data()), u16InputString.size() };
 }
 
-/// Converts from UTF-8 to UTF-16.
+/// Converts from UTF-8 to UTF-16. Each ill-formed subsequence becomes one U+FFFD for its maximal subpart, as
+/// Unicode recommends and WHATWG does (E2 82 41 gives U+FFFD A); see
+/// @c Utf32Converter::Decode in the source.
 ///
 /// @ingroup Unicode
 LIGHTWEIGHT_API std::u16string ToUtf16(std::u8string_view u8InputString);
@@ -281,19 +341,32 @@ LIGHTWEIGHT_API std::u16string ToUtf16(std::string const& localeInputString);
 /// @ingroup Unicode
 LIGHTWEIGHT_API std::string ToLocaleString(std::u16string_view u16InputString);
 
-/// Converts from UTF-8 to UTF-32.
+/// Converts from UTF-8 to UTF-32. Each ill-formed subsequence becomes one U+FFFD for its maximal subpart, as
+/// Unicode recommends and WHATWG does (E2 82 41 gives U+FFFD A).
 ///
 /// @ingroup Unicode
 template <typename T = std::u32string>
 T ToUtf32(std::u8string_view u8InputString)
 {
     auto result = T {};
-    for (char32_t const c32: detail::Utf32Iterator { u8InputString })
-        result.push_back(c32);
+    result.reserve(u8InputString.size());
+    while (!u8InputString.empty())
+    {
+        if (u8InputString.front() < 0x80) // ASCII: one byte, one code point
+        {
+            result.push_back(static_cast<T::value_type>(u8InputString.front()));
+            u8InputString.remove_prefix(1);
+            continue;
+        }
+        auto const [codePoint, length] = detail::Utf32Converter::Decode(u8InputString);
+        result.push_back(static_cast<T::value_type>(codePoint));
+        u8InputString.remove_prefix(length);
+    }
     return result;
 }
 
-/// Converts from UTF-16 to UTF-32.
+/// Converts from UTF-16 to UTF-32. Each unpaired surrogate becomes one U+FFFD, and the code unit after it is
+/// decoded on its own.
 ///
 /// @ingroup Unicode
 template <typename T = std::u32string>
@@ -301,28 +374,13 @@ T ToUtf32(std::u16string_view u16InputString)
 {
     auto result = T {};
     result.reserve(u16InputString.size());
-
-    for (size_t i = 0; i < u16InputString.size(); ++i)
+    while (!u16InputString.empty())
     {
-        auto const c16 = u16InputString[i];
-        if (c16 >= 0xD800 && c16 <= 0xDBFF && i + 1 < u16InputString.size() && u16InputString[i + 1] >= 0xDC00
-            && u16InputString[i + 1] <= 0xDFFF)
-        {
-            auto const high = static_cast<char32_t>(c16 - 0xD800);
-            auto const low = static_cast<char32_t>(u16InputString[++i] - 0xDC00);
-            result.push_back(static_cast<char32_t>(0x10000 + (high << 10) + low));
-        }
-        else if (c16 >= 0xD800 && c16 <= 0xDFFF)
-        {
-            // Orphan surrogate (high without low, or stray low) — emit replacement.
-            result.push_back(detail::Utf32Converter::InvalidCodePoint);
-        }
-        else
-        {
-            result.push_back(static_cast<char32_t>(c16));
-        }
+        // An unpaired surrogate becomes U+FFFD (see Utf16Decoder::Decode()).
+        auto const [codePoint, length] = detail::Utf16Decoder::Decode(u16InputString);
+        result.push_back(static_cast<T::value_type>(codePoint));
+        u16InputString.remove_prefix(length);
     }
-
     return result;
 }
 

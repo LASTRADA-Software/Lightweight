@@ -189,7 +189,9 @@ void SqlQueryRunner::execute(QString const& sql)
             std::vector<QVariantList> rows;
             bool truncated = false;
             bool cancelled = false;
-            while (cursor.FetchRow())
+            // The variant row cursor keeps the result set on the per-row path where a typed read reports a cell
+            // not of its column's type as NULL (SQLite), so such a cell shows its text rather than nothing.
+            for (auto const& variantRow: Lightweight::SqlVariantRowCursor { std::move(cursor) })
             {
                 if (stopToken.stop_requested())
                 {
@@ -203,15 +205,14 @@ void SqlQueryRunner::execute(QString const& sql)
                 }
                 QVariantList row;
                 row.reserve(numColumns);
-                for (SQLUSMALLINT i = 1; i <= static_cast<SQLUSMALLINT>(numColumns); ++i)
+                // Read via SqlVariant so the driver picks the matching
+                // C type for each column. Forcing every column through
+                // `GetNullableColumn<std::string>` trips SQL Server's
+                // numeric-overflow check on BIGINT columns (SQLSTATE
+                // 22003) and would also lose type fidelity for dates
+                // and floats on other engines.
+                for (auto const& variant: variantRow)
                 {
-                    // Fetch via SqlVariant so the driver picks the matching
-                    // C type for each column. Forcing every column through
-                    // `GetNullableColumn<std::string>` trips SQL Server's
-                    // numeric-overflow check on BIGINT columns (SQLSTATE
-                    // 22003) and would also lose type fidelity for dates
-                    // and floats on other engines.
-                    auto const variant = cursor.GetColumn<Lightweight::SqlVariant>(i);
                     if (variant.IsNull())
                         row.append(QVariant {});
                     else

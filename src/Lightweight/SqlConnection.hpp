@@ -20,6 +20,7 @@
 #include <functional>
 #include <memory>
 #include <optional>
+#include <source_location>
 #include <string>
 #include <string_view>
 #include <system_error>
@@ -109,6 +110,13 @@ enum class SqliteJournalMode : uint8_t
 inline constexpr std::chrono::milliseconds SqliteBusyTimeoutDefault { 60'000 };
 
 /// @ingroup CoreApi
+/// @brief What SqlConnection::SetSqliteSettings() made effective on an open connection.
+enum class SqliteSettingsEffect : std::uint8_t
+{
+    Applied,                  //!< Everything took effect (or was only stored: unconnected, or not SQLite).
+    BusyTimeoutAtNextConnect, //!< The busy timeout governs the driver's own waits only from the next Connect().
+};
+
 /// @brief Connection-level settings applied when a connection to a SQLite database is established.
 ///
 /// Inert on every other backend: no statement is issued for them there. The defaults reproduce the
@@ -117,11 +125,15 @@ inline constexpr std::chrono::milliseconds SqliteBusyTimeoutDefault { 60'000 };
 /// @see SqlConnection::SetDefaultSqliteSettings, SqlConnection::SetSqliteSettings
 struct SqliteConnectionSettings
 {
-    /// @brief How long a statement waits on a locked database file before failing, applied via
-    /// @c PRAGMA @c busy_timeout.
+    /// @brief How long a statement waits on a locked database file before failing, applied as the SQLite
+    /// ODBC driver's @c Timeout connection attribute when connecting (unless the connection string names
+    /// one) and via @c PRAGMA @c busy_timeout.
     ///
-    /// Zero disables the wait, so a contended statement fails at once; a negative value is treated as
-    /// zero. Not to be confused with the ODBC login timeout of the connection string.
+    /// Zero, or a negative value, asks for no wait: the driver gets its shortest, one millisecond, because
+    /// it reads a @c Timeout below 1 as 1000000 ms. The driver reads its @c Timeout only when connecting, so
+    /// a change through SqlConnection::SetSqliteSettings() governs its waits from the next Connect() on. A
+    /// connect through a DSN with SqlConnectionDataSource passes no attribute: the DSN's own @c Timeout
+    /// (100000 ms when it sets none) applies; the driver offers no attribute to change it after connecting.
     std::chrono::milliseconds busyTimeout = SqliteBusyTimeoutDefault;
 
     /// The journal mode to switch the database to, see @ref SqliteJournalMode.
@@ -298,12 +310,15 @@ class SqlConnection final
     /// is open to a SQLite database.
     ///
     /// On other backends, or while unconnected, the settings are only stored, to be applied by the next
-    /// Connect() to a SQLite database.
+    /// Connect() to a SQLite database. The SQLite ODBC driver takes the busy timeout for its own waits
+    /// from the connection string, which it reads only when connecting (see
+    /// SqlQueryFormatter::DriverConnectionAttributes()): a changed busy timeout governs those waits from
+    /// the next Connect() on, which the result says.
     ///
     /// @param settings The settings to store and apply.
-    /// @return Nothing on success, or the diagnostic of the @c PRAGMA statement that failed. The
+    /// @return What took effect now, or the diagnostic of the @c PRAGMA statement that failed. The
     ///         settings are stored either way.
-    [[nodiscard]] LIGHTWEIGHT_API std::expected<void, SqlErrorInfo> SetSqliteSettings(
+    [[nodiscard]] LIGHTWEIGHT_API std::expected<SqliteSettingsEffect, SqlErrorInfo> SetSqliteSettings(
         SqliteConnectionSettings const& settings);
 
     /// @brief The connect-retry settings a newly constructed connection adopts.
@@ -383,6 +398,8 @@ class SqlConnection final
     /// Called on a connected connection, it ends the current session first (statements of that session
     /// get a fresh handle on their next use). A driver may refuse that while statements are allocated
     /// (the SQLite ODBC driver does); then it fails with that refusal and the current session goes on.
+    /// The ended session is reported closed to the SqlLogger before the new one is reported opened; it
+    /// stays ended when the new connect fails, leaving the connection without a session.
     /// A transient failure is retried as @ref SetConnectRetrySettings configures.
     /// It always fails on a borrowed connection (see @ref Borrow).
     ///
@@ -397,6 +414,8 @@ class SqlConnection final
     /// Called on a connected connection, it ends the current session first (statements of that session
     /// get a fresh handle on their next use). A driver may refuse that while statements are allocated
     /// (the SQLite ODBC driver does); then it fails with that refusal and the current session goes on.
+    /// The ended session is reported closed to the SqlLogger before the new one is reported opened; it
+    /// stays ended when the new connect fails, leaving the connection without a session.
     /// A transient failure is retried as @ref SetConnectRetrySettings configures.
     /// It always fails on a borrowed connection (see @ref Borrow).
     ///
@@ -460,6 +479,20 @@ class SqlConnection final
     /// Server's cannot, so there a bound value longer than its buffer cannot be read in full. Asked once
     /// per connect.
     [[nodiscard]] bool ReadsBoundColumnsAgain() const noexcept;
+
+    /// Whether the driver converts an @c int8_t and a @c uint32_t over their full range in place (see
+    /// SqlQueryFormatter::ConvertsNarrowIntegerCTypes). Decided once per connect, so the binders of those
+    /// types ask a flag rather than the formatter.
+    [[nodiscard]] bool ConvertsNarrowIntegerCTypes() const noexcept;
+
+    /// Whether the driver reports a cell its column type cannot convert as NULL (see
+    /// SqlQueryFormatter::ReportsUnconvertibleCellsAsNull); @c false for a backend without a formatter. Decided
+    /// once per connect.
+    [[nodiscard]] bool ReportsUnconvertibleCellsAsNull() const noexcept;
+
+    /// Whether the driver may report a boolean true as -1 (see SqlQueryFormatter::BooleanTrueMayBeMinusOne);
+    /// @c false for a backend without a formatter. Decided once per connect.
+    [[nodiscard]] bool BooleanTrueMayBeMinusOne() const noexcept;
 
     /// Retrieves a query formatter suitable for the SQL server being connected.
     [[nodiscard]] SqlQueryFormatter const& QueryFormatter() const noexcept;
@@ -733,9 +766,16 @@ class SqlConnection final
     /// @return The error, if a requested session setting could not be applied (it is also logged).
     [[nodiscard]] std::expected<void, SqlErrorInfo> PostConnect();
 
-    /// @brief Ends the current session (if any) before a connect: clears the prepared-statement cache and
-    /// disconnects. Fails, leaving the session as it was, when the driver refuses to disconnect.
+    /// @brief Ends the current session (if any) before a connect: clears the prepared-statement cache,
+    /// disconnects, and reports the session closed if it was reported opened. Fails, leaving the session as
+    /// it was and reporting nothing, when the driver refuses to disconnect.
     [[nodiscard]] std::expected<void, SqlErrorInfo> EndCurrentSession() noexcept;
+
+    /// @brief Fails a connect attempt after the driver connected: disconnects that session, which was never
+    /// reported opened and so is not reported closed, and leaves the connection without a session.
+    /// @param error Why the attempt fails.
+    /// @return @p error, to return from the attempt.
+    [[nodiscard]] std::unexpected<SqlErrorInfo> AbandonConnectedAttempt(SqlErrorInfo error) noexcept;
 
     /// One attempt of Connect(SqlConnectionDataSource const&).
     [[nodiscard]] std::expected<void, SqlErrorInfo> ConnectOnce(SqlConnectionDataSource const& info) noexcept;
@@ -743,6 +783,16 @@ class SqlConnection final
     /// One attempt of Connect(SqlConnectionString). The connection string becomes the stored one once the
     /// current session ended, so a refused attempt leaves ConnectionString() naming the session that goes on.
     [[nodiscard]] std::expected<void, SqlErrorInfo> ConnectOnce(SqlConnectionString const& connectionString) noexcept;
+
+    /// Connects the handle with @p connectionString through the entry point the driver takes, and turns
+    /// autocommit on; nothing else of a connect.
+    /// @param connectionString What the driver gets.
+    /// @param driverKey The driver it names (see ConnectThroughDriverTextEntry in the source).
+    /// @param sourceLocation The connect step calling it, which the fault seam matches on.
+    /// @return Nothing, or the failure.
+    [[nodiscard]] std::expected<void, SqlErrorInfo> ConnectDriver(SqlConnectionString const& connectionString,
+                                                                  std::string const& driverKey,
+                                                                  std::source_location sourceLocation) noexcept;
 
     /// Runs @p attempt, retrying a transient failure as the connect-retry settings say.
     /// @return True once an attempt succeeded; false when the policy gave up.
@@ -777,6 +827,9 @@ class SqlConnection final
     bool m_acceptsWideQueryText = true;
     detail::NarrowTextBinding m_narrowTextBinding = detail::NarrowTextBinding::Narrow;
     bool m_readsBoundColumnsAgain = true;
+    bool m_convertsNarrowIntegerCTypes = true;
+    bool m_reportsUnconvertibleCellsAsNull = false;
+    bool m_booleanTrueMayBeMinusOne = false;
     SqlStringTruncationMode m_stringTruncationMode = SqlStringTruncationMode::Truncate;
     SqlHandleOwnership m_handleOwnership = SqlHandleOwnership::Owned;
 
@@ -807,6 +860,21 @@ inline detail::NarrowTextBinding SqlConnection::NarrowTextBindingMode() const no
 inline bool SqlConnection::ReadsBoundColumnsAgain() const noexcept
 {
     return m_readsBoundColumnsAgain;
+}
+
+inline bool SqlConnection::ConvertsNarrowIntegerCTypes() const noexcept
+{
+    return m_convertsNarrowIntegerCTypes;
+}
+
+inline bool SqlConnection::ReportsUnconvertibleCellsAsNull() const noexcept
+{
+    return m_reportsUnconvertibleCellsAsNull;
+}
+
+inline bool SqlConnection::BooleanTrueMayBeMinusOne() const noexcept
+{
+    return m_booleanTrueMayBeMinusOne;
 }
 
 inline SqlQueryFormatter const& SqlConnection::QueryFormatter() const noexcept

@@ -116,8 +116,13 @@ struct SqlNumeric
     // integer `value * 10^Scale`, and every accessor divides that by `10^Scale` again.
     static_assert(Scale <= Precision, "Scale counts digits after the decimal point and cannot exceed Precision.");
 
-    /// The SQL numeric struct for ODBC binding.
-    SQL_NUMERIC_STRUCT sqlValue {};
+    /// The SQL numeric struct for ODBC binding. A default-constructed numeric is zero with this type's
+    /// precision and scale: the accessors divide by @c sqlValue.scale, also where a driver fills only
+    /// @c nativeValue, such as in the rows a row-wise array fetch reads after the one it binds, or after a bound
+    /// variable was reset to @c SqlNumeric{} on a NULL row.
+    SQL_NUMERIC_STRUCT sqlValue {
+        .precision = static_cast<SQLCHAR>(Precision), .scale = static_cast<SQLSCHAR>(Scale), .sign = 1, .val = {}
+    };
 
     /// Cached native value for drivers without SQL_NUMERIC_STRUCT support.
     double nativeValue {};
@@ -330,8 +335,8 @@ struct SqlDataBinder<SqlNumeric<Precision, Scale>>
         }
 
         // Bind with the type's compile-time Precision/Scale rather than value.sqlValue.precision/scale:
-        // the latter is 0 for a default-constructed (never-assigned) value. On the native row-wise batch
-        // path a single bind descriptor (taken from row 0) governs the whole array, so a default-constructed
+        // the latter is 0 for a value built from an all-zero SQL_NUMERIC_STRUCT. On the native row-wise batch
+        // path a single bind descriptor (taken from row 0) governs the whole array, so such a
         // row 0 would otherwise mis-bind every row. The template constants are correct for every value of
         // SqlNumeric<Precision, Scale> by definition (assign() always sets these same values).
         return SQLBindParameter(stmt,
@@ -358,6 +363,10 @@ struct SqlDataBinder<SqlNumeric<Precision, Scale>>
             return SQLBindCol(stmt, column, SQL_C_DOUBLE, &result->nativeValue, sizeof(result->nativeValue), indicator);
         }
 
+        // The driver fills only sqlValue, and the accessors prefer a non-zero nativeValue: a value the variable
+        // held before (one constructed from a double, say) would otherwise be read on every row.
+        result->nativeValue = 0.0;
+
         SQLHDESC hDesc {};
         RequireSuccess(stmt, SQLGetStmtAttr(stmt, SQL_ATTR_APP_ROW_DESC, (SQLPOINTER) &hDesc, 0, nullptr));
         RequireSuccess(stmt, SQLSetDescField(hDesc, (SQLSMALLINT) column, SQL_DESC_PRECISION, (SQLPOINTER) Precision, 0)); // NOLINT(performance-no-int-to-ptr)
@@ -376,6 +385,9 @@ struct SqlDataBinder<SqlNumeric<Precision, Scale>>
             result->sqlValue = { .precision = Precision, .scale = Scale, .sign = 0, .val = {} };
             return SQLGetData(stmt, column, SQL_C_DOUBLE, &result->nativeValue, sizeof(result->nativeValue), indicator);
         }
+
+        // As in OutputColumn: the driver fills only sqlValue, which a stale nativeValue would hide.
+        result->nativeValue = 0.0;
 
         SQLHDESC hDesc {};
         RequireSuccess(stmt, SQLGetStmtAttr(stmt, SQL_ATTR_APP_ROW_DESC, (SQLPOINTER) &hDesc, 0, nullptr));

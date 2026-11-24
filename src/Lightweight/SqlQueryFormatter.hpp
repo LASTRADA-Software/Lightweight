@@ -451,6 +451,56 @@ class [[nodiscard]] LIGHTWEIGHT_API SqlQueryFormatter
         return false;
     }
 
+    /// @brief Whether the driver converts an @c int8_t bound as @c SQL_C_STINYINT and a @c uint32_t bound as
+    /// @c SQL_C_ULONG over the type's full range.
+    ///
+    /// Defaults to `true`. SQLite returns `false`: its driver stores an @c SQL_C_STINYINT -1 as 255 and an
+    /// @c SQL_C_ULONG above @c INT32_MAX as a negative number, and reads such a value back as @c INT32_MAX.
+    /// The binders of those two types then stage each value through a wider C type.
+    ///
+    /// @return `true` if those C types round-trip their full range on this backend.
+    [[nodiscard]] virtual bool ConvertsNarrowIntegerCTypes() const noexcept
+    {
+        return true;
+    }
+
+    /// @brief Returns the connection-string attributes the driver needs to realise @p settings, which it
+    /// reads only when connecting.
+    ///
+    /// A connection merges each one into its connection string unless the string names that attribute
+    /// already. Every dialect but SQLite returns none. The SQLite ODBC driver waits on a locked database
+    /// through its own busy handler, with the @c Timeout attribute's limit (default 100000 ms), and keeps it
+    /// installed whatever @c PRAGMA @c busy_timeout says; a @c Timeout below 1 means 1000000 ms to it.
+    ///
+    /// @param settings The connection's SQLite settings.
+    /// @return The attributes by upper-case key; empty when the driver needs none.
+    [[nodiscard]] virtual SqlConnectionStringMap DriverConnectionAttributes(SqliteConnectionSettings const& settings) const
+    {
+        (void) settings;
+        return {};
+    }
+
+    /// @brief Whether the driver reports a cell whose stored value its declared column type cannot convert
+    /// (text in an INTEGER or DATE column) as NULL when the cell is read as that type.
+    ///
+    /// Defaults to `false`. SQLite returns `true`: its columns' types are declarations only, and its driver
+    /// answers such a typed read with @c SQL_NULL_DATA, so a SqlVariant reads the cell again as text.
+    /// @return `true` if a typed read's NULL may hide a value of another type.
+    [[nodiscard]] virtual bool ReportsUnconvertibleCellsAsNull() const noexcept
+    {
+        return false;
+    }
+
+    /// @brief Whether the driver may report a boolean true as -1.
+    ///
+    /// Defaults to `false`. PostgreSQL returns `true`: psqlODBC with the connection option `TrueIsMinus1=1` reports a
+    /// boolean true as -1 (through @c SQL_C_BIT the byte 0xFF), so a @c bool read there takes -1 as @c true.
+    /// @return `true` if -1 is a form of a boolean true on this backend.
+    [[nodiscard]] virtual bool BooleanTrueMayBeMinusOne() const noexcept
+    {
+        return false;
+    }
+
   protected:
     /// Formats a table name with optional schema prefix.
     static std::string FormatTableName(std::string_view schema, std::string_view table);

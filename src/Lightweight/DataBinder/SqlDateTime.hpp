@@ -15,6 +15,7 @@
 #include <memory>
 #include <ranges>
 #include <string_view>
+#include <tuple>
 #include <vector>
 
 #include <sql.h>
@@ -34,6 +35,10 @@ struct SqlDateTime
     using native_type = std::chrono::system_clock::time_point;
     /// The duration type used for arithmetic operations.
     using duration_type = std::chrono::system_clock::duration;
+    /// The duration the arithmetic operators compute in: as fine as the fraction's 100 ns and as @ref duration_type,
+    /// independent of the tick of @c system_clock (100 ns on MSVC, 1 ns on libstdc++, 1 us on libc++).
+    using arithmetic_duration =
+        std::common_type_t<duration_type, std::chrono::duration<long long, std::ratio<1, 10'000'000>>>;
 
     /// Returns the current date and time.
     [[nodiscard]] static LIGHTWEIGHT_FORCE_INLINE SqlDateTime Now() noexcept
@@ -68,9 +73,16 @@ struct SqlDateTime
     constexpr ~SqlDateTime() noexcept = default;
 
     /// Three-way comparison operator.
+    ///
+    /// Compares the stored fields from the year down to the fraction, which orders every value the clock can
+    /// represent as value() does, and every other one too: a time point of @c system_clock overflows outside
+    /// about 1678..2262 where it counts nanoseconds (libstdc++, libc++).
     constexpr std::weak_ordering operator<=>(SqlDateTime const& other) const noexcept
     {
-        return value() <=> other.value();
+        auto const fields = [](SQL_TIMESTAMP_STRUCT const& v) noexcept {
+            return std::tuple { v.year, v.month, v.day, v.hour, v.minute, v.second, v.fraction };
+        };
+        return fields(sqlValue) <=> fields(other.sqlValue);
     }
     /// Equality comparison operator.
     constexpr bool operator==(SqlDateTime const& other) const noexcept
@@ -95,7 +107,7 @@ struct SqlDateTime
             .minute = (SQLUSMALLINT) time.minutes().count(),
             .second = (SQLUSMALLINT) time.seconds().count(),
             .fraction =
-                (SQLUINTEGER) (std::chrono::duration_cast<std::chrono::nanoseconds>(time.to_duration()).count() / 100) * 100,
+                (SQLUINTEGER) (std::chrono::duration_cast<std::chrono::nanoseconds>(time.subseconds()).count() / 100) * 100,
         }
     {
     }
@@ -173,7 +185,7 @@ struct SqlDateTime
 
     // NOLINTEND(readability-identifier-naming)
 
-    /// Converts this SqlDateTime to its native time_point representation.
+    /// Converts this SqlDateTime to its native time_point representation (within the range value() documents).
     LIGHTWEIGHT_FORCE_INLINE constexpr operator native_type() const noexcept
     {
         return value();
@@ -241,38 +253,80 @@ struct SqlDateTime
         // clang-format on
     }
 
-    /// Returns the current date and time.
+    /// Returns the stored date and time as a time point of @c std::chrono::system_clock.
+    ///
+    /// Only dates the clock can count are representable: where it counts nanoseconds in 64 bits (libstdc++,
+    /// libc++) that is about 1677-09-21 to 2262-04-11; MSVC's 100 ns clock reaches years 1 to 9999. A date
+    /// outside that range overflows, so read such a value through its fields (year(), month(), ...) instead.
     [[nodiscard]] constexpr LIGHTWEIGHT_FORCE_INLINE native_type value() const noexcept
     {
         return ConvertToNative(sqlValue);
     }
 
     /// Adds a duration to this date-time.
-    LIGHTWEIGHT_FORCE_INLINE SqlDateTime& operator+=(duration_type duration) noexcept
+    ///
+    /// The sum is taken in @ref arithmetic_duration, so the fraction keeps its 100 ns digits whatever
+    /// @c system_clock counts in (microseconds on libc++).
+    LIGHTWEIGHT_FORCE_INLINE constexpr SqlDateTime& operator+=(duration_type duration) noexcept
     {
-        *this = SqlDateTime { value() + duration };
+        *this = FromArithmeticTime(ToArithmeticTime() + duration);
         return *this;
     }
 
-    /// Subtracts a duration from this date-time.
-    LIGHTWEIGHT_FORCE_INLINE SqlDateTime& operator-=(duration_type duration) noexcept
+    /// Subtracts a duration from this date-time, keeping the fraction's 100 ns digits (see operator+=()).
+    LIGHTWEIGHT_FORCE_INLINE constexpr SqlDateTime& operator-=(duration_type duration) noexcept
     {
-        *this = SqlDateTime { value() - duration };
+        *this = FromArithmeticTime(ToArithmeticTime() - duration);
         return *this;
     }
 
-    friend LIGHTWEIGHT_FORCE_INLINE SqlDateTime operator+(SqlDateTime dateTime, duration_type duration) noexcept
+    /// Returns @p dateTime plus @p duration, keeping the fraction's 100 ns digits (see operator+=()).
+    friend LIGHTWEIGHT_FORCE_INLINE constexpr SqlDateTime operator+(SqlDateTime dateTime, duration_type duration) noexcept
     {
-        return SqlDateTime { dateTime.value() + duration };
+        return dateTime += duration;
     }
 
-    friend LIGHTWEIGHT_FORCE_INLINE SqlDateTime operator-(SqlDateTime dateTime, duration_type duration) noexcept
+    /// Returns @p dateTime minus @p duration, keeping the fraction's 100 ns digits (see operator+=()).
+    friend LIGHTWEIGHT_FORCE_INLINE constexpr SqlDateTime operator-(SqlDateTime dateTime, duration_type duration) noexcept
     {
-        return SqlDateTime { dateTime.value() - duration };
+        return dateTime -= duration;
     }
 
     /// Holds the underlying SQL timestamp structure.
     SQL_TIMESTAMP_STRUCT sqlValue {};
+
+  private:
+    /// The stored date and time as a time point counted in @ref arithmetic_duration.
+    [[nodiscard]] constexpr std::chrono::sys_time<arithmetic_duration> ToArithmeticTime() const noexcept
+    {
+        using namespace std::chrono;
+        auto const date = sys_days { std::chrono::year { sqlValue.year } / std::chrono::month { sqlValue.month }
+                                     / std::chrono::day { sqlValue.day } };
+        // The fraction is a whole number of 100 ns, so this cast is exact.
+        return date
+               + duration_cast<arithmetic_duration>(hours { sqlValue.hour } + minutes { sqlValue.minute }
+                                                    + seconds { sqlValue.second } + nanoseconds { sqlValue.fraction });
+    }
+
+    /// The date and time of @p time, its fraction rounded down to 100 ns as every constructor does.
+    [[nodiscard]] static constexpr SqlDateTime FromArithmeticTime(std::chrono::sys_time<arithmetic_duration> time) noexcept
+    {
+        using namespace std::chrono;
+        auto const date = floor<days>(time);
+        auto const ymd = year_month_day { date };
+        auto const timeOfDay = hh_mm_ss<arithmetic_duration> { time - date };
+        auto result = SqlDateTime {};
+        result.sqlValue = SQL_TIMESTAMP_STRUCT {
+            .year = (SQLSMALLINT) (int) ymd.year(),
+            .month = (SQLUSMALLINT) (unsigned) ymd.month(),
+            .day = (SQLUSMALLINT) (unsigned) ymd.day(),
+            .hour = (SQLUSMALLINT) timeOfDay.hours().count(),
+            .minute = (SQLUSMALLINT) timeOfDay.minutes().count(),
+            .second = (SQLUSMALLINT) timeOfDay.seconds().count(),
+            .fraction = (SQLUINTEGER) ((duration_cast<nanoseconds>(timeOfDay.subseconds()).count() / 100) * 100),
+        };
+        return result;
+    }
 };
 
 } // namespace Lightweight
@@ -344,36 +398,6 @@ namespace detail
         return cb.ServerType() == SqlServerType::MICROSOFT_SQL && cb.DriverName() == "SQLSRV32.DLL"sv;
     }
 
-    /// The layout of the parameter array that is being bound.
-    struct SqlParameterArrayLayout
-    {
-        /// The byte distance from one row's value to the next.
-        std::size_t rowStride {};
-        /// The number of rows.
-        std::size_t rowCount {};
-    };
-
-    /// Reads the layout of the parameter array the statement is bound with.
-    ///
-    /// @param stmt The statement whose parameters are being bound.
-    /// @param valueSize The size of one value, which is the stride of a column-wise array.
-    /// @param columnWiseRowCount The row count of a column-wise (or single-row) binding.
-    /// @return The row size and parameter set size of a row-wise binding, otherwise the column-wise layout.
-    [[nodiscard]] inline SqlParameterArrayLayout CurrentParameterArrayLayout(SQLHSTMT stmt,
-                                                                             std::size_t valueSize,
-                                                                             std::size_t columnWiseRowCount) noexcept
-    {
-        auto bindType = SQLULEN { SQL_PARAM_BIND_BY_COLUMN };
-        if (!SQL_SUCCEEDED(SQLGetStmtAttr(stmt, SQL_ATTR_PARAM_BIND_TYPE, &bindType, 0, nullptr))
-            || bindType == SQL_PARAM_BIND_BY_COLUMN)
-            return { .rowStride = valueSize, .rowCount = columnWiseRowCount };
-
-        auto parameterSetSize = SQLULEN { 1 };
-        if (!SQL_SUCCEEDED(SQLGetStmtAttr(stmt, SQL_ATTR_PARAMSET_SIZE, &parameterSetSize, 0, nullptr)))
-            parameterSetSize = 1;
-        return { .rowStride = static_cast<std::size_t>(bindType), .rowCount = static_cast<std::size_t>(parameterSetSize) };
-    }
-
     /// Binds the timestamps at @p first as `datetime` (23/3) for the legacy in-box SQL Server ODBC driver.
     ///
     /// The driver rejects fractions finer than the bound scale, so this binds a copy truncated to whole
@@ -395,8 +419,9 @@ namespace detail
     {
         constexpr auto NanosecondsPerMillisecond = SQLUINTEGER { 1'000'000 };
         auto const rowCount = (std::max) (layout.rowCount, std::size_t { 1 });
-        auto const staged =
-            std::make_shared<std::vector<std::byte>>(((rowCount - 1) * layout.rowStride) + sizeof(SQL_TIMESTAMP_STRUCT));
+        // A statement slot, reused by the next execute rather than allocated anew for each one.
+        auto* const staged =
+            cb.ProvideBatchStagingBuffer(((rowCount - 1) * layout.rowStride) + sizeof(SQL_TIMESTAMP_STRUCT));
         auto const* sourceBytes = reinterpret_cast<std::byte const*>(first);
         for (auto const row: std::views::iota(std::size_t { 0 }, rowCount))
         {
@@ -404,9 +429,8 @@ namespace detail
             auto value = SQL_TIMESTAMP_STRUCT {};
             std::memcpy(&value, sourceBytes + (row * layout.rowStride), sizeof(value));
             value.fraction -= value.fraction % NanosecondsPerMillisecond;
-            std::memcpy(staged->data() + (row * layout.rowStride), &value, sizeof(value));
+            std::memcpy(staged + (row * layout.rowStride), &value, sizeof(value));
         }
-        cb.PlanPostExecuteCallback([staged]() {});
 
         return SQLBindParameter(stmt,
                                 column,
@@ -415,7 +439,7 @@ namespace detail
                                 SQL_TYPE_TIMESTAMP,
                                 23,
                                 3,
-                                static_cast<SQLPOINTER>(staged->data()),
+                                static_cast<SQLPOINTER>(staged),
                                 sizeof(SQL_TIMESTAMP_STRUCT),
                                 indicators);
     }
@@ -426,11 +450,21 @@ struct LIGHTWEIGHT_API SqlDataBinder<SqlDateTime>
 {
     static constexpr auto ColumnType = SqlColumnTypeDefinitions::DateTime {};
 
+    /// The year of @p value if it cannot be written (see detail::IsWritableYear()).
+    /// @param value The value to write.
+    /// @return Its year if the value is refused, otherwise @c std::nullopt.
+    [[nodiscard]] static constexpr std::optional<SQLSMALLINT> UnwritableYear(SqlDateTime const& value) noexcept
+    {
+        return detail::UnwritableYearOf(value.sqlValue.year);
+    }
+
     static LIGHTWEIGHT_FORCE_INLINE SQLRETURN InputParameter(SQLHSTMT stmt,
                                                              SQLUSMALLINT column,
                                                              SqlDateTime const& value,
                                                              SqlDataBinderCallback& cb) noexcept
     {
+        if (detail::RefuseUnwritableYear(value.sqlValue.year, cb))
+            return SQL_ERROR;
         // A row-wise batch binds row 0 through here, so the layout comes from the statement.
         if (detail::IsLegacySqlServerDriver(cb))
             return detail::BindLegacySqlServerDateTimes(
@@ -458,6 +492,13 @@ struct LIGHTWEIGHT_API SqlDataBinder<SqlDateTime>
                                                                   SqlDataBinderCallback& cb,
                                                                   SQLLEN* indicators = nullptr) noexcept
     {
+        // Once per batch: the layout (column- or row-wise) comes from the statement.
+        if (detail::RefuseUnwritableYears(values,
+                                          detail::CurrentParameterArrayLayout(stmt, sizeof(*values), rowCount).rowStride,
+                                          rowCount,
+                                          indicators,
+                                          cb))
+            return SQL_ERROR;
         if (detail::IsLegacySqlServerDriver(cb))
         {
             auto const layout = detail::SqlParameterArrayLayout {
@@ -482,7 +523,8 @@ struct LIGHTWEIGHT_API SqlDataBinder<SqlDateTime>
     static LIGHTWEIGHT_FORCE_INLINE SQLRETURN OutputColumn(
         SQLHSTMT stmt, SQLUSMALLINT column, SqlDateTime* result, SQLLEN* indicator, SqlDataBinderCallback& /*cb*/) noexcept
     {
-        // TODO: handle indicator to check for NULL values
+        // The driver leaves the value untouched on a NULL row; a bound variable is reset to SqlDateTime{} there by the
+        // statement (see detail::ResetsBoundValueOnNull), as every value bound in place.
         *indicator = sizeof(result->sqlValue);
         return SQLBindCol(stmt, column, SQL_C_TYPE_TIMESTAMP, &result->sqlValue, 0, indicator);
     }

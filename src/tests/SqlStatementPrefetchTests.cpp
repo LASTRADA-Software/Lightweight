@@ -3,6 +3,7 @@
 #include "Utils.hpp"
 
 #include <Lightweight/DataBinder/SqlBinary.hpp>
+#include <Lightweight/DataBinder/SqlDynamicNumeric.hpp>
 #include <Lightweight/Lightweight.hpp>
 
 #include <catch2/catch_test_macros.hpp>
@@ -10,11 +11,14 @@
 #include <algorithm>
 #include <array>
 #include <chrono>
+#include <cmath>
 #include <cstdint>
 #include <format>
+#include <functional>
 #include <optional>
 #include <ostream>
 #include <ranges>
+#include <stdexcept>
 #include <string>
 #include <tuple>
 #include <vector>
@@ -365,7 +369,12 @@ TEST_CASE_METHOD(SqlTestFixture, "Prefetch: SqlRowIterator and SqlVariantRowCurs
         }
         CHECK(actual == expected);
         REQUIRE(actual.size() == rowCount);
-        CHECK(probe.blockFetches >= 2);
+        // Where the driver reports a cell its column type cannot convert as NULL (SQLite), the variant cursor
+        // reads per row, so that cell can be read again as text.
+        if (stmt.Connection().QueryFormatter().ReportsUnconvertibleCellsAsNull())
+            CHECK(probe.blockFetches == 0);
+        else
+            CHECK(probe.blockFetches >= 2);
     }
 }
 
@@ -1340,5 +1349,271 @@ TEST_CASE_METHOD(SqlTestFixture, "Prefetch: a DATETIME column read as std::chron
         }
         CHECK(stmt.ExecuteDirectScalar<TimePoint>(R"(SELECT "Moment" FROM "PrefetchTimePoint")")
               == std::optional { expected });
+    }
+}
+
+namespace
+{
+
+/// The values of the SqlDynamicNumeric prefetch tests: fixed and exponent forms on every driver, a value
+/// with a trailing ".0" on SQLite, and a negative zero.
+constexpr auto DynamicNumericFloats = std::array { 3.0, 1e5, 1e-4, 1e15, 1e16, 0.1, -0.0 };
+constexpr auto DynamicNumericIntegers = std::array<std::int64_t, 7> { 3, 100'000, 0, -42, 1'000'000'000'000'000, 7, 0 };
+
+/// A SqlDynamicNumeric with its precision and scale, which `==` does not compare, or the SQLSTATE of the read.
+std::string DynamicNumericOutcome(std::function<SqlDynamicNumeric()> const& read)
+{
+    try
+    {
+        auto const value = read();
+        return std::format("{} p{} s{}", value, value.precision, value.scale);
+    }
+    catch (SqlException const& error)
+    {
+        return std::format("error {}", error.info().sqlState);
+    }
+}
+
+void CreateDynamicNumericTable(SqlStatement& stmt)
+{
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("PrefetchDynamicNumeric")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Integer {})
+            .RequiredColumn("V", SqlColumnTypeDefinitions::Real { .precision = 53 })
+            .RequiredColumn("R", SqlColumnTypeDefinitions::Real { .precision = 24 })
+            .RequiredColumn("S", SqlColumnTypeDefinitions::Smallint {})
+            .RequiredColumn("I", SqlColumnTypeDefinitions::Bigint {});
+    });
+    stmt.Prepare(R"(INSERT INTO "PrefetchDynamicNumeric" ("Id", "V", "R", "S", "I") VALUES (?, ?, ?, ?, ?))");
+    for (auto const i: std::views::iota(std::size_t { 0 }, DynamicNumericFloats.size()))
+        (void) stmt.Execute(static_cast<int>(i),
+                            DynamicNumericFloats[i],
+                            static_cast<float>(DynamicNumericFloats[i]),
+                            static_cast<std::int16_t>(i),
+                            DynamicNumericIntegers[i]);
+}
+
+/// Reads column @p name of row @p id through one access path at prefetch depth @p depth.
+std::string DynamicNumericCell(SqlStatement& stmt, std::string_view path, std::string_view name, std::size_t id)
+{
+    auto const query = std::format(R"(SELECT "{}" FROM "PrefetchDynamicNumeric" WHERE "Id" = {})", name, id);
+    if (path == "scalar")
+        return DynamicNumericOutcome(
+            [&] { return stmt.ExecuteDirectScalar<SqlDynamicNumeric>(query).value_or(SqlDynamicNumeric {}); });
+    return DynamicNumericOutcome([&] {
+        auto cursor = stmt.ExecuteDirect(query);
+        if (!cursor.FetchRow())
+            throw std::runtime_error("no row");
+        return cursor.GetColumn<SqlDynamicNumeric>(1);
+    });
+}
+
+} // namespace
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "Prefetch: SqlDynamicNumeric reads what the per-row path reads, or refuses a floating-point cell",
+                 "[prefetch]")
+{
+    auto stmt = SqlStatement {};
+    CreateDynamicNumericTable(stmt);
+
+    for (auto const id: std::views::iota(std::size_t { 0 }, DynamicNumericFloats.size()))
+    {
+        // "S" before "I" on the same statement: the declared precision the statement keeps per result set and
+        // column must be asked again for the next result set, or "I" would read with SMALLINT's.
+        for (auto const name: { "V"sv, "R"sv, "S"sv, "I"sv })
+        {
+            for (auto const path: { "scalar"sv, "raw"sv })
+            {
+                INFO(std::format("value {} column {} path {}", DynamicNumericFloats[id], name, path));
+                stmt.Connection().SetDefaultPrefetchDepth(1);
+                auto const perRow = DynamicNumericCell(stmt, path, name, id);
+                stmt.Connection().SetDefaultPrefetchDepth(TestPrefetchDepth);
+                auto const prefetched = DynamicNumericCell(stmt, path, name, id);
+                // A raw read of an already-fetched floating-point cell cannot take the driver's own text: it
+                // refuses. Every other read equals the per-row one, precision and scale included.
+                if (path == "raw" && (name == "V" || name == "R"))
+                    CHECK(prefetched == "error 07006");
+                else
+                    CHECK(prefetched == perRow);
+            }
+        }
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "Prefetch: SqlDynamicNumeric of a prepared SELECT ? takes each execute's declared digits",
+                 "[prefetch]")
+{
+    // The same prepared query executed with a SMALLINT and then a BIGINT parameter: the column declares other
+    // digits each time, and the prefetched read must match the per-row read of the same execute.
+    auto stmt = SqlStatement {};
+    stmt.Prepare("SELECT ?");
+    auto const read = [&](std::size_t depth, auto const& value) {
+        stmt.Connection().SetDefaultPrefetchDepth(depth);
+        return DynamicNumericOutcome([&] {
+            SqlResultCursor cursor = stmt.Execute(value);
+            if (!cursor.FetchRow())
+                throw std::runtime_error("no row");
+            return cursor.GetColumn<SqlDynamicNumeric>(1);
+        });
+    };
+    for (auto const pass: { 1, 2 })
+    {
+        INFO("pass " << pass);
+        auto const smallPerRow = read(1, std::int16_t { 7 });
+        auto const smallPrefetched = read(TestPrefetchDepth, std::int16_t { 7 });
+        auto const largePrefetched = read(TestPrefetchDepth, std::int64_t { 5'000'000'000 });
+        auto const largePerRow = read(1, std::int64_t { 5'000'000'000 });
+        CHECK(smallPrefetched == smallPerRow);
+        CHECK(largePrefetched == largePerRow);
+    }
+}
+
+namespace
+{
+
+/// The values of the narrowing prefetch test: inside and just outside the 8-, 16- and 32-bit ranges.
+constexpr auto NarrowingValues = std::array<std::int64_t, 12> {
+    2, 255, 256, -1, -129, 32767, 32768, 65536, 2'147'483'647, 2'147'483'648, 4'294'967'296, -5'000'000'000,
+};
+
+/// Reads column "V" of row @p id of "PrefetchNarrowing" as @p T: the value, or the SQLSTATE of the failure.
+template <typename T>
+std::string NarrowingOutcome(SqlStatement& stmt, std::size_t id)
+{
+    try
+    {
+        auto cursor = stmt.ExecuteDirect(std::format(R"(SELECT "V" FROM "PrefetchNarrowing" WHERE "Id" = {})", id));
+        if (!cursor.FetchRow())
+            return "no row";
+        return std::to_string(cursor.GetColumn<T>(1));
+    }
+    catch (SqlException const& error)
+    {
+        return std::format("error {}", error.info().sqlState);
+    }
+}
+
+/// What the prefetched read of @p value as @p T gives: the value where @p T holds it, else 22003. A 64-bit @p T
+/// takes the cell's bits.
+template <typename T>
+std::string ExpectedNarrowing(std::int64_t value)
+{
+    if (sizeof(T) == sizeof(std::int64_t) || std::in_range<T>(value))
+        return std::to_string(static_cast<T>(value));
+    return "error 22003";
+}
+
+template <typename T>
+void CheckNarrowing(SqlStatement& stmt, std::size_t id)
+{
+    INFO(std::format("{} into {}", NarrowingValues[id], Reflection::TypeNameOf<T>));
+    stmt.Connection().SetDefaultPrefetchDepth(TestPrefetchDepth);
+    auto const prefetched = NarrowingOutcome<T>(stmt, id);
+    CHECK(prefetched == ExpectedNarrowing<T>(NarrowingValues[id]));
+    // SQL Server fails the per-row read the same way; the SQLite and PostgreSQL drivers wrap or clamp such a
+    // value per row (docs/usage.md), so only a value that fits reads the same on both paths there.
+    stmt.Connection().SetDefaultPrefetchDepth(1);
+    auto const perRow = NarrowingOutcome<T>(stmt, id);
+    // A negative number read as uint64_t: SQLite gives its bits per row as well; SQL Server fails it per row.
+    auto const fits = std::in_range<T>(NarrowingValues[id]);
+    if ((stmt.Connection().ServerType() == SqlServerType::MICROSOFT_SQL && sizeof(T) < sizeof(std::int64_t)) || fits
+        || (stmt.Connection().ServerType() == SqlServerType::SQLITE && sizeof(T) == sizeof(std::int64_t)))
+        CHECK(perRow == prefetched);
+}
+
+} // namespace
+
+TEST_CASE_METHOD(SqlTestFixture, "Prefetch: an integer cell that does not fit its target fails with 22003", "[prefetch]")
+{
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("PrefetchNarrowing")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Integer {})
+            .RequiredColumn("V", SqlColumnTypeDefinitions::Bigint {})
+            .RequiredColumn("F", SqlColumnTypeDefinitions::Real { .precision = 53 });
+    });
+    stmt.Prepare(R"(INSERT INTO "PrefetchNarrowing" ("Id", "V", "F") VALUES (?, ?, ?))");
+    for (auto const id: std::views::iota(std::size_t { 0 }, NarrowingValues.size()))
+        (void) stmt.Execute(static_cast<int>(id), NarrowingValues[id], static_cast<double>(NarrowingValues[id]));
+
+    // The staged int8_t and uint32_t of SQLite read their legacy forms as well; they have tests of their own.
+    for (auto const id: std::views::iota(std::size_t { 0 }, NarrowingValues.size()))
+    {
+        CheckNarrowing<std::uint8_t>(stmt, id);
+        CheckNarrowing<std::int16_t>(stmt, id);
+        CheckNarrowing<std::uint16_t>(stmt, id);
+        CheckNarrowing<std::int32_t>(stmt, id);
+        CheckNarrowing<std::uint64_t>(stmt, id);
+    }
+
+    // A floating-point cell outside an integer target's range has no defined conversion: 22003 as well.
+    stmt.Connection().SetDefaultPrefetchDepth(TestPrefetchDepth);
+    auto const floatAs = [&](std::size_t id) {
+        try
+        {
+            auto cursor = stmt.ExecuteDirect(std::format(R"(SELECT "F" FROM "PrefetchNarrowing" WHERE "Id" = {})", id));
+            if (!cursor.FetchRow())
+                return std::string { "no row" };
+            return std::to_string(cursor.GetColumn<std::int32_t>(1));
+        }
+        catch (SqlException const& error)
+        {
+            return std::format("error {}", error.info().sqlState);
+        }
+    };
+    CHECK(floatAs(5) == "32767");
+    CHECK(floatAs(8) == "2147483647");
+    CHECK(floatAs(9) == "error 22003");
+    CHECK(floatAs(11) == "error 22003");
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "Prefetch: uint64_t values from 2^63 up round-trip as the library writes them",
+                 "[prefetch]")
+{
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("PrefetchUint64")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Integer {})
+            .RequiredColumn("V", SqlColumnTypeDefinitions::Bigint {});
+    });
+    auto const values = std::array<std::uint64_t, 3> {
+        std::numeric_limits<std::uint64_t>::max(),
+        std::uint64_t { 1 } << 63U,
+        (std::uint64_t { 1 } << 63U) - 1,
+    };
+    // SQLite stores an unsigned 64-bit parameter as its int64 bits. SQL Server and PostgreSQL convert it to BIGINT
+    // and refuse a value above INT64_MAX with 22003: there only 2^63 - 1 can be written.
+    auto const storesBits = stmt.Connection().ServerType() == SqlServerType::SQLITE;
+    stmt.Prepare(R"(INSERT INTO "PrefetchUint64" ("Id", "V") VALUES (?, ?))");
+    auto written = std::vector<std::size_t> {};
+    for (auto const index: std::views::iota(std::size_t { 0 }, values.size()))
+    {
+        INFO("writing " << values[index]);
+        auto state = std::string {};
+        try
+        {
+            (void) stmt.Execute(static_cast<int>(index), values[index]);
+            written.push_back(index);
+        }
+        catch (SqlException const& error)
+        {
+            state = error.info().sqlState;
+        }
+        CHECK(state == (storesBits || values[index] <= static_cast<std::uint64_t>(INT64_MAX) ? "" : "22003"));
+    }
+
+    for (auto const depth: { std::size_t { 1 }, TestPrefetchDepth })
+    {
+        stmt.Connection().SetDefaultPrefetchDepth(depth);
+        for (auto const index: written)
+        {
+            INFO(std::format("depth {} value {}", depth, values[index]));
+            auto cursor = stmt.ExecuteDirect(std::format(R"(SELECT "V" FROM "PrefetchUint64" WHERE "Id" = {})", index));
+            REQUIRE(cursor.FetchRow());
+            CHECK(cursor.GetColumn<std::uint64_t>(1) == values[index]);
+        }
     }
 }

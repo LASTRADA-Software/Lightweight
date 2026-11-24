@@ -77,11 +77,27 @@ long a statement waits on a database file locked by another connection before it
 
 | Field | Default | Applied as |
 |-------|---------|------------|
-| `busyTimeout` | `SqliteBusyTimeoutDefault` (60 s) | `PRAGMA busy_timeout = <ms>` |
+| `busyTimeout` | `SqliteBusyTimeoutDefault` (60 s) | the driver's `Timeout=<ms>` connection attribute, and `PRAGMA busy_timeout = <ms>` |
 | `journalMode` | `SqliteJournalMode::Unchanged` | `PRAGMA journal_mode = <mode>`, unless `Unchanged` |
 
 `SqliteJournalMode` offers `Unchanged`, `Delete`, `Truncate`, `Persist`, `Memory`, `Wal` and `Off`.
-The busy timeout is not the `Timeout=` of the ODBC connection string, which is the login timeout.
+
+The SQLite ODBC driver waits on a locked database through its own busy handler, whose limit is the
+`Timeout=` attribute of the connection string (100000 ms when absent), and it keeps that handler whatever
+`PRAGMA busy_timeout` says. So Lightweight adds `Timeout=<busyTimeout in ms>` to the connection string it
+connects with, unless the connection string names `Timeout` itself, in which case that value is the wait. A
+busy timeout of 0 becomes 1 ms, the driver's shortest (it reads 0 as 1000000 ms). The driver is recognised by
+its name or library path containing `sqlite` in any case (`SQLite3`, `sqlite3`, `/usr/lib/.../libsqlite3odbc.so`,
+`sqlite3odbc.dll`), from the `DRIVER=` key or from the driver manager's entry for the `DSN=`; no extra connect
+is made. A driver it does not recognise gets no attribute.
+The driver reads the attribute only when connecting, and offers no way to change it afterwards:
+
+- `SetSqliteSettings()` on an open connection applies the `PRAGMA`s at once, but a changed busy timeout governs
+  the driver's own waits from the next `Connect()` on; it then returns
+  `SqliteSettingsEffect::BusyTimeoutAtNextConnect` instead of `SqliteSettingsEffect::Applied`.
+- A connect through `SqlConnectionDataSource` (a DSN with user and password, no connection string) passes no
+  attribute: the DSN's own `Timeout` applies. So does a connection made by `SqlConnection::Borrow()`; on both, `SetSqliteSettings()`
+  returns `SqliteSettingsEffect::Applied`, since no later connect of theirs passes the attribute either.
 
 Set the process-wide default once at start-up. Every connection constructed afterwards takes a copy,
 including those Lightweight creates on your behalf (a default-constructed `DataMapper`, the connection
@@ -253,10 +269,12 @@ On the per-row path, reading a column into a C++ type of another kind (an `INTEG
 `std::string`, a `TIMESTAMP` column into a `SqlDate`) is the driver's conversion, and where the ODBC rules
 define none, its error. The block buffer cannot call the driver, so Lightweight decides per reader:
 
-- **Bound output columns and `SqlRowIterator<T>` members.** The C++ type is known before the first fetch.
+- **Bound output columns, `ExecuteDirectScalar<T>()` and `SqlRowIterator<T>` members.** The C++ type is
+  known before the first fetch.
   When a column's SQL type is one the per-row path would read differently into it — a `std::string` over a
   floating-point, temporal or `GUID` column, a `SqlDate`/`SqlDateTime` over a non-temporal column, a
-  `SqlGuid` over a non-`GUID` column, a number over a temporal or `GUID` column — the result set keeps the
+  `SqlGuid` over a non-`GUID` column, a number over a temporal or `GUID` column, a `SqlDynamicNumeric` over
+  a non-integer column — the result set keeps the
   per-row path, so the value (or error) is exactly the driver's. `char` is read through its own binder (the
   column as text) and keeps the per-row path too.
 - **Raw `GetColumn<T>()` on a block-prefetched result set.** The type is known only after the block was
@@ -264,11 +282,24 @@ define none, its error. The block buffer cannot call the driver, so Lightweight 
   its date, a `DATE` read as `SqlDateTime` is midnight of that day, a numeric column read as any arithmetic
   type is converted, and any column read as a string is rendered as text — integers exactly as the driver
   renders them, floating-point, temporal and `GUID` values through their `std::formatter` (so a `REAL` 0.1
-  reads as `"0.10000000149011612"` where the driver gives `"0.1"`). Any other pairing (e.g. a `DATE` column
+  reads as `"0.10000000149011612"` where the driver gives `"0.1"`). A `SqlDynamicNumeric` reads an integer
+  exactly, with the precision and scale the per-row read gives (asked of the driver once per result set and
+  column, not per cell); a floating-point column read as
+  `SqlDynamicNumeric` throws `07006`, since its value is the text the driver renders, which differs by driver
+  (read through `ExecuteDirectScalar`, such a column keeps the per-row path). Any other pairing (e.g. a `DATE` column
   read as `double`, a `BIGINT` read as `SqlDateTime`) throws a `SqlException` with SQLSTATE `07006`
   ("Restricted data type attribute violation"), the error a driver that follows the ODBC rules raises on
   the per-row path; some drivers convert such a pair or report NULL instead. `GetColumn<char>()` and a type
   with a custom binder throw `HY000` (see [data-binder.md](data-binder.md#custom-types-and-block-prefetch)).
+
+In both cases a number read from the block into an integer type that cannot hold it (a `BIGINT` 5000000000
+read as `int`, -1 as a 32-bit or narrower unsigned type, a `DOUBLE` 1e10 as `int`) fails with SQLSTATE `22003`,
+as SQL Server's driver fails the per-row read. The SQLite and PostgreSQL drivers wrap or clamp such a value on
+the per-row path instead, so there the result depends on the prefetch depth, for values that do not fit. The
+check is one compare per cell, made only where the target is narrower than the 64-bit cell: a `uint64_t` takes
+the cell's bits, which is how SQLite stores an unsigned 64-bit value from 2^63 up. That makes SQL Server depend on
+the depth as well for a negative `BIGINT` read as `uint64_t`: its driver fails the per-row read with `22003`,
+while the block hands over the bits.
 
 To get the driver's own conversion for such a read, read the column as its natural type, bind it before
 the first `FetchRow()`, or disable prefetch with `SetDefaultPrefetchDepth(1)`.

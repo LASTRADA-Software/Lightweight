@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <array>
 #include <atomic>
+#include <cctype>
 #include <cstdint>
 #include <initializer_list>
 #include <map>
@@ -23,6 +24,8 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <tuple>
+#include <utility>
 
 #include <sql.h>
 
@@ -107,14 +110,14 @@ namespace
     std::optional<std::string> ReadDataSourceProfileValue(std::string_view dataSourceName, std::wstring_view key)
     {
         // A default no profile value can hold tells a missing key from an empty one.
-        constexpr auto missing = L"\x01"sv;
+        auto const missing = std::wstring { L"\x01" };
         auto const wideDataSourceName = ToStdWideString(
             std::u8string_view { reinterpret_cast<char8_t const*>(dataSourceName.data()), dataSourceName.size() });
         auto const wideKey = std::wstring { key };
         auto buffer = std::array<wchar_t, 64> {};
         auto const length = SQLGetPrivateProfileStringW(wideDataSourceName.c_str(),
                                                         wideKey.c_str(),
-                                                        missing.data(),
+                                                        missing.c_str(),
                                                         buffer.data(),
                                                         static_cast<int>(buffer.size()),
                                                         L"ODBC.INI");
@@ -243,6 +246,74 @@ namespace
         }
     }
 
+    /// Names the driver @p connectionString reaches without connecting: its DRIVER, else the driver the driver
+    /// manager lists for its DSN, else nothing.
+    [[nodiscard]] std::string DriverNameOf(SqlConnectionString const& connectionString, SQLHENV hEnv)
+    {
+        auto const attributes = ParseConnectionString(connectionString);
+        if (auto const driver = attributes.find("DRIVER"); driver != attributes.end())
+            return driver->second;
+        auto const dataSource = attributes.find("DSN");
+        if (dataSource == attributes.end() || hEnv == SQL_NULL_HENV)
+            return {};
+        auto const sameName = [&](std::string_view name) {
+            return std::ranges::equal(name, dataSource->second, [](char a, char b) {
+                return std::tolower(static_cast<unsigned char>(a)) == std::tolower(static_cast<unsigned char>(b));
+            });
+        };
+        auto name = std::array<SQLCHAR, SQL_MAX_DSN_LENGTH + 1> {};
+        auto description = std::array<SQLCHAR, 256> {};
+        auto direction = SQLUSMALLINT { SQL_FETCH_FIRST };
+        while (true)
+        {
+            SQLSMALLINT nameLength = 0;
+            SQLSMALLINT descriptionLength = 0;
+            if (!SQL_SUCCEEDED(SQLDataSources(hEnv,
+                                              direction,
+                                              name.data(),
+                                              static_cast<SQLSMALLINT>(name.size()),
+                                              &nameLength,
+                                              description.data(),
+                                              static_cast<SQLSMALLINT>(description.size()),
+                                              &descriptionLength)))
+                return {};
+            direction = SQL_FETCH_NEXT;
+            if (sameName(std::string_view { reinterpret_cast<char const*>(name.data()) }))
+                return std::string { reinterpret_cast<char const*>(description.data()) };
+        }
+    }
+
+    /// The attributes @p serverType's dialect needs for @p settings (see SqlQueryFormatter::DriverConnectionAttributes)
+    /// that @p connectionString does not name itself: the application's own choice wins. None for an unknown driver.
+    [[nodiscard]] SqlConnectionStringMap DriverAttributesToAppend(SqlConnectionString const& connectionString,
+                                                                  SqlServerType serverType,
+                                                                  SqliteConnectionSettings const& settings)
+    {
+        auto const* formatter = SqlQueryFormatter::Get(serverType);
+        if (formatter == nullptr)
+            return {};
+        auto attributes = formatter->DriverConnectionAttributes(settings);
+        if (attributes.empty())
+            return attributes;
+        auto const named = ParseConnectionString(connectionString);
+        std::erase_if(attributes, [&](auto const& attribute) { return named.contains(attribute.first); });
+        return attributes;
+    }
+
+    /// @p connectionString with @p attributes appended verbatim.
+    [[nodiscard]] SqlConnectionString WithAttributes(SqlConnectionString const& connectionString,
+                                                     SqlConnectionStringMap const& attributes)
+    {
+        auto result = connectionString;
+        for (auto const& [key, value]: attributes)
+        {
+            if (!result.value.empty() && !result.value.ends_with(';'))
+                result.value += ';';
+            result.value += std::format("{}={}", key, FormatConnectionStringValue(value));
+        }
+        return result;
+    }
+
     /// What an earlier connection of this process found about the driver @p driverKey: whether it
     /// accepts wide text, or nothing when no connection reached it yet.
     [[nodiscard]] std::optional<bool> KnownDriverTextEntry(std::string const& driverKey)
@@ -345,6 +416,10 @@ struct SqlConnection::Data
     std::chrono::steady_clock::time_point lastUsed; // Last time the connection was used (mostly interesting for
                                                     // idle connections in the connection pool).
     SqlConnectionString connectionString;
+    // The connection string the driver got: connectionString plus the attributes the dialect adds for the
+    // settings the driver reads only when connecting (see SqlQueryFormatter::DriverConnectionAttributes). What the
+    // driver does with narrow text is decided from this one, since it is the one the driver read.
+    SqlConnectionString driverConnectionString;
     std::optional<std::string>
         dataSourceName; // The data source of the last data-source connect; none after a connect by string.
     std::unique_ptr<Async::IAsyncBackend> asyncBackend;      // Async execution backend (null until EnableAsync()).
@@ -357,7 +432,12 @@ struct SqlConnection::Data
     SqlPreparedStatementCache preparedStatementCache {
         PreparedStatementCacheCapacityDefault
     }; // Pool of already-prepared statement handles (inactive while its capacity is zero).
-    SqliteConnectionSettings sqliteSettings;        // Applied on every Connect() to a SQLite database.
+    SqliteConnectionSettings sqliteSettings; // Applied on every Connect() to a SQLite database.
+    // The dialect that chose the driver attributes of the last connect by connection string, and the attributes it
+    // appended; none after a data-source connect and on a borrowed handle, whose connects pass no attribute.
+    SqlServerType driverAttributeDialect = SqlServerType::UNKNOWN;
+    std::optional<SqlConnectionStringMap> appendedDriverAttributes;
+    bool openedReported = false; // OnConnectionOpened() was reported for the current handle, so Close() reports closing.
     SqlRetrySettings connectRetrySettings;          // How Connect() retries a transient failure.
     SqlRetrySleeper* connectRetrySleeper = nullptr; // Waits between connect attempts; null = ThreadSleeper().
     uint64_t sessionId = 0; // Identifies the current connected session (0 while not connected), see SessionId().
@@ -451,6 +531,9 @@ SqlConnection::SqlConnection(SqlConnection&& other) noexcept:
     m_acceptsWideQueryText { other.m_acceptsWideQueryText },
     m_narrowTextBinding { other.m_narrowTextBinding },
     m_readsBoundColumnsAgain { other.m_readsBoundColumnsAgain },
+    m_convertsNarrowIntegerCTypes { other.m_convertsNarrowIntegerCTypes },
+    m_reportsUnconvertibleCellsAsNull { other.m_reportsUnconvertibleCellsAsNull },
+    m_booleanTrueMayBeMinusOne { other.m_booleanTrueMayBeMinusOne },
     m_stringTruncationMode { other.m_stringTruncationMode },
     m_handleOwnership { other.m_handleOwnership },
     m_data { other.m_data }
@@ -478,6 +561,9 @@ SqlConnection& SqlConnection::operator=(SqlConnection&& other) noexcept
     m_acceptsWideQueryText = other.m_acceptsWideQueryText;
     m_narrowTextBinding = other.m_narrowTextBinding;
     m_readsBoundColumnsAgain = other.m_readsBoundColumnsAgain;
+    m_convertsNarrowIntegerCTypes = other.m_convertsNarrowIntegerCTypes;
+    m_reportsUnconvertibleCellsAsNull = other.m_reportsUnconvertibleCellsAsNull;
+    m_booleanTrueMayBeMinusOne = other.m_booleanTrueMayBeMinusOne;
     m_stringTruncationMode = other.m_stringTruncationMode;
     m_handleOwnership = other.m_handleOwnership;
     m_data = other.m_data;
@@ -737,12 +823,22 @@ SqliteConnectionSettings const& SqlConnection::SqliteSettings() const noexcept
     return m_data->sqliteSettings;
 }
 
-std::expected<void, SqlErrorInfo> SqlConnection::SetSqliteSettings(SqliteConnectionSettings const& settings)
+std::expected<SqliteSettingsEffect, SqlErrorInfo> SqlConnection::SetSqliteSettings(SqliteConnectionSettings const& settings)
 {
     m_data->sqliteSettings = settings;
     if (!m_hDbc || !m_queryFormatter)
-        return {};
-    return ApplySqliteSettings();
+        return SqliteSettingsEffect::Applied;
+    if (auto applied = ApplySqliteSettings(); !applied)
+        return std::unexpected(std::move(applied.error()));
+
+    // What the driver reads only when connecting stays as it was connected with: say so when the next connect of the
+    // same kind would pass other attributes. A connect that passes none (data source, borrowed handle) never will.
+    if (!m_data->appendedDriverAttributes)
+        return SqliteSettingsEffect::Applied;
+    auto const next = DriverAttributesToAppend(m_data->connectionString, m_data->driverAttributeDialect, settings);
+    if (next != *m_data->appendedDriverAttributes)
+        return SqliteSettingsEffect::BusyTimeoutAtNextConnect;
+    return SqliteSettingsEffect::Applied;
 }
 
 std::expected<void, SqlErrorInfo> SqlConnection::ApplySqliteSettings()
@@ -809,6 +905,8 @@ std::expected<void, SqlErrorInfo> SqlConnection::ConnectOnce(SqlConnectionDataSo
         narrowPassword = detail::OdbcNarrowArg { info.password };
         driverKey = "DSN=" + info.datasource;
         m_data->dataSourceName = info.datasource;
+        m_data->driverConnectionString = {};
+        m_data->appendedDriverAttributes.reset(); // SQLConnect takes no attribute
     }
     catch (...)
     {
@@ -889,15 +987,16 @@ std::expected<void, SqlErrorInfo> SqlConnection::ConnectOnce(SqlConnectionDataSo
     }
 
     sqlReturn = SQLSetConnectAttrW(m_hDbc, SQL_ATTR_AUTOCOMMIT, (SQLPOINTER) SQL_AUTOCOMMIT_ON, SQL_IS_UINTEGER);
-    if (!SQL_SUCCEEDED(sqlReturn))
+    // Through the fault seam, so a test can fail the attempt after the driver connected.
+    if (auto const outcome = detail::CheckOdbcConnectionCall(sqlReturn, m_hDbc); !outcome)
     {
-        auto error = LastError();
+        auto error = outcome.EffectiveError([this] { return LastError(); });
         SqlLogger::GetLogger().OnError(error);
-        return std::unexpected(std::move(error));
+        return AbandonConnectedAttempt(std::move(error));
     }
 
     if (auto posted = PostConnect(); !posted)
-        return posted;
+        return AbandonConnectedAttempt(std::move(posted).error());
     RememberDriverTextEntry(driverKey, m_acceptsWideQueryText);
 
     SqlLogger::GetLogger().OnConnectionOpened(*this);
@@ -906,6 +1005,7 @@ std::expected<void, SqlErrorInfo> SqlConnection::ConnectOnce(SqlConnectionDataSo
     // one, so every test connects through the SqlConnectionString overload instead, whose counterpart
     // of this call (below) is exercised.
     LIGHTWEIGHT_STATS_CONNECTION_OPENED();
+    m_data->openedReported = true;
 
     if (gPostConnectedHook)
         gPostConnectedHook(*this);
@@ -933,14 +1033,9 @@ std::expected<void, SqlErrorInfo> SqlConnection::ConnectOnce(SqlConnectionString
         return ended;
     m_data->dataSourceName.reset();
 
-    // Prepare both forms of the connection string *before* the scoped lock. The wide one,
-    // through `SQLDriverConnectW`, puts this DBC handle into Unicode-app mode for the rest of
-    // its lifetime; without it psqlODBC on Windows drops into ANSI mode and runs every
-    // SQL_C_CHAR / SQL_C_WCHAR payload through the system codepage. The UTF-8 one serves an
-    // ANSI-only driver off Windows (see ConnectThroughDriverTextEntry). The try/catch defends
-    // the noexcept contract against std::bad_alloc from these allocations and SanitizePwd's.
-    detail::OdbcWideArg wConnectionString { std::string_view {} };
-    detail::OdbcNarrowArg narrowConnectionString { std::string_view {} };
+    // The connection string the driver gets: the application's, plus the attributes the dialect needs for the
+    // settings the driver reads only when connecting (see SqlQueryFormatter::DriverConnectionAttributes). The
+    // dialect is told by the driver's name, from the DRIVER key or the DSN's entry, so no extra connect is needed.
     auto driverKey = std::string {};
     try
     {
@@ -948,9 +1043,51 @@ std::expected<void, SqlErrorInfo> SqlConnection::ConnectOnce(SqlConnectionString
             m_data->connectionString = connectionString;
         auto const sanitized = SqlConnectionString::SanitizePwd(m_data->connectionString.value);
         ZoneTextObject(sanitized);
-        wConnectionString = detail::OdbcWideArg { m_data->connectionString.value };
-        narrowConnectionString = detail::OdbcNarrowArg { m_data->connectionString.value };
         driverKey = DriverKey(m_data->connectionString);
+        m_data->driverAttributeDialect = ServerTypeFromDriverName(DriverNameOf(m_data->connectionString, m_hEnv));
+        auto attributes =
+            DriverAttributesToAppend(m_data->connectionString, m_data->driverAttributeDialect, m_data->sqliteSettings);
+        m_data->driverConnectionString = WithAttributes(m_data->connectionString, attributes);
+        m_data->appendedDriverAttributes = std::move(attributes);
+    }
+    catch (...)
+    {
+        return std::unexpected(SqlErrorInfo { .nativeErrorCode = 0, .sqlState = "HY001", .message = "out of memory" });
+    }
+
+    if (auto connected = ConnectDriver(m_data->driverConnectionString, driverKey, std::source_location::current());
+        !connected)
+        return connected;
+
+    if (auto posted = PostConnect(); !posted)
+        return AbandonConnectedAttempt(std::move(posted).error());
+    RememberDriverTextEntry(driverKey, m_acceptsWideQueryText);
+    SqlLogger::GetLogger().OnConnectionOpened(*this);
+    LIGHTWEIGHT_STATS_CONNECTION_OPENED();
+    m_data->openedReported = true;
+
+    if (gPostConnectedHook)
+        gPostConnectedHook(*this);
+
+    return {};
+}
+
+std::expected<void, SqlErrorInfo> SqlConnection::ConnectDriver(SqlConnectionString const& connectionString,
+                                                               std::string const& driverKey,
+                                                               std::source_location sourceLocation) noexcept
+{
+    // Prepare both forms of the connection string *before* the scoped lock. The wide one,
+    // through `SQLDriverConnectW`, puts this DBC handle into Unicode-app mode for the rest of
+    // its lifetime; without it psqlODBC on Windows drops into ANSI mode and runs every
+    // SQL_C_CHAR / SQL_C_WCHAR payload through the system codepage. The UTF-8 one serves an
+    // ANSI-only driver off Windows (see ConnectThroughDriverTextEntry). The try/catch defends
+    // the noexcept contract against std::bad_alloc from these allocations.
+    detail::OdbcWideArg wConnectionString { std::string_view {} };
+    detail::OdbcNarrowArg narrowConnectionString { std::string_view {} };
+    try
+    {
+        wConnectionString = detail::OdbcWideArg { connectionString.value };
+        narrowConnectionString = detail::OdbcNarrowArg { connectionString.value };
     }
     catch (...)
     {
@@ -963,7 +1100,7 @@ std::expected<void, SqlErrorInfo> SqlConnection::ConnectOnce(SqlConnectionString
         // and OpenSSL during concurrent TLS handshakes (detected by ThreadSanitizer).
         std::scoped_lock const lock(gConnectionMutex);
         sqlResult = ConnectThroughDriverTextEntry(
-            m_hDbc, driverKey, HasNonAsciiText({ m_data->connectionString.value }), [&](OdbcTextEntry entry) {
+            m_hDbc, driverKey, HasNonAsciiText({ connectionString.value }), [&](OdbcTextEntry entry) {
                 if (entry == OdbcTextEntry::Wide)
                     return SQLDriverConnectW(m_hDbc,
                                              (SQLHWND) nullptr,
@@ -985,22 +1122,13 @@ std::expected<void, SqlErrorInfo> SqlConnection::ConnectOnce(SqlConnectionString
     }
     // Through the fault seam rather than a bare SQL_SUCCEEDED, so a test can make an attempt fail
     // transiently and drive the retry loop in Connect() without a server that drops connections.
-    if (auto const outcome = detail::CheckOdbcConnectionCall(sqlResult, m_hDbc); !outcome)
+    if (auto const outcome = detail::CheckOdbcConnectionCall(sqlResult, m_hDbc, sourceLocation); !outcome)
         return std::unexpected(outcome.EffectiveError([this] { return LastError(); }));
 
     sqlResult = SQLSetConnectAttrW(m_hDbc, SQL_ATTR_AUTOCOMMIT, (SQLPOINTER) SQL_AUTOCOMMIT_ON, SQL_IS_UINTEGER);
-    if (!SQL_SUCCEEDED(sqlResult))
-        return std::unexpected(LastError());
-
-    if (auto posted = PostConnect(); !posted)
-        return posted;
-    RememberDriverTextEntry(driverKey, m_acceptsWideQueryText);
-    SqlLogger::GetLogger().OnConnectionOpened(*this);
-    LIGHTWEIGHT_STATS_CONNECTION_OPENED();
-
-    if (gPostConnectedHook)
-        gPostConnectedHook(*this);
-
+    // Through the fault seam, so a test can fail the attempt after the driver connected.
+    if (auto const outcome = detail::CheckOdbcConnectionCall(sqlResult, m_hDbc); !outcome)
+        return AbandonConnectedAttempt(outcome.EffectiveError([this] { return LastError(); }));
     return {};
 }
 
@@ -1060,7 +1188,10 @@ void SqlConnection::DetectServer()
 
     // Decided before the first statement is issued, so every statement takes the right entry point.
     m_acceptsWideQueryText = DriverAcceptsWideQueryText(m_hDbc);
-    m_narrowTextBinding = DetectNarrowTextBinding(m_serverType, m_data->connectionString, m_data->dataSourceName);
+    m_narrowTextBinding = DetectNarrowTextBinding(m_serverType, m_data->driverConnectionString, m_data->dataSourceName);
+    m_convertsNarrowIntegerCTypes = detail::ConvertsNarrowIntegerCTypes(m_serverType);
+    m_reportsUnconvertibleCellsAsNull = detail::ReportsUnconvertibleCellsAsNull(m_serverType);
+    m_booleanTrueMayBeMinusOne = detail::BooleanTrueMayBeMinusOne(m_serverType);
 
     // Whether a bound value longer than its buffer can be read in full (see ReadsBoundColumnsAgain()).
     SQLUINTEGER getDataExtensions = 0;
@@ -1095,7 +1226,30 @@ std::expected<void, SqlErrorInfo> SqlConnection::EndCurrentSession() noexcept
     detail::UnregisterAnsiOnlyHandle(m_hDbc);
     m_data->sessionId = 0;
     m_data->statementHandles.clear(); // the driver freed them with the disconnect
+
+    // The session a reconnect replaces is reported closed, as Close() would report it: once, and only
+    // if it was reported opened. Reported after the disconnect, since a refused one ends no session.
+    if (std::exchange(m_data->openedReported, false))
+    {
+        SqlLogger::GetLogger().OnConnectionClosed(*this);
+        LIGHTWEIGHT_STATS_CONNECTION_CLOSED();
+    }
     return {};
+}
+
+std::unexpected<SqlErrorInfo> SqlConnection::AbandonConnectedAttempt(SqlErrorInfo error) noexcept
+{
+    // A failed Connect() leaves the connection as one whose connect failed: not connected, the error in
+    // LastError() (which falls back to the attempt's recorded error once the disconnect has cleared the
+    // handle's diagnostics), and no opened or closed report. The statements the setup allocated go first: the
+    // SQLite ODBC driver refuses to disconnect while one is allocated.
+    FreeStatementHandles();
+    detail::UnregisterAnsiOnlyHandle(m_hDbc);
+    // As Close() does with a refused disconnect: reported, and the connection is left as not connected.
+    if (!SQL_SUCCEEDED(SQLDisconnect(m_hDbc)))
+        SqlLogger::GetLogger().OnError(SqlErrorInfo::FromConnectionHandle(m_hDbc));
+    m_data->sessionId = 0;
+    return std::unexpected(std::move(error));
 }
 
 void SqlConnection::FreeStatementHandles() noexcept
@@ -1187,8 +1341,13 @@ void SqlConnection::Close() noexcept
     if (!m_hDbc)
         return;
 
+    // Only a connection reported opened is reported closed: a handle whose first Connect() failed never was.
+    auto const wasOpened = m_data && m_data->openedReported;
     if (m_data)
+    {
         m_data->sessionId = 0;
+        m_data->openedReported = false;
+    }
 
     if (m_handleOwnership == SqlHandleOwnership::Borrowed)
     {
@@ -1198,9 +1357,6 @@ void SqlConnection::Close() noexcept
         return;
     }
 
-    SqlLogger::GetLogger().OnConnectionClosed(*this);
-    LIGHTWEIGHT_STATS_CONNECTION_CLOSED();
-
     // Statement handles are children of the DBC handle: free them before it goes away. The pooled ones,
     // and the ones live SqlStatement objects still hold: ODBC lets SQLDisconnect free those, but the
     // SQLite ODBC driver refuses to disconnect while any is allocated (25000 "unfinished statements",
@@ -1209,8 +1365,17 @@ void SqlConnection::Close() noexcept
     FreeStatementHandles();
 
     detail::UnregisterAnsiOnlyHandle(m_hDbc);
-    if (!SQL_SUCCEEDED(SQLDisconnect(m_hDbc)))
+    // A handle that never connected answers 08003 ("connection not open"): nothing to report.
+    if (!SQL_SUCCEEDED(SQLDisconnect(m_hDbc)) && wasOpened)
         SqlLogger::GetLogger().OnError(SqlErrorInfo::FromConnectionHandle(m_hDbc));
+
+    // Reported once the session has ended, as a reconnect reports the session it replaces (it cannot report
+    // earlier: a refused disconnect ends no session). The connection object is still whole for the logger.
+    if (wasOpened)
+    {
+        SqlLogger::GetLogger().OnConnectionClosed(*this);
+        LIGHTWEIGHT_STATS_CONNECTION_CLOSED();
+    }
     SQLFreeHandle(SQL_HANDLE_DBC, m_hDbc);
     SQLFreeHandle(SQL_HANDLE_ENV, m_hEnv);
 

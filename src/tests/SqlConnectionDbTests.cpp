@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
+#include "ScriptedFaultSource.hpp"
 #include "UniqueTempPath.hpp"
 #include "Utils.hpp"
 
@@ -26,6 +27,8 @@
 
 using namespace Lightweight;
 using namespace std::string_view_literals;
+using Lightweight::Tests::ScopedFaultSource;
+using Lightweight::Tests::ScriptedFaultSource;
 
 // ================================================================================================
 // SqlConnection introspection getters (DB-dependent)
@@ -564,7 +567,11 @@ TEST_CASE_METHOD(SqlTestFixture,
         .busyTimeout = std::chrono::milliseconds { 250 },
         .journalMode = SqliteJournalMode::Delete,
     };
-    REQUIRE(connection.SetSqliteSettings(changed).has_value());
+    auto const effect = connection.SetSqliteSettings(changed);
+    REQUIRE(effect.has_value());
+    // The driver read its own wait from the connection string when connecting: the new one governs it from the
+    // next connect. Changing only the journal mode takes effect in full.
+    CHECK(effect.value_or(SqliteSettingsEffect::Applied) == SqliteSettingsEffect::BusyTimeoutAtNextConnect);
     CHECK(connection.SqliteSettings() == changed);
     CHECK(QueryBusyTimeout(connection) == 250);
     CHECK(QueryJournalMode(connection) == "delete");
@@ -572,6 +579,120 @@ TEST_CASE_METHOD(SqlTestFixture,
     // A reconnect re-applies the connection's own settings, not the process-wide default.
     REQUIRE(connection.Connect(WithSqliteDatabaseFile(path)));
     CHECK(QueryBusyTimeout(connection) == 250);
+    CHECK(connection
+              .SetSqliteSettings({ .busyTimeout = std::chrono::milliseconds { 250 }, .journalMode = SqliteJournalMode::Wal })
+              .value_or(SqliteSettingsEffect::BusyTimeoutAtNextConnect)
+          == SqliteSettingsEffect::Applied);
+}
+
+TEST_CASE("ServerTypeFromDriverName tells SQLite from the driver's name or library path", "[SqlConnection]")
+{
+    // Every spelling a DRIVER= attribute or a DSN's Driver= entry takes for the SQLite ODBC driver.
+    for (auto const name: { "SQLite3"sv,
+                            "sqlite3"sv,
+                            "{SQLite3 ODBC Driver}"sv,
+                            "SqLiTe3"sv,
+                            "/usr/lib/x86_64-linux-gnu/odbc/libsqlite3odbc.so"sv,
+                            "/opt/homebrew/lib/libsqlite3odbc.dylib"sv,
+                            R"(C:\Windows\System32\sqlite3odbc.dll)"sv })
+    {
+        INFO(name);
+        CHECK(ServerTypeFromDriverName(name) == SqlServerType::SQLITE);
+    }
+    CHECK(ServerTypeFromDriverName("{PostgreSQL Unicode}") == SqlServerType::POSTGRESQL);
+    CHECK(ServerTypeFromDriverName("/usr/lib/x86_64-linux-gnu/odbc/psqlodbcw.so") == SqlServerType::POSTGRESQL);
+    CHECK(ServerTypeFromDriverName("ODBC Driver 18 for SQL Server") == SqlServerType::MICROSOFT_SQL);
+    CHECK(ServerTypeFromDriverName("/opt/microsoft/msodbcsql18/lib64/libmsodbcsql-18.so") == SqlServerType::MICROSOFT_SQL);
+    CHECK(ServerTypeFromDriverName("") == SqlServerType::UNKNOWN);
+    CHECK(ServerTypeFromDriverName("Some Other Driver") == SqlServerType::UNKNOWN);
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "SqlConnection: the SQLite busy timeout reaches a driver named in another case",
+                 "[SqlConnection][SQLite]")
+{
+    if (SqlConnection {}.ServerType() != SqlServerType::SQLITE)
+        SKIP("SQLite-only: the SQLite ODBC driver's Timeout attribute");
+
+    auto const path = ScratchSqliteDatabasePath("sqlite-other-case-driver");
+    RemoveSqliteDatabaseFiles(path);
+    auto const cleanup = detail::Finally([&] { RemoveSqliteDatabaseFiles(path); });
+    REQUIRE(EnsureSqliteDatabaseFileExists(WithSqliteDatabaseFile(path)));
+
+    // Upper-case first letter, the rest lower case ("Sqlite3"): a spelling no other test uses. The driver
+    // decision a connect remembers is per spelling and process-wide, and the all-lower-case spelling must
+    // stay unseen for "a non-ASCII SQLite path reaches a driver no connection reached before".
+    auto first = true;
+    auto const otherCase = WithDriverSpelling(WithSqliteDatabaseFile(path), [&](unsigned char c) {
+        auto const upper = std::exchange(first, false);
+        return static_cast<char>(upper ? std::toupper(c) : std::tolower(c));
+    });
+    {
+        auto const _ = ScopedSqlNullLogger {};
+        if (!SqlConnection { std::nullopt }.Connect(otherCase))
+            SKIP("The driver manager does not match driver names case-insensitively");
+    }
+
+    auto writer = SqlConnection { WithSqliteDatabaseFile(path) };
+    auto writerStmt = SqlStatement { writer };
+    std::ignore = writerStmt.ExecuteDirect("CREATE TABLE probe (id INTEGER)");
+    auto transaction = SqlTransaction { writer };
+    std::ignore = writerStmt.ExecuteDirect("INSERT INTO probe (id) VALUES (1)");
+
+    // The driver got the busy timeout of 0 as its Timeout attribute, so it gives up at once instead of after
+    // its own 100 s.
+    {
+        auto connection = SqlConnection { std::nullopt, SqliteConnectionSettings { .busyTimeout = {} } };
+        REQUIRE(connection.Connect(otherCase));
+        auto stmt = SqlStatement { connection };
+        auto const started = std::chrono::steady_clock::now();
+        auto const failed = [&] {
+            try
+            {
+                std::ignore = stmt.ExecuteDirect("PRAGMA journal_mode = WAL");
+                return false;
+            }
+            catch (SqlException const&)
+            {
+                return true;
+            }
+        }();
+        CHECK(failed);
+        CHECK(std::chrono::steady_clock::now() - started < std::chrono::seconds { 10 });
+    }
+
+    transaction.Rollback();
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "SqlConnection: a connection whose connects pass no driver attribute applies a busy timeout at once",
+                 "[SqlConnection][SQLite]")
+{
+    auto const changed = SqliteConnectionSettings { .busyTimeout = std::chrono::milliseconds { 250 } };
+
+    SECTION("borrowed handle")
+    {
+        auto owner = SqlConnection {};
+        auto borrowed = SqlConnection::Borrow(owner.NativeHandle());
+        CHECK(borrowed.SetSqliteSettings(changed).value_or(SqliteSettingsEffect::BusyTimeoutAtNextConnect)
+              == SqliteSettingsEffect::Applied);
+    }
+
+    SECTION("data-source connect")
+    {
+        if (SqlConnection {}.ServerType() != SqlServerType::SQLITE)
+            SKIP("SQLite-only: the SQLite ODBC driver's data source");
+        auto connection = SqlConnection { std::nullopt };
+        {
+            auto const _ = ScopedSqlNullLogger {};
+            auto source = SqlConnectionDataSource {};
+            source.datasource = "SQLite3 Datasource";
+            if (!connection.Connect(source))
+                SKIP("No 'SQLite3 Datasource' data source on this machine");
+        }
+        CHECK(connection.SetSqliteSettings(changed).value_or(SqliteSettingsEffect::BusyTimeoutAtNextConnect)
+              == SqliteSettingsEffect::Applied);
+    }
 }
 
 TEST_CASE_METHOD(SqlTestFixture,
@@ -615,6 +736,9 @@ TEST_CASE_METHOD(SqlTestFixture,
         .journalMode = SqliteJournalMode::Wal,
     };
     auto const _ = ScopedSqlNullLogger {};
+    // The zero busy timeout takes effect: neither failure waits for the lock. The SQLite ODBC driver waits by
+    // its own connect-time timeout (100 s by default) whatever PRAGMA busy_timeout says.
+    auto const started = std::chrono::steady_clock::now();
 
     // While connecting, the failure fails the connect rather than leaving the journal mode unapplied. It
     // reports its own error, not the one an earlier failed connect left behind.
@@ -630,6 +754,53 @@ TEST_CASE_METHOD(SqlTestFixture,
     auto const applied = open.SetSqliteSettings(impatientWal);
     CHECK_FALSE(applied.has_value());
     CHECK(open.SqliteSettings() == impatientWal);
+    CHECK(std::chrono::steady_clock::now() - started < std::chrono::seconds { 10 });
+
+    transaction.Rollback();
+}
+
+TEST_CASE("SqlQueryFormatter: the SQLite driver's connect-time busy timeout", "[SqlConnection][SQLite]")
+{
+    using std::chrono::milliseconds;
+    CHECK(SqlQueryFormatter::Sqlite().DriverConnectionAttributes({ .busyTimeout = milliseconds { 2500 } })
+          == SqlConnectionStringMap { { "TIMEOUT", "2500" } });
+    // The driver takes a Timeout below 1 as 1000000 ms, so zero becomes the shortest wait it has.
+    CHECK(SqlQueryFormatter::Sqlite().DriverConnectionAttributes({ .busyTimeout = milliseconds { 0 } })
+          == SqlConnectionStringMap { { "TIMEOUT", "1" } });
+    CHECK(SqlQueryFormatter::PostgrSQL().DriverConnectionAttributes({ .busyTimeout = milliseconds { 0 } }).empty());
+    CHECK(SqlQueryFormatter::SqlServer().DriverConnectionAttributes({ .busyTimeout = milliseconds { 0 } }).empty());
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "SqlConnection: a SQLite driver Timeout in the connection string wins over the busy timeout",
+                 "[SqlConnection][SQLite]")
+{
+    if (SqlConnection {}.ServerType() != SqlServerType::SQLITE)
+        SKIP("SQLite-only: the SQLite ODBC driver's Timeout attribute");
+
+    auto const path = ScratchSqliteDatabasePath("sqlite-explicit-timeout");
+    RemoveSqliteDatabaseFiles(path);
+    auto const cleanup = detail::Finally([&] { RemoveSqliteDatabaseFiles(path); });
+    REQUIRE(EnsureSqliteDatabaseFileExists(WithSqliteDatabaseFile(path)));
+
+    auto writer = SqlConnection { WithSqliteDatabaseFile(path) };
+    auto writerStmt = SqlStatement { writer };
+    std::ignore = writerStmt.ExecuteDirect("CREATE TABLE probe (id INTEGER)");
+    auto transaction = SqlTransaction { writer };
+    std::ignore = writerStmt.ExecuteDirect("INSERT INTO probe (id) VALUES (1)");
+    auto const _ = ScopedSqlNullLogger {};
+
+    // The application's own Timeout=1 is kept, so the journal-mode switch gives up at once instead of
+    // waiting the minute the settings ask for.
+    auto map = ParseConnectionString(WithSqliteDatabaseFile(path));
+    map["TIMEOUT"] = "1";
+    auto connection = SqlConnection {
+        std::nullopt,
+        SqliteConnectionSettings { .busyTimeout = std::chrono::seconds { 60 }, .journalMode = SqliteJournalMode::Wal },
+    };
+    auto const started = std::chrono::steady_clock::now();
+    CHECK_FALSE(connection.Connect(BuildConnectionString(map)));
+    CHECK(std::chrono::steady_clock::now() - started < std::chrono::seconds { 10 });
 
     transaction.Rollback();
 }
@@ -1285,5 +1456,318 @@ TEST_CASE_METHOD(SqlTestFixture,
             INFO("reconnect " << reconnect << ", " << name);
             CheckStatementActionAfterSessionEnd(conn, reconnect, action);
         }
+    }
+}
+
+namespace
+{
+
+/// Counts the connections the logger is told were opened and closed while it is installed.
+class ConnectionEventCountingLogger: public SqlLogger::Null
+{
+  public:
+    ConnectionEventCountingLogger()
+    {
+        SqlLogger::SetLogger(*this);
+    }
+    ConnectionEventCountingLogger(ConnectionEventCountingLogger const&) = delete;
+    ConnectionEventCountingLogger(ConnectionEventCountingLogger&&) = delete;
+    ConnectionEventCountingLogger& operator=(ConnectionEventCountingLogger const&) = delete;
+    ConnectionEventCountingLogger& operator=(ConnectionEventCountingLogger&&) = delete;
+    ~ConnectionEventCountingLogger() override
+    {
+        SqlLogger::SetLogger(m_previousLogger);
+    }
+
+    void OnConnectionOpened(SqlConnection const& /*connection*/) override
+    {
+        ++m_opened;
+        m_sequence += 'o';
+    }
+
+    void OnConnectionClosed(SqlConnection const& connection) override
+    {
+        ++m_closed;
+        m_sequence += 'c';
+        // Empty once the session has ended: the driver manager answers 08003 for a disconnected handle.
+        m_closedServerNames.push_back(connection.ServerName());
+    }
+
+    /// @return What SqlConnection::ServerName() answered at each closed report, in order.
+    [[nodiscard]] std::vector<std::string> const& ClosedServerNames() const noexcept
+    {
+        return m_closedServerNames;
+    }
+
+    /// @return The opened ('o') and closed ('c') reports, in the order they came.
+    [[nodiscard]] std::string const& Sequence() const noexcept
+    {
+        return m_sequence;
+    }
+
+    void OnError(SqlErrorInfo const& errorInfo, std::source_location /*sourceLocation*/) override
+    {
+        ++m_errors;
+        m_lastError = errorInfo;
+    }
+
+    /// @return The last error reported.
+    [[nodiscard]] SqlErrorInfo const& LastError() const noexcept
+    {
+        return m_lastError;
+    }
+
+    /// @return The errors reported.
+    [[nodiscard]] int Errors() const noexcept
+    {
+        return m_errors;
+    }
+
+    /// @return The connections reported opened.
+    [[nodiscard]] int Opened() const noexcept
+    {
+        return m_opened;
+    }
+
+    /// @return The connections reported closed.
+    [[nodiscard]] int Closed() const noexcept
+    {
+        return m_closed;
+    }
+
+  private:
+    SqlLogger& m_previousLogger = SqlLogger::GetLogger();
+    int m_opened = 0;
+    int m_closed = 0;
+    int m_errors = 0;
+    std::string m_sequence;
+    std::vector<std::string> m_closedServerNames;
+    SqlErrorInfo m_lastError;
+};
+
+} // namespace
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "SqlConnection: the SQLite busy timeout reaches the driver through a DSN without a second connect",
+                 "[SqlConnection][SQLite]")
+{
+    if (SqlConnection {}.ServerType() != SqlServerType::SQLITE)
+        SKIP("SQLite-only: the SQLite ODBC driver's Timeout attribute");
+
+    auto const path = ScratchSqliteDatabasePath("sqlite-dsn-timeout");
+    RemoveSqliteDatabaseFiles(path);
+    auto const cleanup = detail::Finally([&] { RemoveSqliteDatabaseFiles(path); });
+    REQUIRE(EnsureSqliteDatabaseFileExists(WithSqliteDatabaseFile(path)));
+
+    // The SQLite driver's installer registers this data source; the connection string names no DRIVER.
+    auto map = ParseConnectionString(WithSqliteDatabaseFile(path));
+    map.erase("DRIVER");
+    map["DSN"] = "SQLite3 Datasource";
+    auto const throughDataSource = BuildConnectionString(map);
+    {
+        auto const _ = ScopedSqlNullLogger {};
+        if (!SqlConnection { std::nullopt }.Connect(throughDataSource))
+            SKIP("No 'SQLite3 Datasource' data source on this machine");
+    }
+
+    auto writer = SqlConnection { WithSqliteDatabaseFile(path) };
+    auto writerStmt = SqlStatement { writer };
+    std::ignore = writerStmt.ExecuteDirect("CREATE TABLE probe (id INTEGER)");
+    auto transaction = SqlTransaction { writer };
+    std::ignore = writerStmt.ExecuteDirect("INSERT INTO probe (id) VALUES (1)");
+
+    // One connect: one opened event and one post-connect hook run, and the driver gives up at once.
+    auto hookRuns = 0;
+    SqlConnection::SetPostConnectedHook([&hookRuns](SqlConnection& /*connection*/) { ++hookRuns; });
+    auto const resetHook = detail::Finally([] { SqlConnection::ResetPostConnectedHook(); });
+    {
+        auto const events = ConnectionEventCountingLogger {};
+        auto connection = SqlConnection { std::nullopt, SqliteConnectionSettings { .busyTimeout = {} } };
+        REQUIRE(connection.Connect(throughDataSource));
+        CHECK(events.Opened() == 1);
+        CHECK(events.Closed() == 0);
+        CHECK(hookRuns == 1);
+
+        auto stmt = SqlStatement { connection };
+        auto const started = std::chrono::steady_clock::now();
+        auto const sqlState = [&]() -> std::string {
+            try
+            {
+                std::ignore = stmt.ExecuteDirect("PRAGMA journal_mode = WAL");
+                return "none";
+            }
+            catch (SqlException const& error)
+            {
+                return error.info().sqlState;
+            }
+        }();
+        CHECK(sqlState != "none");
+        CHECK(std::chrono::steady_clock::now() - started < std::chrono::seconds { 10 });
+    }
+
+    transaction.Rollback();
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlConnection: a failed first connect reports no closing", "[SqlConnection]")
+{
+    auto const events = ConnectionEventCountingLogger {};
+    {
+        auto connection = SqlConnection { std::nullopt };
+        CHECK_FALSE(connection.Connect(SqlConnectionString { "DRIVER={Lightweight No Such Driver}" }));
+        auto const errorsOfConnect = events.Errors();
+        connection.Close();
+        CHECK(events.Errors() == errorsOfConnect); // no "connection not open" from the disconnect either
+    } // and the destructor's Close() neither
+    CHECK(events.Opened() == 0);
+    CHECK(events.Closed() == 0);
+
+    // A connection that was opened is reported closed once.
+    {
+        auto connection = SqlConnection {};
+        REQUIRE(connection.IsAlive());
+        connection.Close();
+    }
+    CHECK(events.Opened() == 1);
+    CHECK(events.Closed() == 1);
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "SqlConnection: a connect whose post-connect setup fails leaves the connection closed",
+                 "[SqlConnection][SQLite]")
+{
+    if (SqlConnection {}.ServerType() != SqlServerType::SQLITE)
+        SKIP("SQLite-only: the failing setup is SQLite refusing a journal-mode switch on a locked database");
+
+    auto const path = ScratchSqliteDatabasePath("sqlite-post-connect-failure");
+    RemoveSqliteDatabaseFiles(path);
+    auto const cleanup = detail::Finally([&] { RemoveSqliteDatabaseFiles(path); });
+    REQUIRE(EnsureSqliteDatabaseFileExists(WithSqliteDatabaseFile(path)));
+
+    // A writer holds the database locked, so the WAL switch the connect applies fails at once.
+    auto writer = SqlConnection { WithSqliteDatabaseFile(path) };
+    auto writerStmt = SqlStatement { writer };
+    std::ignore = writerStmt.ExecuteDirect("CREATE TABLE probe (id INTEGER)");
+    auto transaction = SqlTransaction { writer };
+    std::ignore = writerStmt.ExecuteDirect("INSERT INTO probe (id) VALUES (1)");
+    auto const impatientWal = SqliteConnectionSettings {
+        .busyTimeout = std::chrono::milliseconds { 0 },
+        .journalMode = SqliteJournalMode::Wal,
+    };
+
+    auto const events = ConnectionEventCountingLogger {};
+    {
+        auto connection = SqlConnection { std::nullopt, impatientWal };
+        CHECK_FALSE(connection.Connect(WithSqliteDatabaseFile(path)));
+
+        // The driver connected, but the connect failed: the error is the setup's (checked first: asking the
+        // handle anything else posts a diagnostic of its own), and no session is left open.
+        REQUIRE(events.Errors() > 0);
+        CHECK(connection.LastError().sqlState == events.LastError().sqlState);
+        CHECK(connection.LastError().message == events.LastError().message);
+        CHECK(connection.SessionId() == 0);
+        CHECK_FALSE(connection.IsAlive());
+        auto const errorsOfConnect = events.Errors();
+        connection.Close();
+        CHECK(events.Errors() == errorsOfConnect); // no "connection not open" from the disconnect
+    }
+    CHECK(events.Sequence().empty()); // never reported opened, so never reported closed
+
+    // Once the lock is gone, the same settings connect.
+    transaction.Rollback();
+    {
+        auto connection = SqlConnection { std::nullopt, impatientWal };
+        CHECK(connection.Connect(WithSqliteDatabaseFile(path)));
+        CHECK(connection.IsAlive());
+    }
+    CHECK(events.Sequence() == "oc");
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "SqlConnection: a connect whose autocommit setting fails leaves the connection closed",
+                 "[SqlConnection]")
+{
+    // The driver connects; setting autocommit, the next step, is made to fail through the fault seam.
+    auto const injected = SqlErrorInfo { .nativeErrorCode = 0, .sqlState = "HY000", .message = "autocommit refused" };
+    auto faults = ScriptedFaultSource { injected, 1, "ConnectDriver" };
+    auto const events = ConnectionEventCountingLogger {};
+    {
+        auto connection = SqlConnection { std::nullopt };
+        {
+            auto const installed = ScopedFaultSource { &faults };
+            CHECK_FALSE(connection.Connect(SqlConnection::DefaultConnectionString()));
+        }
+        CHECK(faults.RemainingFailures() == 0);
+        CHECK(connection.LastError().sqlState == injected.sqlState);
+        CHECK(connection.LastError().message == injected.message);
+        CHECK(connection.SessionId() == 0);
+        CHECK_FALSE(connection.IsAlive());
+        auto const errorsOfConnect = events.Errors();
+        connection.Close();
+        CHECK(events.Errors() == errorsOfConnect);
+
+        // The same connection connects once nothing fails.
+        CHECK(connection.Connect(SqlConnection::DefaultConnectionString()));
+        CHECK(connection.IsAlive());
+    }
+    CHECK(events.Sequence() == "oc");
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlConnection: a reconnect reports the replaced session closed", "[SqlConnection]")
+{
+    auto const events = ConnectionEventCountingLogger {};
+
+    SECTION("Connect, then connect again")
+    {
+        {
+            auto connection = SqlConnection {};
+            REQUIRE(connection.IsAlive());
+            REQUIRE(connection.Connect(SqlConnection::DefaultConnectionString()));
+            CHECK(events.Sequence() == "oco"); // the first session closes before the second opens
+        }
+        CHECK(events.Sequence() == "ococ"); // and the second closes once, with the connection
+
+        // Both are reported closed at the same point, once the session has ended (after the disconnect):
+        // a logger sees one contract, whether Close() or a reconnect ended the session.
+        REQUIRE(events.ClosedServerNames().size() == 2);
+        CHECK(events.ClosedServerNames()[0] == events.ClosedServerNames()[1]);
+        CHECK(events.ClosedServerNames()[1].empty());
+    }
+
+    SECTION("Connect, then a connect that fails")
+    {
+        {
+            auto connection = SqlConnection {};
+            REQUIRE(connection.IsAlive());
+            // Connect() ends the current session before it attempts the new one, so when the new one
+            // fails the connection is left without a session: the first one did end, and is reported so.
+            CHECK_FALSE(connection.Connect(SqlConnectionString { "DRIVER={Lightweight No Such Driver}" }));
+            CHECK(connection.SessionId() == 0);
+            CHECK(events.Sequence() == "oc");
+            auto const errorsBefore = events.Errors();
+            connection.Close();
+            CHECK(events.Errors() == errorsBefore);
+        }
+        CHECK(events.Sequence() == "oc"); // nothing more from Close() or the destructor
+    }
+
+    SECTION("A reconnect the driver refuses ends no session")
+    {
+        {
+            auto connection = SqlConnection {};
+            REQUIRE(connection.IsAlive());
+            auto stmt = SqlStatement { connection };
+            stmt.Prepare("SELECT 42");
+            auto const sessionBefore = connection.SessionId();
+            if (connection.Connect(SqlConnection::DefaultConnectionString()))
+                CHECK(events.Sequence() == "oco");
+            else
+            {
+                // The SQLite ODBC driver refuses to disconnect while a statement is allocated: the
+                // session goes on, so nothing is reported closed.
+                CHECK(connection.SessionId() == sessionBefore);
+                CHECK(events.Sequence() == "o");
+            }
+        }
+        CHECK(events.Opened() == events.Closed());
     }
 }

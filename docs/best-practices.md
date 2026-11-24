@@ -47,7 +47,9 @@ It is always highly recommended to pre-bind to avoid unnecessary memory allocati
 With this, it is sufficient to call `SqlStatement::BindOutputColumns()` once, and then you can reuse the result
 throughout many `SqlStatement::FetchRow()` calls of that result set. Every fetched row sets each bound variable to
 that row's value: strings and binaries get the row's own length, and a `std::optional<T>` is reset to `std::nullopt`
-on a NULL row and engaged again on the next non-NULL one. The bound variables must outlive the fetch loop; moving a
+on a NULL row and engaged again on the next non-NULL one. A variable that is not a `std::optional` is set to `T{}` on
+a NULL row (0, `false`, `'\0'`, an empty string or binary, the all-zero `SqlGuid`, a zero date), on every database,
+per row and under block prefetch alike; it never keeps the previous row's value. The bound variables must outlive the fetch loop; moving a
 value out of one between two fetches is fine, the column follows the variable's new storage.
 
 The binding lasts as long as the statement's query: it outlives the end of the result set and the closing of the

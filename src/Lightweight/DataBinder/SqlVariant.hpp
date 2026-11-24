@@ -462,6 +462,21 @@ struct LIGHTWEIGHT_API SqlDataBinder<SqlVariant>
                                     SqlVariant const& variantValue,
                                     SqlDataBinderCallback& cb) noexcept;
 
+    /// The year of the variant's date or timestamp if it cannot be written (see detail::IsWritableYear()).
+    /// @param variantValue The value to write.
+    /// @return Its year if the value is refused, otherwise @c std::nullopt (also for any other alternative).
+    [[nodiscard]] static constexpr std::optional<SQLSMALLINT> UnwritableYear(SqlVariant const& variantValue) noexcept
+    {
+        return std::visit(
+            []<typename T>(T const& value) -> std::optional<SQLSMALLINT> {
+                if constexpr (SqlBinderChecksYear<T>)
+                    return SqlDataBinder<T>::UnwritableYear(value);
+                else
+                    return std::nullopt;
+            },
+            variantValue.value);
+    }
+
     /// Reads the column into the alternative its SQL type maps to.
     /// @param stmt The statement handle.
     /// @param column The 1-based column index.
@@ -473,6 +488,14 @@ struct LIGHTWEIGHT_API SqlDataBinder<SqlVariant>
     ///         is read through @c SqlDataBinder<SqlGuid>::GetColumn, which fails with 22018 for text that is not
     ///         a GUID. The SQLite driver reports a GUID column as text (@c SQL_VARCHAR) instead: it reads as a
     ///         @c SqlGuid where the text is one, and as that text (@c std::string) otherwise, without failing.
+    /// @note On SQLite a cell may hold a value that is not of its column's type (text in an INTEGER column).
+    ///       The driver reports such a cell as NULL when it is read as the column's type, so this read
+    ///       reads it again as text. A block-prefetched result set cannot read a cell again: a raw
+    ///       @c GetColumn<SqlVariant>() on a SQLite result set that was already block-prefetched reads
+    ///       such a cell as NULL. @c SqlVariantRowCursor (and @c DataMapper::Query<SqlVariantRow>(), which reads
+    ///       through it) and @c ExecuteDirectScalar<SqlVariant>() keep their
+    ///       result set on the per-row path and read it as text; so does a connection with
+    ///       @c SetDefaultPrefetchDepth(1). This is a known limit, see docs/data-binder.md.
     static SQLRETURN GetColumn(
         SQLHSTMT stmt, SQLUSMALLINT column, SqlVariant* result, SQLLEN* indicator, SqlDataBinderCallback const& cb);
 

@@ -139,6 +139,40 @@ The `Inspect()` function is used to provide a human-readable representation of t
 
 This function should be used purely for debugging purposes.
 
+## UnwritableYear() (optional)
+
+`static std::optional<SQLSMALLINT> UnwritableYear(T const& value) noexcept` tells, before anything is
+bound, that a value holds a date or timestamp whose year cannot be written (a negative year, see below), and
+returns that year. The binders of `SqlDate`, `SqlDateTime`, `std::optional`, `Field`, `BelongsTo` and
+`SqlVariant` define it, and a batch that executes row by row checks every row through it before the first
+one is stored. A custom binder that wraps a date should define it too, forwarding to the date's binder.
+Without it, its bad rows are still refused with `22008`, by the wrapped date's `InputParameter()`, but in
+such a batch the rows before the bad one are already stored.
+
+The hook must have exactly this signature. A binder that declares a member named `UnwritableYear` with
+another one (returning `std::optional<int>`, say, or not `noexcept`) does not compile: `SqlBinderChecksYear<T>` fails with a
+`static_assert` that names the expected signature, rather than skipping the hook and storing the rows before
+a bad one.
+
+## A NULL row in a bound variable
+
+A bound output column that is not a `std::optional` reads a NULL row as `T{}`, on every database, per row
+and under block prefetch alike, so it never keeps the previous row's value. SQL Server's and PostgreSQL's
+drivers leave a buffer bound in place untouched on NULL, so the statement resets a variable whose type is
+trivially copyable (the integers, floating point, `char`, `SqlGuid`, `SqlDate`, `SqlTime`, `SqlDateTime`,
+`SqlNumeric`, and a custom type of that kind) after its binder's own post-processing. A `Field` or a
+`BelongsTo` has the value it wraps reset, so whether it is modified is the same after a NULL row as after any
+other. A custom binder of a type that is not trivially copyable (one that owns memory) must set the value
+itself on NULL, in the step it plans with `PlanPostProcessOutputColumn()`, as the string and binary binders do.
+
+For a trivially copyable custom type:
+
+- The reset reads the `indicator` passed to its `OutputColumn()`. A binder that binds an indicator of its own
+  instead must still write `SQL_NULL_DATA` (or the length) to the one it was passed, or the reset reads a stale
+  indicator.
+- The reset overwrites whatever the binder wrote into the value on a NULL row (a NULL sentinel, say) with
+  `T{}`. There is no opt-out; read such a column into a `std::optional<T>` instead.
+
 ## `SqlGuid` and `SqlTime`: what a read returns
 
 - **`SqlGuid` on SQLite.** SQLite stores a GUID as text. Reading a column whose text is not a GUID (see
@@ -148,9 +182,111 @@ This function should be used purely for debugging purposes.
   text, so the variant holds a `SqlGuid` where the text is one, and the text as a `std::string` otherwise.
   A variant reads through the `SqlGuid` binder, and so fails with `22018`, only where the driver reports
   the column as `SQL_GUID`.
+- **`SqlDate` and `SqlDateTime` with a negative year are not written.** SQLite would store text no reader
+  accepts, SQL Server rejects such a date, and PostgreSQL stores a BC date its driver reads back without the
+  sign; so binding one fails with a `SqlException`, SQLSTATE `22008`, also inside a `std::optional`, a `Field`
+  or a `SqlVariant`. A batch checks every row first, also where it executes row by row (a column batch whose
+  range is not contiguous or whose element type has no array binding, a row batch with a column that is not
+  bound in place, an accessor that returns its value by value, or a driver without row-wise parameter
+  arrays), so no row of it is stored. Years 0 to 9999 are written as before (PostgreSQL itself refuses year 0).
 - **`SqlTime` carries whole seconds.** It is bound as `SQL_C_TYPE_TIME`, whose structure has no fraction,
   so after a read the fraction is always 0, on every database and path; a fraction set before writing is
   not stored.
+
+## Integer types: full range on every database
+
+Every built-in integer type round-trips its full range through an input parameter, an output column,
+`GetColumn()` and the batch paths, given a column wide enough to hold it:
+
+- An input parameter declares an SQL type that holds the whole range: `int8_t` as `SMALLINT`, `uint16_t`
+  as `INTEGER`, `uint32_t` as `BIGINT`. SQL Server checks a value against the declared type, so a narrower
+  one rejected `-1` as an `int8_t` and anything above `INT32_MAX` as a `uint32_t` with SQLSTATE `22003`.
+- The SQLite ODBC driver does not convert the C types of `int8_t` and `uint32_t` over their range (it
+  stored `-1` as `255` and `4294967295` as `-1`, and read a `uint32_t` above `INT32_MAX` back as
+  `INT32_MAX`). There, selected by `SqlQueryFormatter::ConvertsNarrowIntegerCTypes()`, those two binders
+  stage each value through a wider C type: an 8-byte staging buffer per input parameter, one buffer per
+  column of a column-wise batch, one staging value plus a copy per row for an output column. A row-wise
+  `ExecuteBatch(rows, accessors...)` carrying such a column executes row by row on SQLite, and the
+  DataMapper and `FetchAllRowWise()` read a record with such a member per row there. PostgreSQL and SQL Server bind them in place,
+  as before.
+
+The column types the DataMapper creates for these records are unchanged (`int8_t` → `TINYINT`, `uint16_t`
+→ `SMALLINT`, `uint32_t` → `INTEGER`), and they do not hold the type's whole range on every database
+(`TINYINT` is 0..255 on SQL Server; `INTEGER` is 32-bit signed on SQL Server and PostgreSQL). Declare a wider
+column where the full range matters.
+
+On SQLite a staged read checks the range too, on the per-row path and under block prefetch alike: it accepts
+the type's own range and the form an older version stored (below), and fails with SQLSTATE `22003` for
+anything else (300 or -129 read as an `int8_t`, 4294967296 or -2147483649 as a `uint32_t`), as SQL Server
+reports a value outside the type. A `NULL` read into a bound non-optional `int8_t` or `uint32_t` sets it to 0,
+as the block prefetch does. Through PostgreSQL's driver such a read converts without an error. A value passed
+through `BindInputParameter()` on SQLite is copied when it is bound, so bind it again after changing it.
+
+**SQLite databases written by an older version.** Before, `int8_t` -128..-1 was stored as 128..255 and a
+`uint32_t` above `INT32_MAX` as its negative 32-bit pattern (4294967295 as -1). Those rows read back
+unchanged: a read into `int8_t` takes 128..255 as -128..-1, and a read into `uint32_t` takes
+-2147483648..-1 as 2147483648..4294967295. The other narrow types (`uint8_t`, `int16_t`, `uint16_t`, `bool`,
+`char`) were stored as they are now. A query that compares such a column with a value (`WHERE c = ?` with -1)
+binds the true value, so it does not match the old rows until they are rewritten. Rewriting them once per
+affected column is recommended, not required for reading; both statements are idempotent:
+
+```sql
+UPDATE "Table" SET "SmallColumn" = "SmallColumn" - 256 WHERE "SmallColumn" BETWEEN 128 AND 255;  -- int8_t
+UPDATE "Table" SET "LargeColumn" = "LargeColumn" + 4294967296 WHERE "LargeColumn" < 0;          -- uint32_t
+```
+
+## `bool`
+
+A `bool` is never written by the driver into the `bool` itself: a `bool` holding any byte but 0 or 1 is undefined
+behaviour, and PostgreSQL's driver converts a number to `SQL_C_BIT` by writing its low byte (2 as 2, -1 as 0xFF,
+256 as 0). A per-row read (`GetColumn`, a bound column, `ExecuteDirectScalar`, `SqlRowIterator`) reads into a
+value the statement stages, through the C type that fits the column's described SQL type (a `SqlVariant` reads a
+column described as `SQL_BIT` through the same `bool` read):
+
+| Column type                                              | Read as         | Reads as `true` / `false`                                    |
+|----------------------------------------------------------|-----------------|--------------------------------------------------------------|
+| integer or bit (`BIT`, `BOOLEAN`, `SMALLINT` … `BIGINT`) | `SQL_C_SBIGINT` | 1 / 0; -1 is `true` on PostgreSQL (see below); else `22003`  |
+| floating point or decimal (`REAL`, `FLOAT`, `NUMERIC` …) | `SQL_C_DOUBLE`  | [1, 2) / [0, 1); else `22003`, as ODBC converts to `SQL_C_BIT` |
+| text and anything else                                   | `SQL_C_BIT`     | byte 1 / 0 (0xFF as -1 above); else `22003`                  |
+
+The block prefetch, including a prefetched `SqlVariant` of a bit column, applies the same rule to the number it
+holds, so a single read gives the same result with and without prefetch on every database: anything but 0 and 1
+(and -1 on PostgreSQL) fails with `22003`. Text goes through `SQL_C_BIT` because the drivers parse `'true'` only
+there (through `SQL_C_SBIGINT` SQLite reports it as `NULL` and PostgreSQL as 0). On SQLite, text in a column
+described as integer or bit (`'true'` in a `BOOLEAN` column) therefore reads as `NULL`, per row as under prefetch;
+earlier versions read it as `true` per row. Choosing the C type costs a look-up of the column's type, which the
+statement asks the driver once per result set and column; a column bound before `Execute()` describes the prepared
+statement. A `NULL` read into a bound non-optional `bool` sets it to `false`, as the block prefetch does.
+
+**PostgreSQL: a boolean true as -1.** psqlODBC with the connection option `TrueIsMinus1=1` reports a `BOOLEAN`
+true as -1 (through `SQL_C_BIT` the byte 0xFF). Since the option is not visible to the library, a `bool` read on
+PostgreSQL accepts -1 as `true` whatever the connection string says (`SqlQueryFormatter::BooleanTrueMayBeMinusOne`);
+in particular, -1 in an `INTEGER` or `BIGINT` column reads as `true` there, where it fails with `22003` on SQL
+Server and SQLite. For single reads, any other number (2, 255, 256, -2 …) still fails with `22003`; the row-wise
+fetch below takes what the driver writes instead.
+
+**The row-wise fetch differs.** `FetchAllRowWise` — and the DataMapper's `All()`, `First(n)`, `Range()` and the
+two-record JOIN, which use it for a record whose columns are all fixed-width — binds each record's `bool` in place
+as `SQL_C_BIT`, so it takes what the driver's bit conversion writes, then checks that byte before the record is
+used: 0 and 1 read as they are, 0xFF as `true` on PostgreSQL, any other byte fails with `22003`. For a number other
+than 0 or 1 that means:
+
+- **SQL Server** fails the row with `22003`, as a single read does.
+- **PostgreSQL** writes the number's low byte: a number whose low byte is 1 or 0xFF reads `true` (257 and -255 via
+  0x01; 255, 511, -1 and -257 via 0xFF), one whose low byte is 0 reads `false` (256, 512, -256), and any other
+  fails with `22003` (2, 254).
+- **SQLite** writes 1 for any positive number and 0 otherwise: 2, 255 and 256 read `true`, -1 reads `false`. A
+  record that also has an `int8_t` or `uint32_t` member is read per row on SQLite (see above), so there 2 fails with
+  `22003` as in a single read.
+
+| Value in an integer column | Single read, with or without prefetch | Row-wise: SQL Server | PostgreSQL | SQLite  |
+|----------------------------|---------------------------------------|----------------------|------------|---------|
+| 2                          | `22003`                               | `22003`              | `22003`    | `true`  |
+| 255                        | `22003`                               | `22003`              | `true`     | `true`  |
+| 256                        | `22003`                               | `22003`              | `false`    | `true`  |
+| -1                         | `22003` (`true` on PostgreSQL)        | `22003`              | `true`     | `false` |
+
+When a row-wise block fails, the vector keeps the rows of the blocks before it, and none of the failing block.
 
 ## `SqlNumeric<Precision, Scale>` precision limits
 
@@ -241,9 +377,11 @@ string instead.
 
 ## How `SqlVariant` decides which alternative to fill
 
-`SqlDataBinder<SqlVariant>::GetColumn` queries the driver for
-**`SQL_DESC_CONCISE_TYPE`** and dispatches into the matching variant alternative
-based on the concise ODBC SQL type code.
+`SqlDataBinder<SqlVariant>::GetColumn` asks the driver for the column's concise ODBC SQL type
+code with **`SQLDescribeCol`** and dispatches into the matching variant alternative. It does not
+ask `SQLColAttribute(SQL_DESC_CONCISE_TYPE)`, which the SQLite ODBC driver answers with `SQL_WCHAR`
+for a BLOB column. A statement asks it once per result set and column, so the rows after the first
+cost no describe call.
 
 The verbose `SQL_DESC_TYPE` collapses every datetime subtype into the single
 value `SQL_DATETIME` (9) and every interval subtype into `SQL_INTERVAL` (10), so
@@ -256,6 +394,25 @@ it cannot distinguish DATE from TIME from TIMESTAMP. The concise type does:
 | TIMESTAMP    | `SQL_TYPE_TIMESTAMP` (93)| `SqlDateTime`       |
 | DECIMAL / NUMERIC | `SQL_DECIMAL` (3), `SQL_NUMERIC` (2) | `SqlDynamicNumeric` |
 | BINARY / VARBINARY / LONGVARBINARY | `SQL_BINARY` (-2), `SQL_VARBINARY` (-3), `SQL_LONGVARBINARY` (-4) | `SqlBinary` |
+
+### SQLite: a cell whose value is not of its column's type
+
+SQLite lets a cell hold a value of another type than its column's, such as the text `'hello'` in
+an `INTEGER` column. The SQLite ODBC driver reports such a cell as NULL when it is read as the
+column's type. The per-row variant read then reads the cell again as text, so it comes back as
+the text, and a real NULL stays NULL.
+
+**Known limit.** A block-prefetched result set cannot read a cell again. A raw
+`cursor.GetColumn<SqlVariant>(column)` on a SQLite result set that was already block-prefetched
+reads such a cell as NULL. The following read it as text:
+
+- `SqlVariantRowCursor`, and `DataMapper::Query<SqlVariantRow>()`, which reads through it;
+- `ExecuteDirectScalar<SqlVariant>()`;
+- any read on a connection with `SetDefaultPrefetchDepth(1)`.
+
+`SqlVariantRowCursor` and `ExecuteDirectScalar<SqlVariant>()` keep the result set on the
+per-row path on SQLite. SQL Server and PostgreSQL enforce column types, so no such cell exists
+there.
 
 ## `SqlDynamicNumeric`: exact decimals in a `SqlVariant`
 
@@ -331,5 +488,8 @@ in the connection string:
 |----------------|----------------|-------------------------------------------------------------------------------------------------------------------------------|
 | `BoolsAsChar`  | `0`            | Reports `BOOLEAN` columns as `SQL_BIT` so they dispatch into the `bool` alternative. The driver default reports them as `SQL_CHAR`. |
 | `LFConversion` | `0`            | Disables LF↔CRLF translation. Required for byte-exact round-trips of `TEXT`/`VARCHAR` values containing `\n`.                  |
+
+`TrueIsMinus1=1` is not required and is accepted: a `bool` read on PostgreSQL takes the -1 it then reports for a
+`BOOLEAN` true as `true` (see [`bool`](#bool)).
 
 The canonical postgres entry with these options is in `scripts/tests/.test-env.yml`.
