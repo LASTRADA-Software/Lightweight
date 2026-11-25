@@ -94,7 +94,6 @@ $(document).ready(function(){initNavTree('d7/d2c/structLightweight_1_1SqlDynamic
 <a href="#pub-methods">Public Member Functions</a> &#124;
 <a href="#pub-static-methods">Static Public Member Functions</a> &#124;
 <a href="#pub-attribs">Public Attributes</a> &#124;
-<a href="#pub-static-attribs">Static Public Attributes</a> &#124;
 <a href="../../d1/d12/structLightweight_1_1SqlDynamicNumeric-members.html">List of all members</a>  </div>
   <div class="headertitle"><div class="title">Lightweight::SqlDynamicNumeric Struct Reference<div class="ingroups"><a class="el" href="../../d4/d7c/group__DataTypes.html">Data Types</a></div></div></div>
 </div><!--header-->
@@ -114,8 +113,6 @@ Public Member Functions</h2></td></tr>
 <tr class="separator:af5daacfcd1c5b1dd495ee38b662d219d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac0af22cded9c058e863daf3321da5962" id="r_ac0af22cded9c058e863daf3321da5962"><td class="memItemLeft" align="right" valign="top">constexpr double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d7/d2c/structLightweight_1_1SqlDynamicNumeric.html#ac0af22cded9c058e863daf3321da5962">ToDouble</a> () const noexcept</td></tr>
 <tr class="separator:ac0af22cded9c058e863daf3321da5962"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a62263da5080cc1b16132265655259bff" id="r_a62263da5080cc1b16132265655259bff"><td class="memItemLeft" align="right" valign="top">std::size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d7/d2c/structLightweight_1_1SqlDynamicNumeric.html#a62263da5080cc1b16132265655259bff">FormatTo</a> (std::span&lt; char, <a class="el" href="../../d7/d2c/structLightweight_1_1SqlDynamicNumeric.html#a5c17d09ea4f28ac7fc5777409823e61c">MaxLiteralLength</a> &gt; out) const noexcept</td></tr>
-<tr class="separator:a62263da5080cc1b16132265655259bff"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a1ce5944fd87bfb86e2b62b903fe9a7d4" id="r_a1ce5944fd87bfb86e2b62b903fe9a7d4"><td class="memItemLeft" align="right" valign="top">std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d7/d2c/structLightweight_1_1SqlDynamicNumeric.html#a1ce5944fd87bfb86e2b62b903fe9a7d4">ToString</a> () const</td></tr>
 <tr class="memdesc:a1ce5944fd87bfb86e2b62b903fe9a7d4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Renders the exact decimal representation, including the trailing zeros implied by <a class="el" href="../../d7/d2c/structLightweight_1_1SqlDynamicNumeric.html#a3cb6255578d6d5fe15ac528409497d7e">scale</a>.  <br /></td></tr>
 <tr class="separator:a1ce5944fd87bfb86e2b62b903fe9a7d4"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -136,18 +133,13 @@ Public Attributes</h2></td></tr>
 <tr class="memitem:a3cb6255578d6d5fe15ac528409497d7e" id="r_a3cb6255578d6d5fe15ac528409497d7e"><td class="memItemLeft" align="right" valign="top">std::uint8_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d7/d2c/structLightweight_1_1SqlDynamicNumeric.html#a3cb6255578d6d5fe15ac528409497d7e">scale</a> = 0</td></tr>
 <tr class="memdesc:a3cb6255578d6d5fe15ac528409497d7e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Number of digits after the decimal point.  <br /></td></tr>
 <tr class="separator:a3cb6255578d6d5fe15ac528409497d7e"><td class="memSeparator" colspan="2">&#160;</td></tr>
-</table><table class="memberdecls">
-<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-static-attribs" name="pub-static-attribs"></a>
-Static Public Attributes</h2></td></tr>
-<tr class="memitem:a5c17d09ea4f28ac7fc5777409823e61c" id="r_a5c17d09ea4f28ac7fc5777409823e61c"><td class="memItemLeft" align="right" valign="top">static constexpr std::size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d7/d2c/structLightweight_1_1SqlDynamicNumeric.html#a5c17d09ea4f28ac7fc5777409823e61c">MaxLiteralLength</a> = 1 + 1 + (std::numeric_limits&lt;std::uint8_t&gt;::max)() + 1</td></tr>
-<tr class="separator:a5c17d09ea4f28ac7fc5777409823e61c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>A fixed-point decimal whose precision and scale are known only at run time. </p>
 <p>This is the dynamic counterpart to <a class="el" href="../../d6/d1b/structLightweight_1_1SqlNumeric.html">SqlNumeric</a>. Where <code><a class="el" href="../../d6/d1b/structLightweight_1_1SqlNumeric.html">SqlNumeric</a>&lt;Precision, Scale&gt;</code> fixes both at compile time, a value fetched into a <a class="el" href="../../df/d3f/structLightweight_1_1SqlVariant.html">SqlVariant</a> learns its precision and scale from the result-set metadata, so they have to travel with the value.</p>
 <p>The number is held exactly, as the unscaled integer <code>value * 10^scale</code>, and never passes through a binary floating-point type. That is the point of the type: <code>DECIMAL(19, 4)</code> — what MS SQL Server's <code>money</code> maps to — carries more significant digits than a <code>double</code> can represent, so reading such a column as <code>double</code> loses cents on large amounts. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00242">242</a> of file <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html">SqlDynamicNumeric.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00239">239</a> of file <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html">SqlDynamicNumeric.hpp</a>.</p>
 </div><h2 class="groupheader">Member Function Documentation</h2>
 <a id="a0a161e5e98d4a854826bd19343f04d3f" name="a0a161e5e98d4a854826bd19343f04d3f"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a0a161e5e98d4a854826bd19343f04d3f">&#9670;&#160;</a></span>operator==()</h2>
@@ -174,9 +166,9 @@ Static Public Attributes</h2></td></tr>
 </div><div class="memdoc">
 <p>Compares two values by mathematical magnitude, so the same number at different scales compares equal (<code>1.50</code> at scale 2 equals <code>1.5</code> at scale 1). </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00255">255</a> of file <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html">SqlDynamicNumeric.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00252">252</a> of file <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html">SqlDynamicNumeric.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00251">scale</a>, and <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00245">unscaledValue</a>.</p>
+<p class="reference">References <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00248">scale</a>, and <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00242">unscaledValue</a>.</p>
 
 </div>
 </div>
@@ -206,7 +198,7 @@ Static Public Attributes</h2></td></tr>
 
 <p>Inequality, derived from <a class="el" href="../../d7/d2c/structLightweight_1_1SqlDynamicNumeric.html#a0a161e5e98d4a854826bd19343f04d3f">operator==</a>. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00274">274</a> of file <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html">SqlDynamicNumeric.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00271">271</a> of file <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html">SqlDynamicNumeric.hpp</a>.</p>
 
 </div>
 </div>
@@ -235,48 +227,9 @@ Static Public Attributes</h2></td></tr>
 <p>Converts to a floating-point approximation.</p>
 <dl class="section note"><dt>Note</dt><dd>Lossy for values needing more significant digits than a <code>double</code> carries; read <a class="el" href="../../d7/d2c/structLightweight_1_1SqlDynamicNumeric.html#a382ccb6256488ea32a9346b418d0fdea">unscaledValue</a> together with <a class="el" href="../../d7/d2c/structLightweight_1_1SqlDynamicNumeric.html#a3cb6255578d6d5fe15ac528409497d7e">scale</a> when exactness matters. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00283">283</a> of file <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html">SqlDynamicNumeric.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00280">280</a> of file <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html">SqlDynamicNumeric.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00251">scale</a>, and <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00245">unscaledValue</a>.</p>
-
-</div>
-</div>
-<a id="a62263da5080cc1b16132265655259bff" name="a62263da5080cc1b16132265655259bff"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a62263da5080cc1b16132265655259bff">&#9670;&#160;</a></span>FormatTo()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">std::size_t Lightweight::SqlDynamicNumeric::FormatTo </td>
-          <td>(</td>
-          <td class="paramtype">std::span&lt; char, <a class="el" href="../../d7/d2c/structLightweight_1_1SqlDynamicNumeric.html#a5c17d09ea4f28ac7fc5777409823e61c">MaxLiteralLength</a> &gt;&#160;</td>
-          <td class="paramname"><em>out</em></td><td>)</td>
-          <td> const</td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">noexcept</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-<p>Writes the exact decimal representation, including the trailing zeros implied by <a class="el" href="../../d7/d2c/structLightweight_1_1SqlDynamicNumeric.html#a3cb6255578d6d5fe15ac528409497d7e">scale</a>, without allocating. </p><dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">out</td><td>Receives the literal; it is not NUL-terminated. </td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>The number of characters written. </dd></dl>
-
-<p class="definition">Definition at line <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00304">304</a> of file <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html">SqlDynamicNumeric.hpp</a>.</p>
-
-<p class="reference">References <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00251">scale</a>, and <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00245">unscaledValue</a>.</p>
-
-<p class="reference">Referenced by <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00343">ToString()</a>.</p>
+<p class="reference">References <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00248">scale</a>, and <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00242">unscaledValue</a>.</p>
 
 </div>
 </div>
@@ -305,11 +258,11 @@ Static Public Attributes</h2></td></tr>
 
 <p>Renders the exact decimal representation, including the trailing zeros implied by <a class="el" href="../../d7/d2c/structLightweight_1_1SqlDynamicNumeric.html#a3cb6255578d6d5fe15ac528409497d7e">scale</a>. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00343">343</a> of file <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html">SqlDynamicNumeric.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00294">294</a> of file <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html">SqlDynamicNumeric.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00304">FormatTo()</a>.</p>
+<p class="reference">References <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00248">scale</a>, and <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00242">unscaledValue</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00583">Lightweight::SqlDataBinder&lt; SqlDynamicNumeric &gt;::Inspect()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00519">Lightweight::SqlDataBinder&lt; SqlDynamicNumeric &gt;::Inspect()</a>.</p>
 
 </div>
 </div>
@@ -368,11 +321,11 @@ Static Public Attributes</h2></td></tr>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00355">355</a> of file <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html">SqlDynamicNumeric.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00317">317</a> of file <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html">SqlDynamicNumeric.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00248">precision</a>, <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00251">scale</a>, and <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00245">unscaledValue</a>.</p>
+<p class="reference">References <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00245">precision</a>, <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00248">scale</a>, and <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00242">unscaledValue</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00505">Lightweight::SqlDataBinder&lt; SqlDynamicNumeric &gt;::FromLiteral()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00439">Lightweight::SqlDataBinder&lt; SqlDynamicNumeric &gt;::FromColumnLiteral()</a>.</p>
 
 </div>
 </div>
@@ -391,9 +344,9 @@ Static Public Attributes</h2></td></tr>
 
 <p>The value, scaled by <code>10^scale</code>. <code>12.34</code> at scale 2 is stored as <code>1234</code>. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00245">245</a> of file <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html">SqlDynamicNumeric.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00242">242</a> of file <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html">SqlDynamicNumeric.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00304">FormatTo()</a>, <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00355">FromString()</a>, <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00255">operator==()</a>, and <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00283">ToDouble()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00317">FromString()</a>, <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00252">operator==()</a>, <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00280">ToDouble()</a>, and <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00294">ToString()</a>.</p>
 
 </div>
 </div>
@@ -411,9 +364,9 @@ Static Public Attributes</h2></td></tr>
 
 <p>Total number of decimal digits the source column holds. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00248">248</a> of file <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html">SqlDynamicNumeric.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00245">245</a> of file <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html">SqlDynamicNumeric.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00355">FromString()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00317">FromString()</a>.</p>
 
 </div>
 </div>
@@ -431,36 +384,9 @@ Static Public Attributes</h2></td></tr>
 
 <p>Number of digits after the decimal point. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00251">251</a> of file <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html">SqlDynamicNumeric.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00248">248</a> of file <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html">SqlDynamicNumeric.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00304">FormatTo()</a>, <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00355">FromString()</a>, <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00255">operator==()</a>, and <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00283">ToDouble()</a>.</p>
-
-</div>
-</div>
-<a id="a5c17d09ea4f28ac7fc5777409823e61c" name="a5c17d09ea4f28ac7fc5777409823e61c"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a5c17d09ea4f28ac7fc5777409823e61c">&#9670;&#160;</a></span>MaxLiteralLength</h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">constexpr std::size_t Lightweight::SqlDynamicNumeric::MaxLiteralLength = 1 + 1 + (std::numeric_limits&lt;std::uint8_t&gt;::max)() + 1</td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">static</span><span class="mlabel">constexpr</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-<p>The longest literal <a class="el" href="../../d7/d2c/structLightweight_1_1SqlDynamicNumeric.html#a62263da5080cc1b16132265655259bff">FormatTo()</a> writes: a sign, a decimal point, and <a class="el" href="../../d7/d2c/structLightweight_1_1SqlDynamicNumeric.html#a3cb6255578d6d5fe15ac528409497d7e">scale</a> + 1 digits for the largest scale (or the 20 digits of the largest magnitude, which is fewer). </p>
-
-<p class="definition">Definition at line <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00298">298</a> of file <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html">SqlDynamicNumeric.hpp</a>.</p>
-
-<p class="reference">Referenced by <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00381">Lightweight::SqlDataBinder&lt; SqlDynamicNumeric &gt;::InputParameter()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00317">FromString()</a>, <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00252">operator==()</a>, <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00280">ToDouble()</a>, and <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00294">ToString()</a>.</p>
 
 </div>
 </div>

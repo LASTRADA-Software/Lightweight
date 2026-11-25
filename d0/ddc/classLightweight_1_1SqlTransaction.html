@@ -107,12 +107,14 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a30650c62240ef5ef23343264e7f66209" id="r_a30650c62240ef5ef23343264e7f66209"><td class="memItemLeft" align="right" valign="top"><a id="a30650c62240ef5ef23343264e7f66209" name="a30650c62240ef5ef23343264e7f66209"></a>
 <a class="el" href="../../d0/ddc/classLightweight_1_1SqlTransaction.html">SqlTransaction</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>operator=</b> (<a class="el" href="../../d0/ddc/classLightweight_1_1SqlTransaction.html">SqlTransaction</a> const &amp;)=delete</td></tr>
 <tr class="separator:a30650c62240ef5ef23343264e7f66209"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a9f60a0dfb2a5a157aafbede1da5115ae" id="r_a9f60a0dfb2a5a157aafbede1da5115ae"><td class="memItemLeft" align="right" valign="top"><a id="a9f60a0dfb2a5a157aafbede1da5115ae" name="a9f60a0dfb2a5a157aafbede1da5115ae"></a>
-LIGHTWEIGHT_API&#160;</td><td class="memItemRight" valign="bottom"><b>SqlTransaction</b> (<a class="el" href="../../d0/ddc/classLightweight_1_1SqlTransaction.html">SqlTransaction</a> &amp;&amp;other) noexcept</td></tr>
-<tr class="memdesc:a9f60a0dfb2a5a157aafbede1da5115ae"><td class="mdescLeft">&#160;</td><td class="mdescRight">Takes over the transaction of <code>other</code>, which no longer ends it: its destructor does nothing. <br /></td></tr>
-<tr class="separator:a9f60a0dfb2a5a157aafbede1da5115ae"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac85d8181f4f31f57b8071e226ad8105d" id="r_ac85d8181f4f31f57b8071e226ad8105d"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API <a class="el" href="../../d0/ddc/classLightweight_1_1SqlTransaction.html">SqlTransaction</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d0/ddc/classLightweight_1_1SqlTransaction.html#ac85d8181f4f31f57b8071e226ad8105d">operator=</a> (<a class="el" href="../../d0/ddc/classLightweight_1_1SqlTransaction.html">SqlTransaction</a> &amp;&amp;other) noexcept</td></tr>
-<tr class="separator:ac85d8181f4f31f57b8071e226ad8105d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0501946d1f67680a66891ab39675a195" id="r_a0501946d1f67680a66891ab39675a195"><td class="memItemLeft" align="right" valign="top"><a id="a0501946d1f67680a66891ab39675a195" name="a0501946d1f67680a66891ab39675a195"></a>
+&#160;</td><td class="memItemRight" valign="bottom"><b>SqlTransaction</b> (<a class="el" href="../../d0/ddc/classLightweight_1_1SqlTransaction.html">SqlTransaction</a> &amp;&amp;)=default</td></tr>
+<tr class="memdesc:a0501946d1f67680a66891ab39675a195"><td class="mdescLeft">&#160;</td><td class="mdescRight">Default move constructor. <br /></td></tr>
+<tr class="separator:a0501946d1f67680a66891ab39675a195"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af5c3bc13ef4fe7ba0823b0d51080ce9e" id="r_af5c3bc13ef4fe7ba0823b0d51080ce9e"><td class="memItemLeft" align="right" valign="top"><a id="af5c3bc13ef4fe7ba0823b0d51080ce9e" name="af5c3bc13ef4fe7ba0823b0d51080ce9e"></a>
+<a class="el" href="../../d0/ddc/classLightweight_1_1SqlTransaction.html">SqlTransaction</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>operator=</b> (<a class="el" href="../../d0/ddc/classLightweight_1_1SqlTransaction.html">SqlTransaction</a> &amp;&amp;)=default</td></tr>
+<tr class="memdesc:af5c3bc13ef4fe7ba0823b0d51080ce9e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Default move assignment operator. <br /></td></tr>
+<tr class="separator:af5c3bc13ef4fe7ba0823b0d51080ce9e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0c3e9dfaf889f3d5efc73683daf4328a" id="r_a0c3e9dfaf889f3d5efc73683daf4328a"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d0/ddc/classLightweight_1_1SqlTransaction.html#a0c3e9dfaf889f3d5efc73683daf4328a">SqlTransaction</a> (<a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html">SqlConnection</a> &amp;connection, SqlTransactionMode defaultMode=SqlTransactionMode::COMMIT, SqlIsolationMode isolationMode=SqlIsolationMode::DriverDefault, std::source_location location=std::source_location::current())</td></tr>
 <tr class="separator:a0c3e9dfaf889f3d5efc73683daf4328a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a08cd992cb104b7a6f40e71c6956d2c93" id="r_a08cd992cb104b7a6f40e71c6956d2c93"><td class="memItemLeft" align="right" valign="top"><a id="a08cd992cb104b7a6f40e71c6956d2c93" name="a08cd992cb104b7a6f40e71c6956d2c93"></a>
@@ -122,16 +124,22 @@ LIGHTWEIGHT_API&#160;</td><td class="memItemRight" valign="bottom"><b>~SqlTransa
 <tr class="memitem:a52d573eb151960d042cab0bd2eda54b2" id="r_a52d573eb151960d042cab0bd2eda54b2"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html">SqlConnection</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d0/ddc/classLightweight_1_1SqlTransaction.html#a52d573eb151960d042cab0bd2eda54b2">Connection</a> () noexcept</td></tr>
 <tr class="memdesc:a52d573eb151960d042cab0bd2eda54b2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the connection object associated with this transaction.  <br /></td></tr>
 <tr class="separator:a52d573eb151960d042cab0bd2eda54b2"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a6ed3f7b26252e7d105675187cd37d71b" id="r_a6ed3f7b26252e7d105675187cd37d71b"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d0/ddc/classLightweight_1_1SqlTransaction.html#a6ed3f7b26252e7d105675187cd37d71b">Rollback</a> ()</td></tr>
+<tr class="memitem:a6ed3f7b26252e7d105675187cd37d71b" id="r_a6ed3f7b26252e7d105675187cd37d71b"><td class="memItemLeft" align="right" valign="top"><a id="a6ed3f7b26252e7d105675187cd37d71b" name="a6ed3f7b26252e7d105675187cd37d71b"></a>
+LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><b>Rollback</b> ()</td></tr>
+<tr class="memdesc:a6ed3f7b26252e7d105675187cd37d71b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Rollback the transaction. Throws an exception if the transaction cannot be rolled back. <br /></td></tr>
 <tr class="separator:a6ed3f7b26252e7d105675187cd37d71b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ad2c493184413ef5bb279704c66febaad" id="r_ad2c493184413ef5bb279704c66febaad"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d0/ddc/classLightweight_1_1SqlTransaction.html#ad2c493184413ef5bb279704c66febaad">TryRollback</a> () noexcept</td></tr>
+<tr class="memitem:ad2c493184413ef5bb279704c66febaad" id="r_ad2c493184413ef5bb279704c66febaad"><td class="memItemLeft" align="right" valign="top"><a id="ad2c493184413ef5bb279704c66febaad" name="ad2c493184413ef5bb279704c66febaad"></a>
+LIGHTWEIGHT_API bool&#160;</td><td class="memItemRight" valign="bottom"><b>TryRollback</b> () noexcept</td></tr>
+<tr class="memdesc:ad2c493184413ef5bb279704c66febaad"><td class="mdescLeft">&#160;</td><td class="mdescRight">Try to rollback the transaction, and return true if successful, falls otherwise. <br /></td></tr>
 <tr class="separator:ad2c493184413ef5bb279704c66febaad"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:abf53df501043f0a82fb306232e339e0a" id="r_abf53df501043f0a82fb306232e339e0a"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d0/ddc/classLightweight_1_1SqlTransaction.html#abf53df501043f0a82fb306232e339e0a">Commit</a> ()</td></tr>
+<tr class="memitem:abf53df501043f0a82fb306232e339e0a" id="r_abf53df501043f0a82fb306232e339e0a"><td class="memItemLeft" align="right" valign="top"><a id="abf53df501043f0a82fb306232e339e0a" name="abf53df501043f0a82fb306232e339e0a"></a>
+LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><b>Commit</b> ()</td></tr>
+<tr class="memdesc:abf53df501043f0a82fb306232e339e0a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Commit the transaction. Throws an exception if the transaction cannot be committed. <br /></td></tr>
 <tr class="separator:abf53df501043f0a82fb306232e339e0a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a0bd596d2a637709abc81b396c7b2ce70" id="r_a0bd596d2a637709abc81b396c7b2ce70"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d0/ddc/classLightweight_1_1SqlTransaction.html#a0bd596d2a637709abc81b396c7b2ce70">TryCommit</a> () noexcept</td></tr>
+<tr class="memitem:a0bd596d2a637709abc81b396c7b2ce70" id="r_a0bd596d2a637709abc81b396c7b2ce70"><td class="memItemLeft" align="right" valign="top"><a id="a0bd596d2a637709abc81b396c7b2ce70" name="a0bd596d2a637709abc81b396c7b2ce70"></a>
+LIGHTWEIGHT_API bool&#160;</td><td class="memItemRight" valign="bottom"><b>TryCommit</b> () noexcept</td></tr>
+<tr class="memdesc:a0bd596d2a637709abc81b396c7b2ce70"><td class="mdescLeft">&#160;</td><td class="mdescRight">Try to commit the transaction, and return true if successful, falls otherwise. <br /></td></tr>
 <tr class="separator:a0bd596d2a637709abc81b396c7b2ce70"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a5829c6436eb4d08dbbfe215560e68fa0" id="r_a5829c6436eb4d08dbbfe215560e68fa0"><td class="memItemLeft" align="right" valign="top">std::optional&lt; <a class="el" href="../../d8/d5b/structLightweight_1_1SqlErrorInfo.html">SqlErrorInfo</a> &gt; const &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d0/ddc/classLightweight_1_1SqlTransaction.html#a5829c6436eb4d08dbbfe215560e68fa0">LastError</a> () const noexcept</td></tr>
-<tr class="separator:a5829c6436eb4d08dbbfe215560e68fa0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Represents a transaction to a SQL database.</p>
@@ -152,12 +160,12 @@ LIGHTWEIGHT_API&#160;</td><td class="memItemRight" valign="bottom"><b>~SqlTransa
 <div class="line"> </div>
 <div class="line">    transaction.<a class="code hl_function" href="../../d0/ddc/classLightweight_1_1SqlTransaction.html#abf53df501043f0a82fb306232e339e0a">Commit</a>();</div>
 <div class="line">}</div>
-<div class="ttc" id="aclassLightweight_1_1SqlStatement_html"><div class="ttname"><a href="../../db/dad/classLightweight_1_1SqlStatement.html">Lightweight::SqlStatement</a></div><div class="ttdoc">High level API for (prepared) raw SQL statements.</div><div class="ttdef"><b>Definition</b> <a href="../../d9/d6e/SqlStatement_8hpp_source.html#l00094">SqlStatement.hpp:95</a></div></div>
-<div class="ttc" id="aclassLightweight_1_1SqlTransaction_html"><div class="ttname"><a href="../../d0/ddc/classLightweight_1_1SqlTransaction.html">Lightweight::SqlTransaction</a></div><div class="ttdef"><b>Definition</b> <a href="../../d9/da6/SqlTransaction_8hpp_source.html#l00105">SqlTransaction.hpp:106</a></div></div>
-<div class="ttc" id="aclassLightweight_1_1SqlTransaction_html_a52d573eb151960d042cab0bd2eda54b2"><div class="ttname"><a href="../../d0/ddc/classLightweight_1_1SqlTransaction.html#a52d573eb151960d042cab0bd2eda54b2">Lightweight::SqlTransaction::Connection</a></div><div class="ttdeci">SqlConnection &amp; Connection() noexcept</div><div class="ttdoc">Get the connection object associated with this transaction.</div><div class="ttdef"><b>Definition</b> <a href="../../d9/da6/SqlTransaction_8hpp_source.html#l00202">SqlTransaction.hpp:202</a></div></div>
-<div class="ttc" id="aclassLightweight_1_1SqlTransaction_html_abf53df501043f0a82fb306232e339e0a"><div class="ttname"><a href="../../d0/ddc/classLightweight_1_1SqlTransaction.html#abf53df501043f0a82fb306232e339e0a">Lightweight::SqlTransaction::Commit</a></div><div class="ttdeci">LIGHTWEIGHT_API void Commit()</div></div>
+<div class="ttc" id="aclassLightweight_1_1SqlStatement_html"><div class="ttname"><a href="../../db/dad/classLightweight_1_1SqlStatement.html">Lightweight::SqlStatement</a></div><div class="ttdoc">High level API for (prepared) raw SQL statements.</div><div class="ttdef"><b>Definition</b> <a href="../../d9/d6e/SqlStatement_8hpp_source.html#l00089">SqlStatement.hpp:90</a></div></div>
+<div class="ttc" id="aclassLightweight_1_1SqlTransaction_html"><div class="ttname"><a href="../../d0/ddc/classLightweight_1_1SqlTransaction.html">Lightweight::SqlTransaction</a></div><div class="ttdef"><b>Definition</b> <a href="../../d9/da6/SqlTransaction_8hpp_source.html#l00104">SqlTransaction.hpp:105</a></div></div>
+<div class="ttc" id="aclassLightweight_1_1SqlTransaction_html_a52d573eb151960d042cab0bd2eda54b2"><div class="ttname"><a href="../../d0/ddc/classLightweight_1_1SqlTransaction.html#a52d573eb151960d042cab0bd2eda54b2">Lightweight::SqlTransaction::Connection</a></div><div class="ttdeci">SqlConnection &amp; Connection() noexcept</div><div class="ttdoc">Get the connection object associated with this transaction.</div><div class="ttdef"><b>Definition</b> <a href="../../d9/da6/SqlTransaction_8hpp_source.html#l00154">SqlTransaction.hpp:154</a></div></div>
+<div class="ttc" id="aclassLightweight_1_1SqlTransaction_html_abf53df501043f0a82fb306232e339e0a"><div class="ttname"><a href="../../d0/ddc/classLightweight_1_1SqlTransaction.html#abf53df501043f0a82fb306232e339e0a">Lightweight::SqlTransaction::Commit</a></div><div class="ttdeci">LIGHTWEIGHT_API void Commit()</div><div class="ttdoc">Commit the transaction. Throws an exception if the transaction cannot be committed.</div></div>
 </div><!-- fragment --> 
-<p class="definition">Definition at line <a class="el" href="../../d9/da6/SqlTransaction_8hpp_source.html#l00105">105</a> of file <a class="el" href="../../d9/da6/SqlTransaction_8hpp_source.html">SqlTransaction.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/da6/SqlTransaction_8hpp_source.html#l00104">104</a> of file <a class="el" href="../../d9/da6/SqlTransaction_8hpp_source.html">SqlTransaction.hpp</a>.</p>
 </div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
 <a id="a0c3e9dfaf889f3d5efc73683daf4328a" name="a0c3e9dfaf889f3d5efc73683daf4328a"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a0c3e9dfaf889f3d5efc73683daf4328a">&#9670;&#160;</a></span>SqlTransaction()</h2>
@@ -209,33 +217,6 @@ LIGHTWEIGHT_API&#160;</td><td class="memItemRight" valign="bottom"><b>~SqlTransa
 </div>
 </div>
 <h2 class="groupheader">Member Function Documentation</h2>
-<a id="ac85d8181f4f31f57b8071e226ad8105d" name="ac85d8181f4f31f57b8071e226ad8105d"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ac85d8181f4f31f57b8071e226ad8105d">&#9670;&#160;</a></span>operator=()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">LIGHTWEIGHT_API <a class="el" href="../../d0/ddc/classLightweight_1_1SqlTransaction.html">SqlTransaction</a> &amp; Lightweight::SqlTransaction::operator= </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="../../d0/ddc/classLightweight_1_1SqlTransaction.html">SqlTransaction</a> &amp;&amp;&#160;</td>
-          <td class="paramname"><em>other</em></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">noexcept</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-<p>Ends this object's own transaction as its destructor would (commit or roll back, by its mode), then takes over the transaction of <code>other</code>, which no longer ends it. </p>
-
-</div>
-</div>
 <a id="a52d573eb151960d042cab0bd2eda54b2" name="a52d573eb151960d042cab0bd2eda54b2"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a52d573eb151960d042cab0bd2eda54b2">&#9670;&#160;</a></span>Connection()</h2>
 
@@ -261,125 +242,7 @@ LIGHTWEIGHT_API&#160;</td><td class="memItemRight" valign="bottom"><b>~SqlTransa
 
 <p>Get the connection object associated with this transaction. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/da6/SqlTransaction_8hpp_source.html#l00202">202</a> of file <a class="el" href="../../d9/da6/SqlTransaction_8hpp_source.html">SqlTransaction.hpp</a>.</p>
-
-</div>
-</div>
-<a id="a6ed3f7b26252e7d105675187cd37d71b" name="a6ed3f7b26252e7d105675187cd37d71b"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a6ed3f7b26252e7d105675187cd37d71b">&#9670;&#160;</a></span>Rollback()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">LIGHTWEIGHT_API void Lightweight::SqlTransaction::Rollback </td>
-          <td>(</td>
-          <td class="paramname"></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-<p>Rollback the transaction. Throws a <a class="el" href="../../d5/d19/classLightweight_1_1SqlTransactionException.html">SqlTransactionException</a>, naming the driver's diagnostic, if the transaction cannot be rolled back. </p>
-
-</div>
-</div>
-<a id="ad2c493184413ef5bb279704c66febaad" name="ad2c493184413ef5bb279704c66febaad"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ad2c493184413ef5bb279704c66febaad">&#9670;&#160;</a></span>TryRollback()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">LIGHTWEIGHT_API bool Lightweight::SqlTransaction::TryRollback </td>
-          <td>(</td>
-          <td class="paramname"></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">noexcept</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-<p>Try to rollback the transaction, and return true if successful, false otherwise.</p>
-<p>A failed rollback leaves the connection in manual-commit mode, because turning autocommit on would commit a transaction the driver might still hold; <code><a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#a31d2a2e32bc2c8cd6473a312359f3c8d" title="Tests if a transaction is active.">SqlConnection::TransactionActive()</a></code> then reports it, and a pool discards such a connection. The exception is a driver that still believes in a transaction the database already ended on its own (SQLite after <code>INSERT</code> <code>OR</code> <code>ROLLBACK</code>), which the dialect can bring back in line (see <code><a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a447a6a179a2543ff9ce16808ef0fb63e" title="Returns a statement that opens a transaction on the database directly, bypassing the driver&#39;s own tra...">SqlQueryFormatter::ResyncEndedTransactionStatement()</a></code>): then autocommit is turned back on, and false is still returned. </p>
-
-</div>
-</div>
-<a id="abf53df501043f0a82fb306232e339e0a" name="abf53df501043f0a82fb306232e339e0a"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#abf53df501043f0a82fb306232e339e0a">&#9670;&#160;</a></span>Commit()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">LIGHTWEIGHT_API void Lightweight::SqlTransaction::Commit </td>
-          <td>(</td>
-          <td class="paramname"></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-<p>Commit the transaction. Throws a <a class="el" href="../../d5/d19/classLightweight_1_1SqlTransactionException.html">SqlTransactionException</a>, naming the driver's diagnostic, if the transaction cannot be committed. </p>
-
-</div>
-</div>
-<a id="a0bd596d2a637709abc81b396c7b2ce70" name="a0bd596d2a637709abc81b396c7b2ce70"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a0bd596d2a637709abc81b396c7b2ce70">&#9670;&#160;</a></span>TryCommit()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">LIGHTWEIGHT_API bool Lightweight::SqlTransaction::TryCommit </td>
-          <td>(</td>
-          <td class="paramname"></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">noexcept</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-<p>Try to commit the transaction, and return true if successful, false otherwise.</p>
-<p>A failed commit leaves the transaction to the caller, autocommit still off: a later successful <a class="el" href="../../d0/ddc/classLightweight_1_1SqlTransaction.html#a0bd596d2a637709abc81b396c7b2ce70">TryCommit()</a> ends it, as does a rollback. If the caller does neither, the destructor of a <code>COMMIT-mode</code> or <code>ROLLBACK-mode</code> transaction rolls it back - it does not try the failed commit again - while a <code>NONE-mode</code> transaction leaves the connection in manual-commit mode, as that mode always does. </p>
-
-</div>
-</div>
-<a id="a5829c6436eb4d08dbbfe215560e68fa0" name="a5829c6436eb4d08dbbfe215560e68fa0"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a5829c6436eb4d08dbbfe215560e68fa0">&#9670;&#160;</a></span>LastError()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">std::optional&lt; <a class="el" href="../../d8/d5b/structLightweight_1_1SqlErrorInfo.html">SqlErrorInfo</a> &gt; const  &amp; Lightweight::SqlTransaction::LastError </td>
-          <td>(</td>
-          <td class="paramname"></td><td>)</td>
-          <td> const</td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">noexcept</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-<p>The diagnostic of the last failed commit, rollback or autocommit switch; empty after a success. It is read right after the failing call, so it stays available after the driver discarded it. </p>
-
-<p class="definition">Definition at line <a class="el" href="../../d9/da6/SqlTransaction_8hpp_source.html#l00162">162</a> of file <a class="el" href="../../d9/da6/SqlTransaction_8hpp_source.html">SqlTransaction.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/da6/SqlTransaction_8hpp_source.html#l00154">154</a> of file <a class="el" href="../../d9/da6/SqlTransaction_8hpp_source.html">SqlTransaction.hpp</a>.</p>
 
 </div>
 </div>

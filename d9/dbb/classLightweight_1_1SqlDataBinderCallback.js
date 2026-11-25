@@ -6,6 +6,7 @@ var classLightweight_1_1SqlDataBinderCallback =
     [ "operator=", "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#ac391fe5ce2043b272fe4191b98e26f52", null ],
     [ "operator=", "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#abd90cf0b647d60af5bb130b7fe162bd2", null ],
     [ "PlanPostExecuteCallback", "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#a209f52c2128670486fa0df251261bf80", null ],
+    [ "KeepInputParameterAlive", "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#aa5fd0902a3c6818ca46182a8b5c8eba0", null ],
     [ "PlanPostProcessOutputColumn", "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#ab562de4a035a48baccb4dcd4a54dab30", null ],
     [ "PlanPreFetchOutputColumn", "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#a6583d0a0b963f55c3d5491c6d2583902", null ],
     [ "MinimumOutputColumnSize", "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#a12843806ab1d89718143323141687b88", null ],
@@ -15,10 +16,5 @@ var classLightweight_1_1SqlDataBinderCallback =
     [ "ServerType", "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#aa4a1025e0d27d3e8f0c97081e2419875", null ],
     [ "DriverName", "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#a151e499b5da3afcaea3326bfb35d3c36", null ],
     [ "NarrowTextBindingMode", "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#a45b37b294222fbd105071e20e86ba3a1", null ],
-    [ "DescribeInputParameterType", "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#ad098c3dad4ee1a7363b6f2de5d875861", null ],
-    [ "DescribeResultColumnType", "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#a3707d73747284f505083f490d1abb251", null ],
-    [ "ReportInputParameterError", "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#a97ad8b11f15370f16290651ddfa82c7f", null ],
-    [ "ConvertsNarrowIntegerCTypes", "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#a380f153a46c1e8de320973475bbdb05c", null ],
-    [ "ProvideOutputColumnStaging", "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#adf448d6fc9909e31a21a2f0fe66c761f", null ],
-    [ "BooleanTrueMayBeMinusOne", "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#a5a599b1702a0f87bc497e593b4c27f59", null ]
+    [ "DescribeInputParameterType", "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#ad098c3dad4ee1a7363b6f2de5d875861", null ]
 ];

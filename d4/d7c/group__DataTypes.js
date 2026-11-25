@@ -20,7 +20,6 @@ var group__DataTypes =
     [ "Lightweight::SqlDateTime", "d6/dfa/structLightweight_1_1SqlDateTime.html", [
       [ "native_type", "d6/dfa/structLightweight_1_1SqlDateTime.html#a5cfbb0f2fc1b68b0fd3983316b203ebc", null ],
       [ "duration_type", "d6/dfa/structLightweight_1_1SqlDateTime.html#a864ea837f4bd552b8b2b640a32dc4cd4", null ],
-      [ "arithmetic_duration", "d6/dfa/structLightweight_1_1SqlDateTime.html#a74c818617ded3bed4d9a9197a9115cc2", null ],
       [ "SqlDateTime", "d6/dfa/structLightweight_1_1SqlDateTime.html#aa50a9ead6c38136f88b43b1741f03215", null ],
       [ "SqlDateTime", "d6/dfa/structLightweight_1_1SqlDateTime.html#a4218566fdf5af724b97ff5a9e4dc338f", null ],
       [ "SqlDateTime", "d6/dfa/structLightweight_1_1SqlDateTime.html#a7fbd687b6c3324075471f0e25239a6c2", null ],
@@ -43,10 +42,8 @@ var group__DataTypes =
       [ "Date", "d6/dfa/structLightweight_1_1SqlDateTime.html#a50c214ccbdedd65463ff121de8489e60", null ],
       [ "Time", "d6/dfa/structLightweight_1_1SqlDateTime.html#ab670fd561755bd58aaa31099a291af23", null ],
       [ "value", "d6/dfa/structLightweight_1_1SqlDateTime.html#ad9d7388657a62e1037680c4d4dab9eea", null ],
-      [ "operator+=", "d6/dfa/structLightweight_1_1SqlDateTime.html#a4cf4a3178b29fea2098c78fd22923c87", null ],
-      [ "operator-=", "d6/dfa/structLightweight_1_1SqlDateTime.html#a16edb6ae12044818e69409d54b6f8afa", null ],
-      [ "operator+", "d6/dfa/structLightweight_1_1SqlDateTime.html#adaee60ccd1c22ba24a857c3bcc1e1b3e", null ],
-      [ "operator-", "d6/dfa/structLightweight_1_1SqlDateTime.html#a7b48da26cd164c9bbbeb4bb065d225a4", null ],
+      [ "operator+=", "d6/dfa/structLightweight_1_1SqlDateTime.html#ac9909a40a0ef444af5bf3e28dee1bd6a", null ],
+      [ "operator-=", "d6/dfa/structLightweight_1_1SqlDateTime.html#a888891e5250a2c3221777bcaf3e6d47b", null ],
       [ "sqlValue", "d6/dfa/structLightweight_1_1SqlDateTime.html#a5f1844faef73c5040f1eeb5463a722d4", null ]
     ] ],
     [ "Lightweight::SqlDynamicBinary< N >", "d6/db6/classLightweight_1_1SqlDynamicBinary.html", [
@@ -57,7 +54,7 @@ var group__DataTypes =
       [ "SqlDynamicBinary", "d6/db6/classLightweight_1_1SqlDynamicBinary.html#a453328ea823fce9ddba24ac00de938ee", null ],
       [ "~SqlDynamicBinary", "d6/db6/classLightweight_1_1SqlDynamicBinary.html#a9c7fdd77f1342a6808fa7d02b77ecf92", null ],
       [ "SqlDynamicBinary", "d6/db6/classLightweight_1_1SqlDynamicBinary.html#a2ac16b3d4821ffe871c224d2d945bc12", null ],
-      [ "SqlDynamicBinary", "d6/db6/classLightweight_1_1SqlDynamicBinary.html#ac0858f297072458a729dc3674d732c08", null ],
+      [ "SqlDynamicBinary", "d6/db6/classLightweight_1_1SqlDynamicBinary.html#ad874ad04435364a64cbd464b33eb5f86", null ],
       [ "SqlDynamicBinary", "d6/db6/classLightweight_1_1SqlDynamicBinary.html#a04eaacb2c4add07c79e1a23857d4ac97", null ],
       [ "SqlDynamicBinary", "d6/db6/classLightweight_1_1SqlDynamicBinary.html#a28a42dcd460ddeac4b63e8a9468788fd", null ],
       [ "operator=", "d6/db6/classLightweight_1_1SqlDynamicBinary.html#a51c5633ed6536c19eb30549c6275637b", null ],
@@ -77,7 +74,6 @@ var group__DataTypes =
       [ "operator==", "d7/d2c/structLightweight_1_1SqlDynamicNumeric.html#a0a161e5e98d4a854826bd19343f04d3f", null ],
       [ "operator!=", "d7/d2c/structLightweight_1_1SqlDynamicNumeric.html#af5daacfcd1c5b1dd495ee38b662d219d", null ],
       [ "ToDouble", "d7/d2c/structLightweight_1_1SqlDynamicNumeric.html#ac0af22cded9c058e863daf3321da5962", null ],
-      [ "FormatTo", "d7/d2c/structLightweight_1_1SqlDynamicNumeric.html#a62263da5080cc1b16132265655259bff", null ],
       [ "ToString", "d7/d2c/structLightweight_1_1SqlDynamicNumeric.html#a1ce5944fd87bfb86e2b62b903fe9a7d4", null ],
       [ "unscaledValue", "d7/d2c/structLightweight_1_1SqlDynamicNumeric.html#a382ccb6256488ea32a9346b418d0fdea", null ],
       [ "precision", "d7/d2c/structLightweight_1_1SqlDynamicNumeric.html#a6be7bfb48b56b029e73afbdab75233b1", null ],

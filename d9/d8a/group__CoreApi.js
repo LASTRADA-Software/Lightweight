@@ -16,6 +16,11 @@ var group__CoreApi =
       [ "encryption", "d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#a3e8f610544a01c1fde5de73f85573377", null ],
       [ "preparedStatementCacheCapacity", "d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#a64c66e360673f2ea824486894447835e", null ]
     ] ],
+    [ "Lightweight::SqliteConnectionSettings", "d9/d23/structLightweight_1_1SqliteConnectionSettings.html", [
+      [ "operator==", "d9/d23/structLightweight_1_1SqliteConnectionSettings.html#afb377ef3a762d57088685fe7338fed76", null ],
+      [ "busyTimeout", "d9/d23/structLightweight_1_1SqliteConnectionSettings.html#a667752138a5c4017c8cfb614f545cd3e", null ],
+      [ "journalMode", "d9/d23/structLightweight_1_1SqliteConnectionSettings.html#afe812d7ad6443cea24dc3f0a35dbcf0a", null ]
+    ] ],
     [ "Lightweight::SqlConnection", "da/da8/classLightweight_1_1SqlConnection.html", [
       [ "SqlConnection", "da/da8/classLightweight_1_1SqlConnection.html#ab5a9e94571f9e9296b2ce65036f75184", null ],
       [ "SqlConnection", "da/da8/classLightweight_1_1SqlConnection.html#a4e097e87864820524a545cee7aedc437", null ],
@@ -27,7 +32,7 @@ var group__CoreApi =
       [ "StringTruncationMode", "da/da8/classLightweight_1_1SqlConnection.html#a65a42e46a8954b2a4f88e0403c85ccff", null ],
       [ "SetStringTruncationMode", "da/da8/classLightweight_1_1SqlConnection.html#ad564a1c5ac5491bfdefad0bd38d83bbe", null ],
       [ "SqliteSettings", "da/da8/classLightweight_1_1SqlConnection.html#aec2394736e758433d81c29cb5c04d047", null ],
-      [ "SetSqliteSettings", "da/da8/classLightweight_1_1SqlConnection.html#a637dc802bde7e94ed743975ca8be0f33", null ],
+      [ "SetSqliteSettings", "da/da8/classLightweight_1_1SqlConnection.html#a103fcb72a3f8885d1bb2426d3486b2e3", null ],
       [ "ConnectRetrySettings", "da/da8/classLightweight_1_1SqlConnection.html#a497ec7e2803b3896318cc08fa44eeed3", null ],
       [ "SetConnectRetrySettings", "da/da8/classLightweight_1_1SqlConnection.html#a43c2372f4e30e045e7e42e2523c06722", null ],
       [ "ConnectionId", "da/da8/classLightweight_1_1SqlConnection.html#a63ba202ba517a1dbe5d36afe4654a85b", null ],
@@ -45,9 +50,6 @@ var group__CoreApi =
       [ "AcceptsWideQueryText", "da/da8/classLightweight_1_1SqlConnection.html#aa622d82297643e02d56a9fec0e12c7a1", null ],
       [ "NarrowTextBindingMode", "da/da8/classLightweight_1_1SqlConnection.html#a6928eabe3da0395e659a451b93694283", null ],
       [ "ReadsBoundColumnsAgain", "da/da8/classLightweight_1_1SqlConnection.html#af9157df3428b12c30552cafe7199faa3", null ],
-      [ "ConvertsNarrowIntegerCTypes", "da/da8/classLightweight_1_1SqlConnection.html#a4583d929e259e98fc59c26d7c3597ada", null ],
-      [ "ReportsUnconvertibleCellsAsNull", "da/da8/classLightweight_1_1SqlConnection.html#a96da57a8671863f2a8fff64a3321ab0b", null ],
-      [ "BooleanTrueMayBeMinusOne", "da/da8/classLightweight_1_1SqlConnection.html#a6f135f047276190970d2509783e1e237", null ],
       [ "QueryFormatter", "da/da8/classLightweight_1_1SqlConnection.html#a6dabdd78f7aad57d5deb2597d553bc32", null ],
       [ "RequiresTableRebuildForSchemaChange", "da/da8/classLightweight_1_1SqlConnection.html#ad03129b17daf9ea6829425473db12877", null ],
       [ "SupportsNativeRowBatch", "da/da8/classLightweight_1_1SqlConnection.html#ac4ea8b83a43459581e2a52a568c595c5", null ],
@@ -305,16 +307,15 @@ var group__CoreApi =
       [ "SqlTransactionException", "d5/d19/classLightweight_1_1SqlTransactionException.html#a14af02cd69dee3168a5cc92a88e8b38e", null ]
     ] ],
     [ "Lightweight::SqlTransaction", "d0/ddc/classLightweight_1_1SqlTransaction.html", [
-      [ "SqlTransaction", "d0/ddc/classLightweight_1_1SqlTransaction.html#a9f60a0dfb2a5a157aafbede1da5115ae", null ],
+      [ "SqlTransaction", "d0/ddc/classLightweight_1_1SqlTransaction.html#a0501946d1f67680a66891ab39675a195", null ],
       [ "SqlTransaction", "d0/ddc/classLightweight_1_1SqlTransaction.html#a0c3e9dfaf889f3d5efc73683daf4328a", null ],
       [ "~SqlTransaction", "d0/ddc/classLightweight_1_1SqlTransaction.html#a08cd992cb104b7a6f40e71c6956d2c93", null ],
-      [ "operator=", "d0/ddc/classLightweight_1_1SqlTransaction.html#ac85d8181f4f31f57b8071e226ad8105d", null ],
+      [ "operator=", "d0/ddc/classLightweight_1_1SqlTransaction.html#af5c3bc13ef4fe7ba0823b0d51080ce9e", null ],
       [ "Connection", "d0/ddc/classLightweight_1_1SqlTransaction.html#a52d573eb151960d042cab0bd2eda54b2", null ],
       [ "Rollback", "d0/ddc/classLightweight_1_1SqlTransaction.html#a6ed3f7b26252e7d105675187cd37d71b", null ],
       [ "TryRollback", "d0/ddc/classLightweight_1_1SqlTransaction.html#ad2c493184413ef5bb279704c66febaad", null ],
       [ "Commit", "d0/ddc/classLightweight_1_1SqlTransaction.html#abf53df501043f0a82fb306232e339e0a", null ],
-      [ "TryCommit", "d0/ddc/classLightweight_1_1SqlTransaction.html#a0bd596d2a637709abc81b396c7b2ce70", null ],
-      [ "LastError", "d0/ddc/classLightweight_1_1SqlTransaction.html#a5829c6436eb4d08dbbfe215560e68fa0", null ]
+      [ "TryCommit", "d0/ddc/classLightweight_1_1SqlTransaction.html#a0bd596d2a637709abc81b396c7b2ce70", null ]
     ] ],
     [ "Lightweight::SqlEncryptionMode", "d9/d8a/group__CoreApi.html#ga8be4e3766b268b1d751ef7df237af144", [
       [ "Lightweight::SqlEncryptionMode::DriverDefault", "d9/d8a/group__CoreApi.html#gga8be4e3766b268b1d751ef7df237af144a94e2c1bbb08c3b4ddbaead16d30c7f64", null ],
@@ -333,10 +334,6 @@ var group__CoreApi =
       [ "Lightweight::SqliteJournalMode::Memory", "d9/d8a/group__CoreApi.html#gga4e69e872eba3ff2b5e59b999b747add8a4789f23283b3a61f858b641a1bef19a3", null ],
       [ "Lightweight::SqliteJournalMode::Wal", "d9/d8a/group__CoreApi.html#gga4e69e872eba3ff2b5e59b999b747add8a42c2820d1794f02d673fc37f0d620244", null ],
       [ "Lightweight::SqliteJournalMode::Off", "d9/d8a/group__CoreApi.html#gga4e69e872eba3ff2b5e59b999b747add8ad15305d7a4e34e02489c74a5ef542f36", null ]
-    ] ],
-    [ "Lightweight::SqliteSettingsEffect", "d9/d8a/group__CoreApi.html#ga8e66af89e69dc991343856c475c07918", [
-      [ "Lightweight::SqliteSettingsEffect::Applied", "d9/d8a/group__CoreApi.html#gga8e66af89e69dc991343856c475c07918a733d43480c8589b1368e5def6b480415", null ],
-      [ "Lightweight::SqliteSettingsEffect::BusyTimeoutAtNextConnect", "d9/d8a/group__CoreApi.html#gga8e66af89e69dc991343856c475c07918ab96093cb4e8026e5e5deddf85b990fa8", null ]
     ] ],
     [ "Lightweight::SqlHandleOwnership", "d9/d8a/group__CoreApi.html#gac575bf775e5877a5eeddbde62f8e8e67", [
       [ "Lightweight::SqlHandleOwnership::Owned", "d9/d8a/group__CoreApi.html#ggac575bf775e5877a5eeddbde62f8e8e67a60848c692f8ddb0363e500da44563bae", null ],

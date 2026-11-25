@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['int64_0',['Int64',['../da/d6c/classLightweight_1_1RowArrayCursor.html#ab61ddfa5d28f1e672f16e9a0a2625fc2afbde23b11d7e59af7828e81144c8b487',1,'Lightweight::RowArrayCursor']]]
+  ['memory_0',['Memory',['../d9/d8a/group__CoreApi.html#gga4e69e872eba3ff2b5e59b999b747add8a4789f23283b3a61f858b641a1bef19a3',1,'Lightweight']]]
 ];

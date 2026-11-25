@@ -132,6 +132,8 @@ Public Member Functions</h2></td></tr>
 <tr class="separator:abd90cf0b647d60af5bb130b7fe162bd2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a209f52c2128670486fa0df251261bf80" id="r_a209f52c2128670486fa0df251261bf80"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#a209f52c2128670486fa0df251261bf80">PlanPostExecuteCallback</a> (std::function&lt; void()&gt; &amp;&amp;)=0</td></tr>
 <tr class="separator:a209f52c2128670486fa0df251261bf80"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa5fd0902a3c6818ca46182a8b5c8eba0" id="r_aa5fd0902a3c6818ca46182a8b5c8eba0"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#aa5fd0902a3c6818ca46182a8b5c8eba0">KeepInputParameterAlive</a> (SQLUSMALLINT column, std::shared_ptr&lt; void const &gt; buffer)</td></tr>
+<tr class="separator:aa5fd0902a3c6818ca46182a8b5c8eba0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab562de4a035a48baccb4dcd4a54dab30" id="r_ab562de4a035a48baccb4dcd4a54dab30"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#ab562de4a035a48baccb4dcd4a54dab30">PlanPostProcessOutputColumn</a> (std::function&lt; void()&gt; &amp;&amp;)=0</td></tr>
 <tr class="separator:ab562de4a035a48baccb4dcd4a54dab30"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6583d0a0b963f55c3d5491c6d2583902" id="r_a6583d0a0b963f55c3d5491c6d2583902"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#a6583d0a0b963f55c3d5491c6d2583902">PlanPreFetchOutputColumn</a> (<a class="el" href="../../dc/d16/structLightweight_1_1SqlOutputColumnPreFetch.html">SqlOutputColumnPreFetch</a> const &amp;step)=0</td></tr>
@@ -152,22 +154,12 @@ Public Member Functions</h2></td></tr>
 <tr class="separator:a45b37b294222fbd105071e20e86ba3a1"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad098c3dad4ee1a7363b6f2de5d875861" id="r_ad098c3dad4ee1a7363b6f2de5d875861"><td class="memItemLeft" align="right" valign="top">virtual std::optional&lt; SQLSMALLINT &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#ad098c3dad4ee1a7363b6f2de5d875861">DescribeInputParameterType</a> (SQLUSMALLINT column) noexcept</td></tr>
 <tr class="separator:ad098c3dad4ee1a7363b6f2de5d875861"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a3707d73747284f505083f490d1abb251" id="r_a3707d73747284f505083f490d1abb251"><td class="memItemLeft" align="right" valign="top">virtual std::optional&lt; SQLSMALLINT &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#a3707d73747284f505083f490d1abb251">DescribeResultColumnType</a> (SQLUSMALLINT column) const noexcept</td></tr>
-<tr class="separator:a3707d73747284f505083f490d1abb251"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a97ad8b11f15370f16290651ddfa82c7f" id="r_a97ad8b11f15370f16290651ddfa82c7f"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#a97ad8b11f15370f16290651ddfa82c7f">ReportInputParameterError</a> (<a class="el" href="../../d8/d5b/structLightweight_1_1SqlErrorInfo.html">SqlErrorInfo</a> const &amp;error) noexcept</td></tr>
-<tr class="separator:a97ad8b11f15370f16290651ddfa82c7f"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a380f153a46c1e8de320973475bbdb05c" id="r_a380f153a46c1e8de320973475bbdb05c"><td class="memItemLeft" align="right" valign="top">virtual bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#a380f153a46c1e8de320973475bbdb05c">ConvertsNarrowIntegerCTypes</a> () const noexcept</td></tr>
-<tr class="separator:a380f153a46c1e8de320973475bbdb05c"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:adf448d6fc9909e31a21a2f0fe66c761f" id="r_adf448d6fc9909e31a21a2f0fe66c761f"><td class="memItemLeft" align="right" valign="top">virtual <a class="el" href="../../dc/d1c/structLightweight_1_1SqlOutputColumnStaging.html">SqlOutputColumnStaging</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#adf448d6fc9909e31a21a2f0fe66c761f">ProvideOutputColumnStaging</a> (SQLUSMALLINT column)</td></tr>
-<tr class="separator:adf448d6fc9909e31a21a2f0fe66c761f"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a5a599b1702a0f87bc497e593b4c27f59" id="r_a5a599b1702a0f87bc497e593b4c27f59"><td class="memItemLeft" align="right" valign="top">virtual bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#a5a599b1702a0f87bc497e593b4c27f59">BooleanTrueMayBeMinusOne</a> () const noexcept</td></tr>
-<tr class="separator:a5a599b1702a0f87bc497e593b4c27f59"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Callback interface for SqlDataBinder to allow post-processing of output columns.</p>
 <p>This is needed because the SQLBindCol() function does not allow to specify a callback function to be called after the data has been fetched from the database. This is needed to trim strings to the correct size, for example. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/d0f/DataBinder_2Core_8hpp_source.html#l00155">155</a> of file <a class="el" href="../../d7/d0f/DataBinder_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/d0f/DataBinder_2Core_8hpp_source.html#l00075">75</a> of file <a class="el" href="../../d7/d0f/DataBinder_2Core_8hpp_source.html">Core.hpp</a>.</p>
 </div><h2 class="groupheader">Member Function Documentation</h2>
 <a id="a209f52c2128670486fa0df251261bf80" name="a209f52c2128670486fa0df251261bf80"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a209f52c2128670486fa0df251261bf80">&#9670;&#160;</a></span>PlanPostExecuteCallback()</h2>
@@ -194,6 +186,54 @@ Public Member Functions</h2></td></tr>
 </div><div class="memdoc">
 <p>Plans a callback to be called after the statement has been executed.</p>
 <dl class="section see"><dt>See also</dt><dd>SqlDataBinder::PostExecute() </dd></dl>
+
+</div>
+</div>
+<a id="aa5fd0902a3c6818ca46182a8b5c8eba0" name="aa5fd0902a3c6818ca46182a8b5c8eba0"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa5fd0902a3c6818ca46182a8b5c8eba0">&#9670;&#160;</a></span>KeepInputParameterAlive()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">virtual void Lightweight::SqlDataBinderCallback::KeepInputParameterAlive </td>
+          <td>(</td>
+          <td class="paramtype">SQLUSMALLINT&#160;</td>
+          <td class="paramname"><em>column</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::shared_ptr&lt; void const &gt;&#160;</td>
+          <td class="paramname"><em>buffer</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Keeps <code>buffer</code> alive for as long as input parameter <code>column</code> stays bound to it.</p>
+<p>An input binder that binds a copy it made (a converted string, a truncated timestamp) hands the copy over here. The driver reads the bound buffer at every execution until the parameter is bound again, so the copy must survive repeated executions of the same binding. It is released when the parameter is bound again after an execution, or when the statement drops its parameter bindings (a new query is prepared or executed directly, or the statement goes away). Buffers handed over for the same parameter before its next execution are all kept, so a binder that delegates to another binder may hand over its own buffer as well.</p>
+<p>The default implementation keeps the buffer only until the next execution, which suits a callback that never executes the statement more than once per binding.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">column</td><td>The 1-based index of the input parameter bound to <code>buffer</code>. </td></tr>
+    <tr><td class="paramname">buffer</td><td>The storage the parameter is bound to. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+<p class="definition">Definition at line <a class="el" href="../../d7/d0f/DataBinder_2Core_8hpp_source.html#l00111">111</a> of file <a class="el" href="../../d7/d0f/DataBinder_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -304,7 +344,7 @@ Public Member Functions</h2></td></tr>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The minimum number of elements to bind. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/d0f/DataBinder_2Core_8hpp_source.html#l00207">207</a> of file <a class="el" href="../../d7/d0f/DataBinder_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/d0f/DataBinder_2Core_8hpp_source.html#l00148">148</a> of file <a class="el" href="../../d7/d0f/DataBinder_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
@@ -373,7 +413,7 @@ The indicators must remain valid until the statement is executed.</dd></dl>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>A pointer to the first element of the indicator array. </dd></dl>
 
-<p class="reference">Referenced by <a class="el" href="../../d2/d5e/Primitives_8hpp_source.html#l00482">Lightweight::SqlDataBinder&lt; char &gt;::BatchInputParameter()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d2/d5e/Primitives_8hpp_source.html#l00145">Lightweight::SqlDataBinder&lt; char &gt;::BatchInputParameter()</a>.</p>
 
 </div>
 </div>
@@ -493,9 +533,9 @@ Row-wise callers request <code>~rowStride*rowCount</code> bytes to hold only <co
 </div><div class="memdoc">
 <dl class="section return"><dt>Returns</dt><dd>How the narrow (<code>char</code>) string binders exchange text with the driver. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/d0f/DataBinder_2Core_8hpp_source.html#l00258">258</a> of file <a class="el" href="../../d7/d0f/DataBinder_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/d0f/DataBinder_2Core_8hpp_source.html#l00199">199</a> of file <a class="el" href="../../d7/d0f/DataBinder_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../d2/d5e/Primitives_8hpp_source.html#l00482">Lightweight::SqlDataBinder&lt; char &gt;::BatchInputParameter()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d2/d5e/Primitives_8hpp_source.html#l00145">Lightweight::SqlDataBinder&lt; char &gt;::BatchInputParameter()</a>.</p>
 
 </div>
 </div>
@@ -532,172 +572,7 @@ Row-wise callers request <code>~rowStride*rowCount</code> bytes to hold only <co
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The declared SQL type, or <code>std::nullopt</code> when it cannot be determined. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/d0f/DataBinder_2Core_8hpp_source.html#l00271">271</a> of file <a class="el" href="../../d7/d0f/DataBinder_2Core_8hpp_source.html">Core.hpp</a>.</p>
-
-</div>
-</div>
-<a id="a3707d73747284f505083f490d1abb251" name="a3707d73747284f505083f490d1abb251"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a3707d73747284f505083f490d1abb251">&#9670;&#160;</a></span>DescribeResultColumnType()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">virtual std::optional&lt; SQLSMALLINT &gt; Lightweight::SqlDataBinderCallback::DescribeResultColumnType </td>
-          <td>(</td>
-          <td class="paramtype">SQLUSMALLINT&#160;</td>
-          <td class="paramname"><em>column</em></td><td>)</td>
-          <td> const</td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">virtual</span><span class="mlabel">noexcept</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-<p>The SQL type the driver describes for result column <code>column</code> (see detail::DescribeResultColumnSqlType()), asked of the driver once per result set and column, so a binder that picks its read by the column's type for every row's cell (<a class="el" href="../../df/d3f/structLightweight_1_1SqlVariant.html" title="Represents a value that can be any of the supported SQL data types.">SqlVariant</a>) asks nothing after the first row. </p><dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">column</td><td>The 1-based column index. </td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>The SQL type, or <code>std::nullopt</code> when the callback keeps none or the driver cannot describe the column (the binder then asks the driver itself, and reports its error). </dd></dl>
-
-<p class="definition">Definition at line <a class="el" href="../../d7/d0f/DataBinder_2Core_8hpp_source.html#l00283">283</a> of file <a class="el" href="../../d7/d0f/DataBinder_2Core_8hpp_source.html">Core.hpp</a>.</p>
-
-</div>
-</div>
-<a id="a97ad8b11f15370f16290651ddfa82c7f" name="a97ad8b11f15370f16290651ddfa82c7f"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a97ad8b11f15370f16290651ddfa82c7f">&#9670;&#160;</a></span>ReportInputParameterError()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">virtual void Lightweight::SqlDataBinderCallback::ReportInputParameterError </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="../../d8/d5b/structLightweight_1_1SqlErrorInfo.html">SqlErrorInfo</a> const &amp;&#160;</td>
-          <td class="paramname"><em>error</em></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">virtual</span><span class="mlabel">noexcept</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-<p>Records why a binder refused to bind a value, which it then answers with <code>SQL_ERROR:</code> the driver posted no diagnostic for it, so the error the caller raises is this one.</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">error</td><td>The SQLSTATE and message to report. </td></tr>
-  </table>
-  </dd>
-</dl>
-
-<p class="definition">Definition at line <a class="el" href="../../d7/d0f/DataBinder_2Core_8hpp_source.html#l00293">293</a> of file <a class="el" href="../../d7/d0f/DataBinder_2Core_8hpp_source.html">Core.hpp</a>.</p>
-
-</div>
-</div>
-<a id="a380f153a46c1e8de320973475bbdb05c" name="a380f153a46c1e8de320973475bbdb05c"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a380f153a46c1e8de320973475bbdb05c">&#9670;&#160;</a></span>ConvertsNarrowIntegerCTypes()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">virtual bool Lightweight::SqlDataBinderCallback::ConvertsNarrowIntegerCTypes </td>
-          <td>(</td>
-          <td class="paramname"></td><td>)</td>
-          <td> const</td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">virtual</span><span class="mlabel">noexcept</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-<p>Whether the driver converts an <code>int8_t</code> bound as <code>SQL_C_STINYINT</code> and a <code>uint32_t</code> bound as <code>SQL_C_ULONG</code> over the type's full range (see <code><a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a8ac7b33550dea498d70b6b9e15668c48" title="Whether the driver converts an int8_t bound as SQL_C_STINYINT and a uint32_t bound as SQL_C_ULONG ove...">SqlQueryFormatter::ConvertsNarrowIntegerCTypes</a></code>); the binders of those types stage a wider C type where it does not. A statement answers from its connection, which decides it once per connect. </p><dl class="section return"><dt>Returns</dt><dd><code>true</code> where those binders bind in place. </dd></dl>
-
-<p class="definition">Definition at line <a class="el" href="../../d7/d0f/DataBinder_2Core_8hpp_source.html#l00303">303</a> of file <a class="el" href="../../d7/d0f/DataBinder_2Core_8hpp_source.html">Core.hpp</a>.</p>
-
-<p class="reference">Referenced by <a class="el" href="../../d2/d5e/Primitives_8hpp_source.html#l00119">Lightweight::SqlStagedIntegerDataBinder&lt; T, TheCType, TheSqlType, WideType, WideCType, TheColumnType &gt;::BatchInputParameter()</a>, and <a class="el" href="../../d2/d5e/Primitives_8hpp_source.html#l00169">Lightweight::SqlStagedIntegerDataBinder&lt; T, TheCType, TheSqlType, WideType, WideCType, TheColumnType &gt;::GetColumn()</a>.</p>
-
-</div>
-</div>
-<a id="adf448d6fc9909e31a21a2f0fe66c761f" name="adf448d6fc9909e31a21a2f0fe66c761f"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#adf448d6fc9909e31a21a2f0fe66c761f">&#9670;&#160;</a></span>ProvideOutputColumnStaging()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">virtual <a class="el" href="../../dc/d1c/structLightweight_1_1SqlOutputColumnStaging.html">SqlOutputColumnStaging</a> * Lightweight::SqlDataBinderCallback::ProvideOutputColumnStaging </td>
-          <td>(</td>
-          <td class="paramtype">SQLUSMALLINT&#160;</td>
-          <td class="paramname"><em>column</em></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">virtual</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-<p>Provides the staging of output column <code>column</code>, which stays valid as long as the callback: a binder that converts a staged value per row binds its value there instead of the variable, keeps what its post-fetch step needs in it, so that step captures only a pointer (no allocation per bind), and binding the same column again reuses it. </p><dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">column</td><td>The 1-based column index. </td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>The staging, or <code>nullptr</code> when the callback keeps none (the binder then allocates its own). </dd></dl>
-
-<p class="definition">Definition at line <a class="el" href="../../d7/d0f/DataBinder_2Core_8hpp_source.html#l00314">314</a> of file <a class="el" href="../../d7/d0f/DataBinder_2Core_8hpp_source.html">Core.hpp</a>.</p>
-
-</div>
-</div>
-<a id="a5a599b1702a0f87bc497e593b4c27f59" name="a5a599b1702a0f87bc497e593b4c27f59"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a5a599b1702a0f87bc497e593b4c27f59">&#9670;&#160;</a></span>BooleanTrueMayBeMinusOne()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">virtual bool Lightweight::SqlDataBinderCallback::BooleanTrueMayBeMinusOne </td>
-          <td>(</td>
-          <td class="paramname"></td><td>)</td>
-          <td> const</td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">virtual</span><span class="mlabel">noexcept</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-<p>Whether the driver may report a boolean true as -1 (see <code><a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#ab0bc358f93fca71227fe152bf346c25d" title="Whether the driver may report a boolean true as -1.">SqlQueryFormatter::BooleanTrueMayBeMinusOne</a></code>). A statement answers from its connection, which decides it once per connect. </p><dl class="section return"><dt>Returns</dt><dd><code>true</code> where a <code>bool</code> read takes -1 as <code>true</code>. </dd></dl>
-
-<p class="definition">Definition at line <a class="el" href="../../d7/d0f/DataBinder_2Core_8hpp_source.html#l00323">323</a> of file <a class="el" href="../../d7/d0f/DataBinder_2Core_8hpp_source.html">Core.hpp</a>.</p>
-
-<p class="reference">Referenced by <a class="el" href="../../d2/d5e/Primitives_8hpp_source.html#l00296">Lightweight::SqlDataBinder&lt; bool &gt;::GetColumn()</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/d0f/DataBinder_2Core_8hpp_source.html#l00212">212</a> of file <a class="el" href="../../d7/d0f/DataBinder_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>

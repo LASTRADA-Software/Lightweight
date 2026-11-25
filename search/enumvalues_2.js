@@ -1,8 +1,10 @@
 var searchData=
 [
-  ['cancelled_0',['Cancelled',['../db/df6/group__SqlMigration.html#gga9e1d1a1e5e2a8b3037c3674ee85f1f91aa149e85a44aeec9140e92733d9ed694e',1,'Lightweight::SqlMigration']]],
-  ['char_1',['Char',['../da/d6c/classLightweight_1_1RowArrayCursor.html#ab61ddfa5d28f1e672f16e9a0a2625fc2a8e95e84813830072b7516cfaa7dbc1a9',1,'Lightweight::RowArrayCursor']]],
-  ['completed_2',['Completed',['../db/df6/group__SqlMigration.html#gga9e1d1a1e5e2a8b3037c3674ee85f1f91a07ca5050e697392c9ed47e6453f1453f',1,'Lightweight::SqlMigration']]],
-  ['count_3',['Count',['../d9/d8a/group__CoreApi.html#gga8637d070f06ecc36b5699c5b7ea1b102ae93f994f01c537c4e2f7d8528c3eb5e9',1,'Lightweight']]],
-  ['createdat_4',['CreatedAt',['../d7/d2f/group__DataMapper.html#ggaab9634bfde68b86ecc061bd89f591c46a46d295c8a97befd247d2d634ac8cc4b3',1,'Lightweight']]]
+  ['date_0',['Date',['../da/d6c/classLightweight_1_1RowArrayCursor.html#ab61ddfa5d28f1e672f16e9a0a2625fc2a44749712dbec183e983dcd78a7736c41',1,'Lightweight::RowArrayCursor']]],
+  ['delaybudgetexhausted_1',['DelayBudgetExhausted',['../d1/d7b/group__Retry.html#gga736570debff7c5c20bb31ef7b87a75e2a6aa9c1609189ce4ccd01f6755eea392b',1,'Lightweight']]],
+  ['delete_2',['Delete',['../d9/d8a/group__CoreApi.html#gga4e69e872eba3ff2b5e59b999b747add8af2a6c498fb90ee345d997f888fce3b18',1,'Lightweight']]],
+  ['disabled_3',['disabled',['../d9/d8a/group__CoreApi.html#gga8be4e3766b268b1d751ef7df237af144ab9f5c797ebbf55adccdd8539a65a0241',1,'DisabledLightweight'],['../d9/d8a/group__CoreApi.html#gga826d0a33e14c546691afe196b566b77dab9f5c797ebbf55adccdd8539a65a0241',1,'DisabledLightweight']]],
+  ['double_4',['Double',['../da/d6c/classLightweight_1_1RowArrayCursor.html#ab61ddfa5d28f1e672f16e9a0a2625fc2ad909d38d705ce75386dd86e611a82f5b',1,'Lightweight::RowArrayCursor']]],
+  ['driverdefault_5',['DriverDefault',['../d9/d8a/group__CoreApi.html#gga8be4e3766b268b1d751ef7df237af144a94e2c1bbb08c3b4ddbaead16d30c7f64',1,'Lightweight']]],
+  ['dryrun_6',['DryRun',['../db/df6/group__SqlMigration.html#gga5af50b883bf2abc7126d3944fd4a99c5ad46997bcbf0a9a134490cdc3f1fddfce',1,'Lightweight::SqlMigration']]]
 ];

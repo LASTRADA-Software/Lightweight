@@ -94,7 +94,7 @@ $(document).ready(function(){initNavTree('d9/d23/structLightweight_1_1SqliteConn
 <a href="#pub-methods">Public Member Functions</a> &#124;
 <a href="#pub-attribs">Public Attributes</a> &#124;
 <a href="../../da/dbc/structLightweight_1_1SqliteConnectionSettings-members.html">List of all members</a>  </div>
-  <div class="headertitle"><div class="title">Lightweight::SqliteConnectionSettings Struct Reference</div></div>
+  <div class="headertitle"><div class="title">Lightweight::SqliteConnectionSettings Struct Reference<div class="ingroups"><a class="el" href="../../d9/d8a/group__CoreApi.html">Core API</a></div></div></div>
 </div><!--header-->
 <div class="contents">
 
@@ -113,7 +113,7 @@ bool&#160;</td><td class="memItemRight" valign="bottom"><b>operator==</b> (<a cl
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-attribs" name="pub-attribs"></a>
 Public Attributes</h2></td></tr>
 <tr class="memitem:a667752138a5c4017c8cfb614f545cd3e" id="r_a667752138a5c4017c8cfb614f545cd3e"><td class="memItemLeft" align="right" valign="top">std::chrono::milliseconds&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/d23/structLightweight_1_1SqliteConnectionSettings.html#a667752138a5c4017c8cfb614f545cd3e">busyTimeout</a> = SqliteBusyTimeoutDefault</td></tr>
-<tr class="memdesc:a667752138a5c4017c8cfb614f545cd3e"><td class="mdescLeft">&#160;</td><td class="mdescRight">How long a statement waits on a locked database file before failing, applied as the SQLite ODBC driver's <code>Timeout</code> connection attribute when connecting (unless the connection string names one) and via <code>PRAGMA</code> <code>busy_timeout</code>.  <br /></td></tr>
+<tr class="memdesc:a667752138a5c4017c8cfb614f545cd3e"><td class="mdescLeft">&#160;</td><td class="mdescRight">How long a statement waits on a locked database file before failing, applied via <code>PRAGMA</code> <code>busy_timeout</code>.  <br /></td></tr>
 <tr class="separator:a667752138a5c4017c8cfb614f545cd3e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:afe812d7ad6443cea24dc3f0a35dbcf0a" id="r_afe812d7ad6443cea24dc3f0a35dbcf0a"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../d9/d8a/group__CoreApi.html#ga4e69e872eba3ff2b5e59b999b747add8">SqliteJournalMode</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/d23/structLightweight_1_1SqliteConnectionSettings.html#afe812d7ad6443cea24dc3f0a35dbcf0a">journalMode</a> = <a class="el" href="../../d9/d8a/group__CoreApi.html#gga4e69e872eba3ff2b5e59b999b747add8a5ff3c6978f87d96febfdc8ed3899a97e">SqliteJournalMode::Unchanged</a></td></tr>
 <tr class="memdesc:afe812d7ad6443cea24dc3f0a35dbcf0a"><td class="mdescLeft">&#160;</td><td class="mdescRight">The journal mode to switch the database to, see <a class="el" href="../../d9/d8a/group__CoreApi.html#ga4e69e872eba3ff2b5e59b999b747add8">SqliteJournalMode</a>.  <br /></td></tr>
@@ -122,9 +122,9 @@ Public Attributes</h2></td></tr>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Connection-level settings applied when a connection to a SQLite database is established. </p>
 <p>Inert on every other backend: no statement is issued for them there. The defaults reproduce the behaviour Lightweight has always had, a 60 second busy timeout and an untouched journal mode.</p>
-<dl class="section see"><dt>See also</dt><dd><a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#a38df176831f6e1432cf1b87b045f89bc" title="Sets the SQLite settings newly constructed connections adopt.">SqlConnection::SetDefaultSqliteSettings</a>, <a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#a637dc802bde7e94ed743975ca8be0f33" title="Changes this connection&#39;s SQLite settings, applying them immediately when the connection is open to a...">SqlConnection::SetSqliteSettings</a> </dd></dl>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#a38df176831f6e1432cf1b87b045f89bc" title="Sets the SQLite settings newly constructed connections adopt.">SqlConnection::SetDefaultSqliteSettings</a>, <a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#a103fcb72a3f8885d1bb2426d3486b2e3" title="Changes this connection&#39;s SQLite settings, applying them immediately when the connection is open to a...">SqlConnection::SetSqliteSettings</a> </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00126">126</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00118">118</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
 </div><h2 class="groupheader">Member Data Documentation</h2>
 <a id="a667752138a5c4017c8cfb614f545cd3e" name="a667752138a5c4017c8cfb614f545cd3e"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a667752138a5c4017c8cfb614f545cd3e">&#9670;&#160;</a></span>busyTimeout</h2>
@@ -138,10 +138,10 @@ Public Attributes</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>How long a statement waits on a locked database file before failing, applied as the SQLite ODBC driver's <code>Timeout</code> connection attribute when connecting (unless the connection string names one) and via <code>PRAGMA</code> <code>busy_timeout</code>. </p>
-<p>Zero, or a negative value, asks for no wait: the driver gets its shortest, one millisecond, because it reads a <code>Timeout</code> below 1 as 1000000 ms. The driver reads its <code>Timeout</code> only when connecting, so a change through <a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#a637dc802bde7e94ed743975ca8be0f33" title="Changes this connection&#39;s SQLite settings, applying them immediately when the connection is open to a...">SqlConnection::SetSqliteSettings()</a> governs its waits from the next Connect() on. A connect through a DSN with <a class="el" href="../../d6/d8d/structLightweight_1_1SqlConnectionDataSource.html">SqlConnectionDataSource</a> passes no attribute: the DSN's own <code>Timeout</code> (100000 ms when it sets none) applies; the driver offers no attribute to change it after connecting. </p>
+<p>How long a statement waits on a locked database file before failing, applied via <code>PRAGMA</code> <code>busy_timeout</code>. </p>
+<p>Zero disables the wait, so a contended statement fails at once; a negative value is treated as zero. Not to be confused with the ODBC login timeout of the connection string. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00137">137</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00125">125</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
 
 </div>
 </div>
@@ -159,7 +159,7 @@ Public Attributes</h2></td></tr>
 
 <p>The journal mode to switch the database to, see <a class="el" href="../../d9/d8a/group__CoreApi.html#ga4e69e872eba3ff2b5e59b999b747add8">SqliteJournalMode</a>. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00140">140</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00128">128</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
 
 </div>
 </div>

@@ -1,10 +1,8 @@
 var searchData=
 [
-  ['date_0',['Date',['../da/d6c/classLightweight_1_1RowArrayCursor.html#ab61ddfa5d28f1e672f16e9a0a2625fc2a44749712dbec183e983dcd78a7736c41',1,'Lightweight::RowArrayCursor']]],
-  ['delaybudgetexhausted_1',['DelayBudgetExhausted',['../d1/d7b/group__Retry.html#gga736570debff7c5c20bb31ef7b87a75e2a6aa9c1609189ce4ccd01f6755eea392b',1,'Lightweight']]],
-  ['delete_2',['Delete',['../d9/d8a/group__CoreApi.html#gga4e69e872eba3ff2b5e59b999b747add8af2a6c498fb90ee345d997f888fce3b18',1,'Lightweight']]],
-  ['disabled_3',['disabled',['../d9/d8a/group__CoreApi.html#gga8be4e3766b268b1d751ef7df237af144ab9f5c797ebbf55adccdd8539a65a0241',1,'DisabledLightweight'],['../d9/d8a/group__CoreApi.html#gga826d0a33e14c546691afe196b566b77dab9f5c797ebbf55adccdd8539a65a0241',1,'DisabledLightweight']]],
-  ['double_4',['Double',['../da/d6c/classLightweight_1_1RowArrayCursor.html#ab61ddfa5d28f1e672f16e9a0a2625fc2ad909d38d705ce75386dd86e611a82f5b',1,'Lightweight::RowArrayCursor']]],
-  ['driverdefault_5',['DriverDefault',['../d9/d8a/group__CoreApi.html#gga8be4e3766b268b1d751ef7df237af144a94e2c1bbb08c3b4ddbaead16d30c7f64',1,'Lightweight']]],
-  ['dryrun_6',['DryRun',['../db/df6/group__SqlMigration.html#gga5af50b883bf2abc7126d3944fd4a99c5ad46997bcbf0a9a134490cdc3f1fddfce',1,'Lightweight::SqlMigration']]]
+  ['enabled_0',['enabled',['../d9/d8a/group__CoreApi.html#gga8be4e3766b268b1d751ef7df237af144a00d23a76e43b46dae9ec7aa9dcbebb32',1,'EnabledLightweight'],['../d9/d8a/group__CoreApi.html#gga826d0a33e14c546691afe196b566b77da00d23a76e43b46dae9ec7aa9dcbebb32',1,'EnabledLightweight']]],
+  ['error_1',['Error',['../d9/d8a/group__CoreApi.html#gga99e5e92107ae68dfd09cca5fc6ef1106a902b0d55fddef6f8d651fe1035b7d4bd',1,'Lightweight']]],
+  ['execute_2',['execute',['../db/df6/group__SqlMigration.html#gga5af50b883bf2abc7126d3944fd4a99c5a40cd014b7b6251e3a22e6a45a73a64e1',1,'ExecuteLightweight::SqlMigration'],['../d9/d8a/group__CoreApi.html#gga8637d070f06ecc36b5699c5b7ea1b102a40cd014b7b6251e3a22e6a45a73a64e1',1,'ExecuteLightweight']]],
+  ['executebatch_3',['ExecuteBatch',['../d9/d8a/group__CoreApi.html#gga8637d070f06ecc36b5699c5b7ea1b102a22bf72f446ee535304bb79155891eb15',1,'Lightweight']]],
+  ['executedirect_4',['ExecuteDirect',['../d9/d8a/group__CoreApi.html#gga8637d070f06ecc36b5699c5b7ea1b102a85990d18cace92b043008dc0ef0c1b93',1,'Lightweight']]]
 ];

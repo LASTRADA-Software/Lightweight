@@ -1,17 +1,19 @@
 var searchData=
 [
-  ['name_0',['Name',['../d3/de6/classLightweight_1_1SqlScopedLock.html#aba7a734bd8d76d420b9d15be78eb62b8',1,'Lightweight::SqlScopedLock']]],
-  ['nanosecond_1',['nanosecond',['../d6/dfa/structLightweight_1_1SqlDateTime.html#a8936bb67e7a6cccf8b462302175ca0c7',1,'Lightweight::SqlDateTime']]],
-  ['narrowstaged_2',['NarrowStaged',['../dc/d64/structLightweight_1_1SqlStagedIntegerDataBinder.html#ab9c946397a2bf7f6c1171dc71d60f746',1,'Lightweight::SqlStagedIntegerDataBinder']]],
-  ['narrowtextbindingmode_3',['narrowtextbindingmode',['../d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#a45b37b294222fbd105071e20e86ba3a1',1,'Lightweight::SqlDataBinderCallback::NarrowTextBindingMode()'],['../da/da8/classLightweight_1_1SqlConnection.html#a6928eabe3da0395e659a451b93694283',1,'Lightweight::SqlConnection::NarrowTextBindingMode()'],['../d8/d63/classLightweight_1_1SqlResultCursor.html#afb3eea26cb82ef60df54f6809f4a9d42',1,'Lightweight::SqlResultCursor::NarrowTextBindingMode()']]],
-  ['nativehandle_4',['nativehandle',['../da/da8/classLightweight_1_1SqlConnection.html#ad72f0aad1bc6075e7a91bd29d0ac3e2f',1,'Lightweight::SqlConnection::NativeHandle()'],['../db/dad/classLightweight_1_1SqlStatement.html#a0783a366bc0c8fd7d9f2639236b3fc36',1,'Lightweight::SqlStatement::NativeHandle()'],['../d4/d8a/classLightweight_1_1Zip_1_1ZipArchive.html#acdea8e5a5a54e2c1068331bc01a0ca57',1,'Lightweight::Zip::ZipArchive::NativeHandle()']]],
-  ['nextconnectionfailure_5',['NextConnectionFailure',['../d4/d1a/classLightweight_1_1SqlFaultSource.html#a04aa1bbedcc60e03d869408c4a3838d8',1,'Lightweight::SqlFaultSource']]],
-  ['nextfailure_6',['NextFailure',['../d4/d1a/classLightweight_1_1SqlFaultSource.html#a183b84e14ad19111747cda413e51115d',1,'Lightweight::SqlFaultSource']]],
-  ['not_7',['Not',['../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a70eca9201efb0d7311b20cef6ef4db34',1,'Lightweight::SqlWhereClauseBuilder']]],
-  ['now_8',['Now',['../d6/dfa/structLightweight_1_1SqlDateTime.html#a1fda36e61fa3eed7869cda1f456ee27a',1,'Lightweight::SqlDateTime']]],
-  ['nowutc_9',['NowUTC',['../d6/dfa/structLightweight_1_1SqlDateTime.html#ab39a3e35e5b4cbffe0dfb0c377bd287d',1,'Lightweight::SqlDateTime']]],
-  ['nulledcellcount_10',['nulledcellcount',['../d7/d37/structLightweight_1_1SqlBackup_1_1TableRestoreReport.html#a86d758d3682c372e0868e019f4890dbb',1,'Lightweight::SqlBackup::TableRestoreReport::NulledCellCount()'],['../d7/d8f/structLightweight_1_1SqlBackup_1_1RestoreReport.html#a53b7165da3018d404c84fa19cab55d80',1,'Lightweight::SqlBackup::RestoreReport::NulledCellCount()']]],
-  ['nulllogger_11',['NullLogger',['../db/dfd/classLightweight_1_1SqlLogger.html#a2bf0dba43c73124eba0f6b0a01ce82b5',1,'Lightweight::SqlLogger']]],
-  ['numcolumnsaffected_12',['NumColumnsAffected',['../d8/d63/classLightweight_1_1SqlResultCursor.html#ab38c77d3ca09d4546ea738da8e859d8c',1,'Lightweight::SqlResultCursor']]],
-  ['numrowsaffected_13',['NumRowsAffected',['../d8/d63/classLightweight_1_1SqlResultCursor.html#ac429ba6642b47cb29ff6cdab7d5a3586',1,'Lightweight::SqlResultCursor']]]
+  ['markfinished_0',['MarkFinished',['../d4/d9e/classLightweight_1_1ThreadSafeQueue.html#a7daf3dd0f90837524987108d8fc71af1',1,'Lightweight::ThreadSafeQueue']]],
+  ['markmigrationasapplied_1',['MarkMigrationAsApplied',['../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a0ddf3ef0e6d833b829509ac769d04530',1,'Lightweight::SqlMigration::MigrationManager']]],
+  ['matches_2',['Matches',['../d9/dfd/classLightweight_1_1SqlBackup_1_1TableFilter.html#ae2ac5e8f6feb4b31de19ad64fce540f5',1,'Lightweight::SqlBackup::TableFilter']]],
+  ['matchesall_3',['MatchesAll',['../d9/dfd/classLightweight_1_1SqlBackup_1_1TableFilter.html#ac16512ae4852ecbf22ab84abeda29e7e',1,'Lightweight::SqlBackup::TableFilter']]],
+  ['maxidletime_4',['MaxIdleTime',['../df/d1a/structLightweight_1_1PoolConfig.html#a090de1dcf0f8f78bb03664ce5f999856',1,'Lightweight::PoolConfig']]],
+  ['maxinpredicatevalues_5',['MaxInPredicateValues',['../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a03c4198af1564e763f548e6f466a840c',1,'Lightweight::SqlQueryFormatter']]],
+  ['maxlifetime_6',['MaxLifetime',['../df/d1a/structLightweight_1_1PoolConfig.html#a27ee17aa9854a15e16d385ee1d26b045',1,'Lightweight::PoolConfig']]],
+  ['memberat_7',['MemberAt',['../d2/d94/structLightweight_1_1RecordMemberList.html#a9f538804462f3eaaf3bfd51d059cead8',1,'Lightweight::RecordMemberList']]],
+  ['migratedirect_8',['MigrateDirect',['../db/dad/classLightweight_1_1SqlStatement.html#a3409545779372b6a14b213c8eab814b1',1,'Lightweight::SqlStatement']]],
+  ['migration_9',['migration',['../da/da8/classLightweight_1_1SqlConnection.html#a2ebd525676d985a7c81aa9fe233915e7',1,'Lightweight::SqlConnection::Migration()'],['../de/da0/classLightweight_1_1SqlQueryBuilder.html#aa69bce960ab6b67f3a39750799754c4e',1,'Lightweight::SqlQueryBuilder::Migration()']]],
+  ['migrationbase_10',['migrationbase',['../de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#a8ee0594832c46d4679a3db0a139b77b9',1,'Lightweight::SqlMigration::MigrationBase::MigrationBase(MigrationBase const &amp;)=default'],['../de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#ab7a7ef460d0a27d3104beb9c89757d28',1,'Lightweight::SqlMigration::MigrationBase::MigrationBase(MigrationTimestamp timestamp, std::string_view title)']]],
+  ['migrationexception_11',['MigrationException',['../d9/d49/classLightweight_1_1SqlMigration_1_1MigrationException.html#adda47749398b0516fc00f9b23aee086f',1,'Lightweight::SqlMigration::MigrationException']]],
+  ['minimumoutputcolumnsize_12',['MinimumOutputColumnSize',['../d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#a12843806ab1d89718143323141687b88',1,'Lightweight::SqlDataBinderCallback']]],
+  ['minute_13',['minute',['../d6/dfa/structLightweight_1_1SqlDateTime.html#a87a2b5b93a1dd9151dc3f3f4245062d8',1,'Lightweight::SqlDateTime']]],
+  ['month_14',['month',['../d6/dfa/structLightweight_1_1SqlDateTime.html#a5dcb89336b1f32506a60b63e62c788d2',1,'Lightweight::SqlDateTime']]],
+  ['mutablevalue_15',['mutablevalue',['../d0/df7/classLightweight_1_1BelongsTo.html#a9c8d03efe79deeecbe6b949685ee0094',1,'Lightweight::BelongsTo::MutableValue()'],['../d2/dd0/structLightweight_1_1Field.html#a46aa0ba0864c6602fd06e8dcc6fed2d3',1,'Lightweight::Field::MutableValue()']]]
 ];

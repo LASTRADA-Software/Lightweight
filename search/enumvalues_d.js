@@ -1,4 +1,6 @@
 var searchData=
 [
-  ['queryfailed_0',['QueryFailed',['../d7/d2f/group__DataMapper.html#ggaccfed183e72fab87179bacefc80b23e1ad14f393e86cbe5976f0457ae2a0fcc49',1,'Lightweight']]]
+  ['restore_0',['Restore',['../db/df6/group__SqlMigration.html#ggabaf087901def790003ba389480c7a458a2bd339d85ee3b33e513359ce781b60cc',1,'Lightweight::SqlMigration']]],
+  ['retriesexhausted_1',['RetriesExhausted',['../d1/d7b/group__Retry.html#gga736570debff7c5c20bb31ef7b87a75e2a4ff23e928f5a3fb19ee4768446d8da93',1,'Lightweight']]],
+  ['retry_2',['Retry',['../d1/d7b/group__Retry.html#gga342e14df587d6a9b4a42d34038e2fdc5a6327b4e59f58137083214a1fec358855',1,'Lightweight']]]
 ];

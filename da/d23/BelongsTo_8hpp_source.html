@@ -699,45 +699,36 @@ $(document).ready(function(){initNavTree('da/d23/BelongsTo_8hpp_source.html','..
 <div class="line"><a id="l00533" name="l00533"></a><span class="lineno">  533</span>    <span class="keyword">using </span>InnerType = SelfType::ValueType;</div>
 <div class="line"><a id="l00534" name="l00534"></a><span class="lineno">  534</span> </div>
 <div class="line"><a id="l00535" name="l00535"></a><span class="lineno">  535</span>    <span class="keyword">static</span> <span class="keyword">constexpr</span> <span class="keyword">auto</span> ColumnType = SqlDataBinder&lt;InnerType&gt;::ColumnType;</div>
-<div class="line"><a id="l00536" name="l00536"></a><span class="lineno">  536</span><span class="comment"></span> </div>
-<div class="line"><a id="l00537" name="l00537"></a><span class="lineno">  537</span><span class="comment">    /// The year of the referenced key if it cannot be written (see detail::IsWritableYear()).</span></div>
-<div class="line"><a id="l00538" name="l00538"></a><span class="lineno">  538</span><span class="comment">    /// @param value The reference to write.</span></div>
-<div class="line"><a id="l00539" name="l00539"></a><span class="lineno">  539</span><span class="comment">    /// @return Its year if the value is refused, otherwise @c std::nullopt.</span></div>
-<div class="line"><a id="l00540" name="l00540"></a><span class="lineno">  540</span><span class="comment"></span>    [[nodiscard]] <span class="keyword">static</span> <span class="keyword">constexpr</span> std::optional&lt;SQLSMALLINT&gt; UnwritableYear(SelfType <span class="keyword">const</span>&amp; value) <span class="keyword">noexcept</span></div>
-<div class="line"><a id="l00541" name="l00541"></a><span class="lineno">  541</span>        <span class="keyword">requires</span> SqlBinderChecksYear&lt;InnerType&gt;</div>
-<div class="line"><a id="l00542" name="l00542"></a><span class="lineno">  542</span>    {</div>
-<div class="line"><a id="l00543" name="l00543"></a><span class="lineno">  543</span>        <span class="keywordflow">return</span> SqlDataBinder&lt;InnerType&gt;::UnwritableYear(value.Value());</div>
-<div class="line"><a id="l00544" name="l00544"></a><span class="lineno">  544</span>    }</div>
-<div class="line"><a id="l00545" name="l00545"></a><span class="lineno">  545</span> </div>
-<div class="line"><a id="l00546" name="l00546"></a><span class="lineno">  546</span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE SQLRETURN InputParameter(SQLHSTMT stmt,</div>
-<div class="line"><a id="l00547" name="l00547"></a><span class="lineno">  547</span>                                                             SQLUSMALLINT column,</div>
-<div class="line"><a id="l00548" name="l00548"></a><span class="lineno">  548</span>                                                             SelfType <span class="keyword">const</span>&amp; value,</div>
-<div class="line"><a id="l00549" name="l00549"></a><span class="lineno">  549</span>                                                             SqlDataBinderCallback&amp; cb)</div>
-<div class="line"><a id="l00550" name="l00550"></a><span class="lineno">  550</span>    {</div>
-<div class="line"><a id="l00551" name="l00551"></a><span class="lineno">  551</span>        <span class="keywordflow">return</span> SqlDataBinder&lt;InnerType&gt;::InputParameter(stmt, column, value.Value(), cb);</div>
-<div class="line"><a id="l00552" name="l00552"></a><span class="lineno">  552</span>    }</div>
-<div class="line"><a id="l00553" name="l00553"></a><span class="lineno">  553</span> </div>
-<div class="line"><a id="l00554" name="l00554"></a><span class="lineno">  554</span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE SQLRETURN</div>
-<div class="line"><a id="l00555" name="l00555"></a><span class="lineno">  555</span>    OutputColumn(SQLHSTMT stmt, SQLUSMALLINT column, SelfType* result, SQLLEN* indicator, SqlDataBinderCallback&amp; cb)</div>
-<div class="line"><a id="l00556" name="l00556"></a><span class="lineno">  556</span>    {</div>
-<div class="line"><a id="l00557" name="l00557"></a><span class="lineno">  557</span>        <span class="keyword">auto</span> <span class="keyword">const</span> sqlReturn = SqlDataBinder&lt;InnerType&gt;::OutputColumn(stmt, column, &amp;result-&gt;MutableValue(), indicator, cb);</div>
-<div class="line"><a id="l00558" name="l00558"></a><span class="lineno">  558</span>        cb.PlanPostProcessOutputColumn([result]() { result-&gt;SetModified(<span class="keyword">true</span>); });</div>
-<div class="line"><a id="l00559" name="l00559"></a><span class="lineno">  559</span>        <span class="keywordflow">return</span> sqlReturn;</div>
-<div class="line"><a id="l00560" name="l00560"></a><span class="lineno">  560</span>    }</div>
-<div class="line"><a id="l00561" name="l00561"></a><span class="lineno">  561</span><span class="comment"></span> </div>
-<div class="line"><a id="l00562" name="l00562"></a><span class="lineno">  562</span><span class="comment">    /// @throws Whatever `SqlDataBinder&lt;InnerType&gt;::GetColumn` throws — this forwards to an arbitrary</span></div>
-<div class="line"><a id="l00563" name="l00563"></a><span class="lineno">  563</span><span class="comment">    ///         binder and cannot promise more than the one it wraps.</span></div>
-<div class="line"><a id="l00564" name="l00564"></a><span class="lineno">  564</span><span class="comment"></span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE SQLRETURN</div>
-<div class="line"><a id="l00565" name="l00565"></a><span class="lineno">  565</span>    GetColumn(SQLHSTMT stmt, SQLUSMALLINT column, SelfType* result, SQLLEN* indicator, SqlDataBinderCallback <span class="keyword">const</span>&amp; cb)</div>
-<div class="line"><a id="l00566" name="l00566"></a><span class="lineno">  566</span>    {</div>
-<div class="line"><a id="l00567" name="l00567"></a><span class="lineno">  567</span>        <span class="keyword">auto</span> <span class="keyword">const</span> sqlReturn = SqlDataBinder&lt;InnerType&gt;::GetColumn(stmt, column, &amp;result-&gt;MutableValue(), indicator, cb);</div>
-<div class="line"><a id="l00568" name="l00568"></a><span class="lineno">  568</span>        <span class="keywordflow">if</span> (SQL_SUCCEEDED(sqlReturn))</div>
-<div class="line"><a id="l00569" name="l00569"></a><span class="lineno">  569</span>            result-&gt;SetModified(<span class="keyword">true</span>);</div>
-<div class="line"><a id="l00570" name="l00570"></a><span class="lineno">  570</span>        <span class="keywordflow">return</span> sqlReturn;</div>
-<div class="line"><a id="l00571" name="l00571"></a><span class="lineno">  571</span>    }</div>
-<div class="line"><a id="l00572" name="l00572"></a><span class="lineno">  572</span>};</div>
-<div class="line"><a id="l00573" name="l00573"></a><span class="lineno">  573</span> </div>
-<div class="line"><a id="l00574" name="l00574"></a><span class="lineno">  574</span>} <span class="comment">// namespace Lightweight</span></div>
+<div class="line"><a id="l00536" name="l00536"></a><span class="lineno">  536</span> </div>
+<div class="line"><a id="l00537" name="l00537"></a><span class="lineno">  537</span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE SQLRETURN InputParameter(SQLHSTMT stmt,</div>
+<div class="line"><a id="l00538" name="l00538"></a><span class="lineno">  538</span>                                                             SQLUSMALLINT column,</div>
+<div class="line"><a id="l00539" name="l00539"></a><span class="lineno">  539</span>                                                             SelfType <span class="keyword">const</span>&amp; value,</div>
+<div class="line"><a id="l00540" name="l00540"></a><span class="lineno">  540</span>                                                             SqlDataBinderCallback&amp; cb)</div>
+<div class="line"><a id="l00541" name="l00541"></a><span class="lineno">  541</span>    {</div>
+<div class="line"><a id="l00542" name="l00542"></a><span class="lineno">  542</span>        <span class="keywordflow">return</span> SqlDataBinder&lt;InnerType&gt;::InputParameter(stmt, column, value.Value(), cb);</div>
+<div class="line"><a id="l00543" name="l00543"></a><span class="lineno">  543</span>    }</div>
+<div class="line"><a id="l00544" name="l00544"></a><span class="lineno">  544</span> </div>
+<div class="line"><a id="l00545" name="l00545"></a><span class="lineno">  545</span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE SQLRETURN</div>
+<div class="line"><a id="l00546" name="l00546"></a><span class="lineno">  546</span>    OutputColumn(SQLHSTMT stmt, SQLUSMALLINT column, SelfType* result, SQLLEN* indicator, SqlDataBinderCallback&amp; cb)</div>
+<div class="line"><a id="l00547" name="l00547"></a><span class="lineno">  547</span>    {</div>
+<div class="line"><a id="l00548" name="l00548"></a><span class="lineno">  548</span>        <span class="keyword">auto</span> <span class="keyword">const</span> sqlReturn = SqlDataBinder&lt;InnerType&gt;::OutputColumn(stmt, column, &amp;result-&gt;MutableValue(), indicator, cb);</div>
+<div class="line"><a id="l00549" name="l00549"></a><span class="lineno">  549</span>        cb.PlanPostProcessOutputColumn([result]() { result-&gt;SetModified(<span class="keyword">true</span>); });</div>
+<div class="line"><a id="l00550" name="l00550"></a><span class="lineno">  550</span>        <span class="keywordflow">return</span> sqlReturn;</div>
+<div class="line"><a id="l00551" name="l00551"></a><span class="lineno">  551</span>    }</div>
+<div class="line"><a id="l00552" name="l00552"></a><span class="lineno">  552</span><span class="comment"></span> </div>
+<div class="line"><a id="l00553" name="l00553"></a><span class="lineno">  553</span><span class="comment">    /// @throws Whatever `SqlDataBinder&lt;InnerType&gt;::GetColumn` throws — this forwards to an arbitrary</span></div>
+<div class="line"><a id="l00554" name="l00554"></a><span class="lineno">  554</span><span class="comment">    ///         binder and cannot promise more than the one it wraps.</span></div>
+<div class="line"><a id="l00555" name="l00555"></a><span class="lineno">  555</span><span class="comment"></span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE SQLRETURN</div>
+<div class="line"><a id="l00556" name="l00556"></a><span class="lineno">  556</span>    GetColumn(SQLHSTMT stmt, SQLUSMALLINT column, SelfType* result, SQLLEN* indicator, SqlDataBinderCallback <span class="keyword">const</span>&amp; cb)</div>
+<div class="line"><a id="l00557" name="l00557"></a><span class="lineno">  557</span>    {</div>
+<div class="line"><a id="l00558" name="l00558"></a><span class="lineno">  558</span>        <span class="keyword">auto</span> <span class="keyword">const</span> sqlReturn = SqlDataBinder&lt;InnerType&gt;::GetColumn(stmt, column, &amp;result-&gt;MutableValue(), indicator, cb);</div>
+<div class="line"><a id="l00559" name="l00559"></a><span class="lineno">  559</span>        <span class="keywordflow">if</span> (SQL_SUCCEEDED(sqlReturn))</div>
+<div class="line"><a id="l00560" name="l00560"></a><span class="lineno">  560</span>            result-&gt;SetModified(<span class="keyword">true</span>);</div>
+<div class="line"><a id="l00561" name="l00561"></a><span class="lineno">  561</span>        <span class="keywordflow">return</span> sqlReturn;</div>
+<div class="line"><a id="l00562" name="l00562"></a><span class="lineno">  562</span>    }</div>
+<div class="line"><a id="l00563" name="l00563"></a><span class="lineno">  563</span>};</div>
+<div class="line"><a id="l00564" name="l00564"></a><span class="lineno">  564</span> </div>
+<div class="line"><a id="l00565" name="l00565"></a><span class="lineno">  565</span>} <span class="comment">// namespace Lightweight</span></div>
 <div class="ttc" id="aclassLightweight_1_1BelongsTo_html"><div class="ttname"><a href="../../d0/df7/classLightweight_1_1BelongsTo.html">Lightweight::BelongsTo</a></div><div class="ttdoc">Represents the many-to-one side of a foreign-key relationship.</div><div class="ttdef"><b>Definition</b> <a href="../../da/d23/BelongsTo_8hpp_source.html#l00062">BelongsTo.hpp:63</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1BelongsTo_html_a0645bc64e5f24bf31241aac597cf45d6"><div class="ttname"><a href="../../d0/df7/classLightweight_1_1BelongsTo.html#a0645bc64e5f24bf31241aac597cf45d6">Lightweight::BelongsTo::operator=</a></div><div class="ttdeci">BelongsTo &amp; operator=(BelongsTo &amp;&amp;other) noexcept</div><div class="ttdoc">Move assignment operator.</div><div class="ttdef"><b>Definition</b> <a href="../../da/d23/BelongsTo_8hpp_source.html#l00246">BelongsTo.hpp:246</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1BelongsTo_html_a07472abfd8c6bcd51dc60e7970be3c45"><div class="ttname"><a href="../../d0/df7/classLightweight_1_1BelongsTo.html#a07472abfd8c6bcd51dc60e7970be3c45">Lightweight::BelongsTo::AdoptFetchedRecord</a></div><div class="ttdeci">LIGHTWEIGHT_FORCE_INLINE void AdoptFetchedRecord(std::optional&lt; ReferencedRecord &gt; record)</div><div class="ttdef"><b>Definition</b> <a href="../../da/d23/BelongsTo_8hpp_source.html#l00385">BelongsTo.hpp:385</a></div></div>

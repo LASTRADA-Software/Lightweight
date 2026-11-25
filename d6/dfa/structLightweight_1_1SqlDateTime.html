@@ -110,8 +110,6 @@ Public Types</h2></td></tr>
 <tr class="memitem:a864ea837f4bd552b8b2b640a32dc4cd4" id="r_a864ea837f4bd552b8b2b640a32dc4cd4"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d6/dfa/structLightweight_1_1SqlDateTime.html#a864ea837f4bd552b8b2b640a32dc4cd4">duration_type</a> = std::chrono::system_clock::duration</td></tr>
 <tr class="memdesc:a864ea837f4bd552b8b2b640a32dc4cd4"><td class="mdescLeft">&#160;</td><td class="mdescRight">The duration type used for arithmetic operations.  <br /></td></tr>
 <tr class="separator:a864ea837f4bd552b8b2b640a32dc4cd4"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a74c818617ded3bed4d9a9197a9115cc2" id="r_a74c818617ded3bed4d9a9197a9115cc2"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d6/dfa/structLightweight_1_1SqlDateTime.html#a74c818617ded3bed4d9a9197a9115cc2">arithmetic_duration</a> = std::common_type_t&lt; <a class="el" href="../../d6/dfa/structLightweight_1_1SqlDateTime.html#a864ea837f4bd552b8b2b640a32dc4cd4">duration_type</a>, std::chrono::duration&lt; long long, std::ratio&lt; 1, 10 '000 '000 &gt; &gt; &gt;</td></tr>
-<tr class="separator:a74c818617ded3bed4d9a9197a9115cc2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
@@ -136,6 +134,7 @@ constexpr <a class="el" href="../../d6/dfa/structLightweight_1_1SqlDateTime.html
 <tr class="memdesc:a811af944dcb1894e543003d5ddf5d2c5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Default copy assignment operator. <br /></td></tr>
 <tr class="separator:a811af944dcb1894e543003d5ddf5d2c5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4073ddbeadc581f1528fc44fa7e9fb70" id="r_a4073ddbeadc581f1528fc44fa7e9fb70"><td class="memItemLeft" align="right" valign="top">constexpr std::weak_ordering&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d6/dfa/structLightweight_1_1SqlDateTime.html#a4073ddbeadc581f1528fc44fa7e9fb70">operator&lt;=&gt;</a> (<a class="el" href="../../d6/dfa/structLightweight_1_1SqlDateTime.html">SqlDateTime</a> const &amp;other) const noexcept</td></tr>
+<tr class="memdesc:a4073ddbeadc581f1528fc44fa7e9fb70"><td class="mdescLeft">&#160;</td><td class="mdescRight">Three-way comparison operator.  <br /></td></tr>
 <tr class="separator:a4073ddbeadc581f1528fc44fa7e9fb70"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2fe4b8eee3bc27c8097d057b490b1319" id="r_a2fe4b8eee3bc27c8097d057b490b1319"><td class="memItemLeft" align="right" valign="top">constexpr bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d6/dfa/structLightweight_1_1SqlDateTime.html#a2fe4b8eee3bc27c8097d057b490b1319">operator==</a> (<a class="el" href="../../d6/dfa/structLightweight_1_1SqlDateTime.html">SqlDateTime</a> const &amp;other) const noexcept</td></tr>
 <tr class="memdesc:a2fe4b8eee3bc27c8097d057b490b1319"><td class="mdescLeft">&#160;</td><td class="mdescRight">Equality comparison operator.  <br /></td></tr>
@@ -174,7 +173,7 @@ constexpr <a class="el" href="../../d6/dfa/structLightweight_1_1SqlDateTime.html
 <tr class="memdesc:a8936bb67e7a6cccf8b462302175ca0c7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the nanosecond of this date-time object.  <br /></td></tr>
 <tr class="separator:a8936bb67e7a6cccf8b462302175ca0c7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a7caa34aea54756006662814867fdcb72" id="r_a7caa34aea54756006662814867fdcb72"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE constexpr&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d6/dfa/structLightweight_1_1SqlDateTime.html#a7caa34aea54756006662814867fdcb72">operator native_type</a> () const noexcept</td></tr>
-<tr class="memdesc:a7caa34aea54756006662814867fdcb72"><td class="mdescLeft">&#160;</td><td class="mdescRight">Converts this <a class="el" href="../../d6/dfa/structLightweight_1_1SqlDateTime.html">SqlDateTime</a> to its native time_point representation (within the range <a class="el" href="../../d6/dfa/structLightweight_1_1SqlDateTime.html#ad9d7388657a62e1037680c4d4dab9eea">value()</a> documents).  <br /></td></tr>
+<tr class="memdesc:a7caa34aea54756006662814867fdcb72"><td class="mdescLeft">&#160;</td><td class="mdescRight">Converts this <a class="el" href="../../d6/dfa/structLightweight_1_1SqlDateTime.html">SqlDateTime</a> to its native time_point representation.  <br /></td></tr>
 <tr class="separator:a7caa34aea54756006662814867fdcb72"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a50c214ccbdedd65463ff121de8489e60" id="r_a50c214ccbdedd65463ff121de8489e60"><td class="memItemLeft" align="right" valign="top">constexpr LIGHTWEIGHT_FORCE_INLINE <a class="el" href="../../d9/de1/structLightweight_1_1SqlDate.html">SqlDate</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d6/dfa/structLightweight_1_1SqlDateTime.html#a50c214ccbdedd65463ff121de8489e60">Date</a> () const noexcept</td></tr>
 <tr class="memdesc:a50c214ccbdedd65463ff121de8489e60"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructs only a date from a SQL date-time structure.  <br /></td></tr>
@@ -183,12 +182,14 @@ constexpr <a class="el" href="../../d6/dfa/structLightweight_1_1SqlDateTime.html
 <tr class="memdesc:ab670fd561755bd58aaa31099a291af23"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructs only a time from a SQL date-time structure.  <br /></td></tr>
 <tr class="separator:ab670fd561755bd58aaa31099a291af23"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad9d7388657a62e1037680c4d4dab9eea" id="r_ad9d7388657a62e1037680c4d4dab9eea"><td class="memItemLeft" align="right" valign="top">constexpr LIGHTWEIGHT_FORCE_INLINE <a class="el" href="../../d6/dfa/structLightweight_1_1SqlDateTime.html#a5cfbb0f2fc1b68b0fd3983316b203ebc">native_type</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d6/dfa/structLightweight_1_1SqlDateTime.html#ad9d7388657a62e1037680c4d4dab9eea">value</a> () const noexcept</td></tr>
+<tr class="memdesc:ad9d7388657a62e1037680c4d4dab9eea"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the current date and time.  <br /></td></tr>
 <tr class="separator:ad9d7388657a62e1037680c4d4dab9eea"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a4cf4a3178b29fea2098c78fd22923c87" id="r_a4cf4a3178b29fea2098c78fd22923c87"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../d6/dfa/structLightweight_1_1SqlDateTime.html">SqlDateTime</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d6/dfa/structLightweight_1_1SqlDateTime.html#a4cf4a3178b29fea2098c78fd22923c87">operator+=</a> (<a class="el" href="../../d6/dfa/structLightweight_1_1SqlDateTime.html#a864ea837f4bd552b8b2b640a32dc4cd4">duration_type</a> duration) noexcept</td></tr>
-<tr class="separator:a4cf4a3178b29fea2098c78fd22923c87"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a16edb6ae12044818e69409d54b6f8afa" id="r_a16edb6ae12044818e69409d54b6f8afa"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../d6/dfa/structLightweight_1_1SqlDateTime.html">SqlDateTime</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d6/dfa/structLightweight_1_1SqlDateTime.html#a16edb6ae12044818e69409d54b6f8afa">operator-=</a> (<a class="el" href="../../d6/dfa/structLightweight_1_1SqlDateTime.html#a864ea837f4bd552b8b2b640a32dc4cd4">duration_type</a> duration) noexcept</td></tr>
-<tr class="memdesc:a16edb6ae12044818e69409d54b6f8afa"><td class="mdescLeft">&#160;</td><td class="mdescRight">Subtracts a duration from this date-time, keeping the fraction's 100 ns digits (see <a class="el" href="../../d6/dfa/structLightweight_1_1SqlDateTime.html#a4cf4a3178b29fea2098c78fd22923c87">operator+=()</a>).  <br /></td></tr>
-<tr class="separator:a16edb6ae12044818e69409d54b6f8afa"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac9909a40a0ef444af5bf3e28dee1bd6a" id="r_ac9909a40a0ef444af5bf3e28dee1bd6a"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE <a class="el" href="../../d6/dfa/structLightweight_1_1SqlDateTime.html">SqlDateTime</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d6/dfa/structLightweight_1_1SqlDateTime.html#ac9909a40a0ef444af5bf3e28dee1bd6a">operator+=</a> (<a class="el" href="../../d6/dfa/structLightweight_1_1SqlDateTime.html#a864ea837f4bd552b8b2b640a32dc4cd4">duration_type</a> duration) noexcept</td></tr>
+<tr class="memdesc:ac9909a40a0ef444af5bf3e28dee1bd6a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Adds a duration to this date-time.  <br /></td></tr>
+<tr class="separator:ac9909a40a0ef444af5bf3e28dee1bd6a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a888891e5250a2c3221777bcaf3e6d47b" id="r_a888891e5250a2c3221777bcaf3e6d47b"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE <a class="el" href="../../d6/dfa/structLightweight_1_1SqlDateTime.html">SqlDateTime</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d6/dfa/structLightweight_1_1SqlDateTime.html#a888891e5250a2c3221777bcaf3e6d47b">operator-=</a> (<a class="el" href="../../d6/dfa/structLightweight_1_1SqlDateTime.html#a864ea837f4bd552b8b2b640a32dc4cd4">duration_type</a> duration) noexcept</td></tr>
+<tr class="memdesc:a888891e5250a2c3221777bcaf3e6d47b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Subtracts a duration from this date-time.  <br /></td></tr>
+<tr class="separator:a888891e5250a2c3221777bcaf3e6d47b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-static-methods" name="pub-static-methods"></a>
 Static Public Member Functions</h2></td></tr>
@@ -218,7 +219,7 @@ Public Attributes</h2></td></tr>
 <div class="textblock"><p>Represents a date and time to efficiently write to or read from a database.</p>
 <dl class="section see"><dt>See also</dt><dd><a class="el" href="../../d9/de1/structLightweight_1_1SqlDate.html">SqlDate</a>, <a class="el" href="../../d7/d53/structLightweight_1_1SqlTime.html">SqlTime</a> </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00032">32</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00031">31</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
 </div><h2 class="groupheader">Member Typedef Documentation</h2>
 <a id="a5cfbb0f2fc1b68b0fd3983316b203ebc" name="a5cfbb0f2fc1b68b0fd3983316b203ebc"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a5cfbb0f2fc1b68b0fd3983316b203ebc">&#9670;&#160;</a></span>native_type</h2>
@@ -234,7 +235,7 @@ Public Attributes</h2></td></tr>
 
 <p>The native C++ type representing a date-time value. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00035">35</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00034">34</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
 
 </div>
 </div>
@@ -252,24 +253,7 @@ Public Attributes</h2></td></tr>
 
 <p>The duration type used for arithmetic operations. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00037">37</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
-
-</div>
-</div>
-<a id="a74c818617ded3bed4d9a9197a9115cc2" name="a74c818617ded3bed4d9a9197a9115cc2"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a74c818617ded3bed4d9a9197a9115cc2">&#9670;&#160;</a></span>arithmetic_duration</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">using <a class="el" href="../../d6/dfa/structLightweight_1_1SqlDateTime.html#a74c818617ded3bed4d9a9197a9115cc2">Lightweight::SqlDateTime::arithmetic_duration</a> =  std::common_type_t&lt;<a class="el" href="../../d6/dfa/structLightweight_1_1SqlDateTime.html#a864ea837f4bd552b8b2b640a32dc4cd4">duration_type</a>, std::chrono::duration&lt;long long, std::ratio&lt;1, 10'000'000&gt; &gt;&gt;</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-<p>The duration the arithmetic operators compute in: as fine as the fraction's 100 ns and as <a class="el" href="../../d6/dfa/structLightweight_1_1SqlDateTime.html#a864ea837f4bd552b8b2b640a32dc4cd4">duration_type</a>, independent of the tick of <code>system_clock</code> (100 ns on MSVC, 1 ns on libstdc++, 1 us on libc++). </p>
-
-<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00040">40</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00036">36</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
 
 </div>
 </div>
@@ -310,7 +294,7 @@ Public Attributes</h2></td></tr>
 
 <p>Constructs a date and time from individual components. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00100">100</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00088">88</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
 
 </div>
 </div>
@@ -380,9 +364,9 @@ Public Attributes</h2></td></tr>
 
 <p>Constructs a date and time from individual components. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00116">116</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00104">104</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00157">day()</a>, <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00163">hour()</a>, <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00169">minute()</a>, <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00151">month()</a>, <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00181">nanosecond()</a>, <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00175">second()</a>, and <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00145">year()</a>.</p>
+<p class="reference">References <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00145">day()</a>, <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00151">hour()</a>, <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00157">minute()</a>, <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00139">month()</a>, <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00169">nanosecond()</a>, <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00163">second()</a>, and <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00133">year()</a>.</p>
 
 </div>
 </div>
@@ -412,9 +396,9 @@ Public Attributes</h2></td></tr>
 
 <p>Constructs a date and time from a time point. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00137">137</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00125">125</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00210">ConvertToSqlValue()</a>, and <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00261">value()</a>.</p>
+<p class="reference">References <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00198">ConvertToSqlValue()</a>, and <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00245">value()</a>.</p>
 
 </div>
 </div>
@@ -444,7 +428,7 @@ Public Attributes</h2></td></tr>
 
 <p>Returns the current date and time. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00044">44</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00039">39</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
 
 </div>
 </div>
@@ -473,7 +457,7 @@ Public Attributes</h2></td></tr>
 
 <p>Return the current date and time in UTC. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00051">51</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00046">46</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
 
 </div>
 </div>
@@ -500,12 +484,12 @@ Public Attributes</h2></td></tr>
   </tr>
 </table>
 </div><div class="memdoc">
-<p>Three-way comparison operator.</p>
-<p>Compares the stored fields from the year down to the fraction, which orders every value the clock can represent as <a class="el" href="../../d6/dfa/structLightweight_1_1SqlDateTime.html#ad9d7388657a62e1037680c4d4dab9eea">value()</a> does, and every other one too: a time point of <code>system_clock</code> overflows outside about 1678..2262 where it counts nanoseconds (libstdc++, libc++). </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00080">80</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
+<p>Three-way comparison operator. </p>
 
-<p class="reference">References <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00296">sqlValue</a>, and <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00145">year()</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00071">71</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
+
+<p class="reference">References <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00245">value()</a>.</p>
 
 </div>
 </div>
@@ -535,7 +519,7 @@ Public Attributes</h2></td></tr>
 
 <p>Equality comparison operator. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00088">88</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00076">76</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
 
 </div>
 </div>
@@ -565,7 +549,7 @@ Public Attributes</h2></td></tr>
 
 <p>Inequality comparison operator. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00094">94</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00082">82</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
 
 </div>
 </div>
@@ -594,11 +578,11 @@ Public Attributes</h2></td></tr>
 
 <p>Returns the year of this date-time object. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00145">145</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00133">133</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00296">sqlValue</a>.</p>
+<p class="reference">References <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00275">sqlValue</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00195">Date()</a>, <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00080">operator&lt;=&gt;()</a>, and <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00116">SqlDateTime()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00183">Date()</a>, and <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00104">SqlDateTime()</a>.</p>
 
 </div>
 </div>
@@ -627,11 +611,11 @@ Public Attributes</h2></td></tr>
 
 <p>Returns the month of this date-time object. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00151">151</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00139">139</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00296">sqlValue</a>.</p>
+<p class="reference">References <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00275">sqlValue</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00195">Date()</a>, and <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00116">SqlDateTime()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00183">Date()</a>, and <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00104">SqlDateTime()</a>.</p>
 
 </div>
 </div>
@@ -660,11 +644,11 @@ Public Attributes</h2></td></tr>
 
 <p>Returns the day of this date-time object. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00157">157</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00145">145</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00296">sqlValue</a>.</p>
+<p class="reference">References <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00275">sqlValue</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00195">Date()</a>, and <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00116">SqlDateTime()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00183">Date()</a>, and <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00104">SqlDateTime()</a>.</p>
 
 </div>
 </div>
@@ -693,11 +677,11 @@ Public Attributes</h2></td></tr>
 
 <p>Returns the hour of this date-time object. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00163">163</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00151">151</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00296">sqlValue</a>.</p>
+<p class="reference">References <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00275">sqlValue</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00116">SqlDateTime()</a>, and <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00201">Time()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00104">SqlDateTime()</a>, and <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00189">Time()</a>.</p>
 
 </div>
 </div>
@@ -726,11 +710,11 @@ Public Attributes</h2></td></tr>
 
 <p>Returns the minute of this date-time object. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00169">169</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00157">157</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00296">sqlValue</a>.</p>
+<p class="reference">References <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00275">sqlValue</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00116">SqlDateTime()</a>, and <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00201">Time()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00104">SqlDateTime()</a>, and <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00189">Time()</a>.</p>
 
 </div>
 </div>
@@ -759,11 +743,11 @@ Public Attributes</h2></td></tr>
 
 <p>Returns the second of this date-time object. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00175">175</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00163">163</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00296">sqlValue</a>.</p>
+<p class="reference">References <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00275">sqlValue</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00116">SqlDateTime()</a>, and <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00201">Time()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00104">SqlDateTime()</a>, and <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00189">Time()</a>.</p>
 
 </div>
 </div>
@@ -792,11 +776,11 @@ Public Attributes</h2></td></tr>
 
 <p>Returns the nanosecond of this date-time object. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00181">181</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00169">169</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00296">sqlValue</a>.</p>
+<p class="reference">References <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00275">sqlValue</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00116">SqlDateTime()</a>, and <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00201">Time()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00104">SqlDateTime()</a>, and <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00189">Time()</a>.</p>
 
 </div>
 </div>
@@ -823,11 +807,11 @@ Public Attributes</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p>Converts this <a class="el" href="../../d6/dfa/structLightweight_1_1SqlDateTime.html">SqlDateTime</a> to its native time_point representation (within the range <a class="el" href="../../d6/dfa/structLightweight_1_1SqlDateTime.html#ad9d7388657a62e1037680c4d4dab9eea">value()</a> documents). </p>
+<p>Converts this <a class="el" href="../../d6/dfa/structLightweight_1_1SqlDateTime.html">SqlDateTime</a> to its native time_point representation. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00189">189</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00177">177</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00261">value()</a>.</p>
+<p class="reference">References <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00245">value()</a>.</p>
 
 </div>
 </div>
@@ -856,9 +840,9 @@ Public Attributes</h2></td></tr>
 
 <p>Constructs only a date from a SQL date-time structure. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00195">195</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00183">183</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00157">day()</a>, <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00151">month()</a>, and <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00145">year()</a>.</p>
+<p class="reference">References <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00145">day()</a>, <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00139">month()</a>, and <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00133">year()</a>.</p>
 
 </div>
 </div>
@@ -887,9 +871,9 @@ Public Attributes</h2></td></tr>
 
 <p>Constructs only a time from a SQL date-time structure. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00201">201</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00189">189</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00163">hour()</a>, <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00169">minute()</a>, <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00181">nanosecond()</a>, and <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00175">second()</a>.</p>
+<p class="reference">References <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00151">hour()</a>, <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00157">minute()</a>, <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00169">nanosecond()</a>, and <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00163">second()</a>.</p>
 
 </div>
 </div>
@@ -919,11 +903,11 @@ Public Attributes</h2></td></tr>
 
 <p>Converts a native time_point to the underlying SQL timestamp structure. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00210">210</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00198">198</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00210">ConvertToSqlValue()</a>, and <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00261">value()</a>.</p>
+<p class="reference">References <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00198">ConvertToSqlValue()</a>, and <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00245">value()</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00210">ConvertToSqlValue()</a>, and <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00137">SqlDateTime()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00198">ConvertToSqlValue()</a>, and <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00125">SqlDateTime()</a>.</p>
 
 </div>
 </div>
@@ -963,7 +947,7 @@ Public Attributes</h2></td></tr>
 
 <p>Converts year_month_day and hh_mm_ss components to the underlying SQL timestamp structure. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00221">221</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00209">209</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
 
 </div>
 </div>
@@ -993,9 +977,9 @@ Public Attributes</h2></td></tr>
 
 <p>Converts a SQL timestamp structure to the native time_point representation. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00239">239</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00227">227</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00261">value()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00245">value()</a>.</p>
 
 </div>
 </div>
@@ -1021,19 +1005,19 @@ Public Attributes</h2></td></tr>
   </tr>
 </table>
 </div><div class="memdoc">
-<p>Returns the stored date and time as a time point of <code>std::chrono::system_clock</code>.</p>
-<p>Only dates the clock can count are representable: where it counts nanoseconds in 64 bits (libstdc++, libc++) that is about 1677-09-21 to 2262-04-11; MSVC's 100 ns clock reaches years 1 to 9999. A date outside that range overflows, so read such a value through its fields (<a class="el" href="../../d6/dfa/structLightweight_1_1SqlDateTime.html#a149ce3222ef3ab86a5bbcfe65ae08c13" title="Returns the year of this date-time object.">year()</a>, <a class="el" href="../../d6/dfa/structLightweight_1_1SqlDateTime.html#a5dcb89336b1f32506a60b63e62c788d2" title="Returns the month of this date-time object.">month()</a>, ...) instead. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00261">261</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
+<p>Returns the current date and time. </p>
 
-<p class="reference">References <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00239">ConvertToNative()</a>, and <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00296">sqlValue</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00245">245</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00210">ConvertToSqlValue()</a>, <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00189">operator native_type()</a>, and <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00137">SqlDateTime()</a>.</p>
+<p class="reference">References <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00227">ConvertToNative()</a>, and <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00275">sqlValue</a>.</p>
+
+<p class="reference">Referenced by <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00198">ConvertToSqlValue()</a>, <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00177">operator native_type()</a>, <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00251">operator+=()</a>, <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00258">operator-=()</a>, <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00071">operator&lt;=&gt;()</a>, and <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00125">SqlDateTime()</a>.</p>
 
 </div>
 </div>
-<a id="a4cf4a3178b29fea2098c78fd22923c87" name="a4cf4a3178b29fea2098c78fd22923c87"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a4cf4a3178b29fea2098c78fd22923c87">&#9670;&#160;</a></span>operator+=()</h2>
+<a id="ac9909a40a0ef444af5bf3e28dee1bd6a" name="ac9909a40a0ef444af5bf3e28dee1bd6a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac9909a40a0ef444af5bf3e28dee1bd6a">&#9670;&#160;</a></span>operator+=()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1042,7 +1026,7 @@ Public Attributes</h2></td></tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../d6/dfa/structLightweight_1_1SqlDateTime.html">SqlDateTime</a> &amp; Lightweight::SqlDateTime::operator+= </td>
+          <td class="memname">LIGHTWEIGHT_FORCE_INLINE <a class="el" href="../../d6/dfa/structLightweight_1_1SqlDateTime.html">SqlDateTime</a> &amp; Lightweight::SqlDateTime::operator+= </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="../../d6/dfa/structLightweight_1_1SqlDateTime.html#a864ea837f4bd552b8b2b640a32dc4cd4">duration_type</a>&#160;</td>
           <td class="paramname"><em>duration</em></td><td>)</td>
@@ -1051,19 +1035,21 @@ Public Attributes</h2></td></tr>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">constexpr</span><span class="mlabel">noexcept</span></span>  </td>
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">noexcept</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
-<p>Adds a duration to this date-time.</p>
-<p>The sum is taken in <a class="el" href="../../d6/dfa/structLightweight_1_1SqlDateTime.html#a74c818617ded3bed4d9a9197a9115cc2">arithmetic_duration</a>, so the fraction keeps its 100 ns digits whatever <code>system_clock</code> counts in (microseconds on libc++). </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00270">270</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
+<p>Adds a duration to this date-time. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00251">251</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
+
+<p class="reference">References <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00245">value()</a>.</p>
 
 </div>
 </div>
-<a id="a16edb6ae12044818e69409d54b6f8afa" name="a16edb6ae12044818e69409d54b6f8afa"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a16edb6ae12044818e69409d54b6f8afa">&#9670;&#160;</a></span>operator-=()</h2>
+<a id="a888891e5250a2c3221777bcaf3e6d47b" name="a888891e5250a2c3221777bcaf3e6d47b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a888891e5250a2c3221777bcaf3e6d47b">&#9670;&#160;</a></span>operator-=()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1072,7 +1058,7 @@ Public Attributes</h2></td></tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../d6/dfa/structLightweight_1_1SqlDateTime.html">SqlDateTime</a> &amp; Lightweight::SqlDateTime::operator-= </td>
+          <td class="memname">LIGHTWEIGHT_FORCE_INLINE <a class="el" href="../../d6/dfa/structLightweight_1_1SqlDateTime.html">SqlDateTime</a> &amp; Lightweight::SqlDateTime::operator-= </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="../../d6/dfa/structLightweight_1_1SqlDateTime.html#a864ea837f4bd552b8b2b640a32dc4cd4">duration_type</a>&#160;</td>
           <td class="paramname"><em>duration</em></td><td>)</td>
@@ -1081,14 +1067,16 @@ Public Attributes</h2></td></tr>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">constexpr</span><span class="mlabel">noexcept</span></span>  </td>
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">noexcept</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
 
-<p>Subtracts a duration from this date-time, keeping the fraction's 100 ns digits (see <a class="el" href="../../d6/dfa/structLightweight_1_1SqlDateTime.html#a4cf4a3178b29fea2098c78fd22923c87">operator+=()</a>). </p>
+<p>Subtracts a duration from this date-time. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00277">277</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00258">258</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
+
+<p class="reference">References <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00245">value()</a>.</p>
 
 </div>
 </div>
@@ -1107,9 +1095,9 @@ Public Attributes</h2></td></tr>
 
 <p>Holds the underlying SQL timestamp structure. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00296">296</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00275">275</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00157">day()</a>, <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00163">hour()</a>, <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00169">minute()</a>, <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00151">month()</a>, <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00181">nanosecond()</a>, <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00080">operator&lt;=&gt;()</a>, <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00175">second()</a>, <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00261">value()</a>, and <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00145">year()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00145">day()</a>, <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00151">hour()</a>, <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00157">minute()</a>, <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00139">month()</a>, <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00169">nanosecond()</a>, <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00163">second()</a>, <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00245">value()</a>, and <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00133">year()</a>.</p>
 
 </div>
 </div>

@@ -114,8 +114,6 @@ Static Public Member Functions</h2></td></tr>
 <tr class="memitem:ada8b1480bd08bb27fd10fcc96639483d" id="r_ada8b1480bd08bb27fd10fcc96639483d"><td class="memItemLeft" align="right" valign="top">static <a class="el" href="../../d8/d5b/structLightweight_1_1SqlErrorInfo.html">SqlErrorInfo</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/d5b/structLightweight_1_1SqlErrorInfo.html#ada8b1480bd08bb27fd10fcc96639483d">FromEnvironmentHandle</a> (SQLHENV hEnv)</td></tr>
 <tr class="memdesc:ada8b1480bd08bb27fd10fcc96639483d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructs an ODBC error info object from the given ODBC environment handle.  <br /></td></tr>
 <tr class="separator:ada8b1480bd08bb27fd10fcc96639483d"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a3b0d12f872b4c863c0af8669f39c6549" id="r_a3b0d12f872b4c863c0af8669f39c6549"><td class="memItemLeft" align="right" valign="top">static LIGHTWEIGHT_API <a class="el" href="../../d8/d5b/structLightweight_1_1SqlErrorInfo.html">SqlErrorInfo</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/d5b/structLightweight_1_1SqlErrorInfo.html#a3b0d12f872b4c863c0af8669f39c6549">FirstErrorFromStatementHandle</a> (SQLHSTMT hStmt)</td></tr>
-<tr class="separator:a3b0d12f872b4c863c0af8669f39c6549"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a7de5c5fd32fc8eed7cd2baa12f716669" id="r_a7de5c5fd32fc8eed7cd2baa12f716669"><td class="memItemLeft" align="right" valign="top"><a id="a7de5c5fd32fc8eed7cd2baa12f716669" name="a7de5c5fd32fc8eed7cd2baa12f716669"></a>
 static void&#160;</td><td class="memItemRight" valign="bottom"><b>RequireStatementSuccess</b> (SQLRETURN result, SQLHSTMT hStmt, std::string_view <a class="el" href="../../d8/d5b/structLightweight_1_1SqlErrorInfo.html#a6f37a42c40ff6b1c873e2f9be2cce148">message</a>)</td></tr>
 <tr class="memdesc:a7de5c5fd32fc8eed7cd2baa12f716669"><td class="mdescLeft">&#160;</td><td class="mdescRight">Asserts that the given result is a success code, otherwise throws an exception. <br /></td></tr>
@@ -138,7 +136,7 @@ Public Attributes</h2></td></tr>
 <p>NOTE: This is a simple wrapper around the SQL return codes. It is not meant to be comprehensive, but rather to provide a simple way to convert SQL return codes to std::error_code.</p>
 <p>The code below is DRAFT and may be subject to change. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d02/SqlError_8hpp_source.html#l00033">33</a> of file <a class="el" href="../../d9/d02/SqlError_8hpp_source.html">SqlError.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d02/SqlError_8hpp_source.html#l00031">31</a> of file <a class="el" href="../../d9/d02/SqlError_8hpp_source.html">SqlError.hpp</a>.</p>
 </div><h2 class="groupheader">Member Function Documentation</h2>
 <a id="ae47def24d7fb0b76a4a6d3531b0721f6" name="ae47def24d7fb0b76a4a6d3531b0721f6"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ae47def24d7fb0b76a4a6d3531b0721f6">&#9670;&#160;</a></span>FromConnectionHandle()</h2>
@@ -166,7 +164,7 @@ Public Attributes</h2></td></tr>
 
 <p>Constructs an ODBC error info object from the given ODBC connection handle. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d02/SqlError_8hpp_source.html#l00043">43</a> of file <a class="el" href="../../d9/d02/SqlError_8hpp_source.html">SqlError.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d02/SqlError_8hpp_source.html#l00041">41</a> of file <a class="el" href="../../d9/d02/SqlError_8hpp_source.html">SqlError.hpp</a>.</p>
 
 </div>
 </div>
@@ -196,7 +194,7 @@ Public Attributes</h2></td></tr>
 
 <p>Constructs an ODBC error info object from the given ODBC statement handle. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d02/SqlError_8hpp_source.html#l00049">49</a> of file <a class="el" href="../../d9/d02/SqlError_8hpp_source.html">SqlError.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d02/SqlError_8hpp_source.html#l00047">47</a> of file <a class="el" href="../../d9/d02/SqlError_8hpp_source.html">SqlError.hpp</a>.</p>
 
 </div>
 </div>
@@ -226,41 +224,7 @@ Public Attributes</h2></td></tr>
 
 <p>Constructs an ODBC error info object from the given ODBC environment handle. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d02/SqlError_8hpp_source.html#l00055">55</a> of file <a class="el" href="../../d9/d02/SqlError_8hpp_source.html">SqlError.hpp</a>.</p>
-
-</div>
-</div>
-<a id="a3b0d12f872b4c863c0af8669f39c6549" name="a3b0d12f872b4c863c0af8669f39c6549"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a3b0d12f872b4c863c0af8669f39c6549">&#9670;&#160;</a></span>FirstErrorFromStatementHandle()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">static LIGHTWEIGHT_API <a class="el" href="../../d8/d5b/structLightweight_1_1SqlErrorInfo.html">SqlErrorInfo</a> Lightweight::SqlErrorInfo::FirstErrorFromStatementHandle </td>
-          <td>(</td>
-          <td class="paramtype">SQLHSTMT&#160;</td>
-          <td class="paramname"><em>hStmt</em></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">static</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-<p>Constructs an ODBC error info object from the first diagnostic record of <code>hStmt</code> that is not a warning.</p>
-<p>ODBC orders the records of a block fetch by row, so a warning of an earlier row (01S07, 01004) comes before the error of a later one. </p><dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">hStmt</td><td>The statement handle. </td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>The first record whose SQLSTATE class is not 01; record 1 when every record is a warning. </dd></dl>
+<p class="definition">Definition at line <a class="el" href="../../d9/d02/SqlError_8hpp_source.html#l00053">53</a> of file <a class="el" href="../../d9/d02/SqlError_8hpp_source.html">SqlError.hpp</a>.</p>
 
 </div>
 </div>
@@ -279,9 +243,9 @@ Public Attributes</h2></td></tr>
 
 <p>The native ODBC error code. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d02/SqlError_8hpp_source.html#l00036">36</a> of file <a class="el" href="../../d9/d02/SqlError_8hpp_source.html">SqlError.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d02/SqlError_8hpp_source.html#l00034">34</a> of file <a class="el" href="../../d9/d02/SqlError_8hpp_source.html">SqlError.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l03223">Lightweight::SqlStatement::ExecuteDirectScalar()</a>, and <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00563">Lightweight::SqlDataBinder&lt; SqlDynamicNumeric &gt;::GetColumn()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l02787">Lightweight::SqlStatement::ExecuteDirectScalar()</a>, and <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00499">Lightweight::SqlDataBinder&lt; SqlDynamicNumeric &gt;::GetColumn()</a>.</p>
 
 </div>
 </div>
@@ -299,7 +263,7 @@ Public Attributes</h2></td></tr>
 
 <p>The SQLSTATE diagnostic code (5 characters). </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d02/SqlError_8hpp_source.html#l00038">38</a> of file <a class="el" href="../../d9/d02/SqlError_8hpp_source.html">SqlError.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d02/SqlError_8hpp_source.html#l00036">36</a> of file <a class="el" href="../../d9/d02/SqlError_8hpp_source.html">SqlError.hpp</a>.</p>
 
 </div>
 </div>
@@ -317,7 +281,7 @@ Public Attributes</h2></td></tr>
 
 <p>The human-readable error message. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d02/SqlError_8hpp_source.html#l00040">40</a> of file <a class="el" href="../../d9/d02/SqlError_8hpp_source.html">SqlError.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d02/SqlError_8hpp_source.html#l00038">38</a> of file <a class="el" href="../../d9/d02/SqlError_8hpp_source.html">SqlError.hpp</a>.</p>
 
 </div>
 </div>
