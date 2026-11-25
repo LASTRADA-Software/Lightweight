@@ -123,6 +123,7 @@ set(SOURCE_FILES
     SqlStatementBatchFetchTests.cpp
     SqlStatementPrefetchTests.cpp
     SqlStatementDbTests.cpp
+    SqlStatementParameterLifetimeTests.cpp
     SqlTransactionTests.cpp
     ThreadSafeQueueTests.cpp
     SqlVariantAccessorTests.cpp

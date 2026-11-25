@@ -202,18 +202,20 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
 
     /// Binds an input parameter to the prepared statement at the given column index.
     ///
-    /// The value is bound by address: the driver reads it only at the next @c Execute(), so @p arg
-    /// must stay alive until then. Temporaries are therefore rejected at compile time.
+    /// The value is bound by address: the driver reads it at every @c Execute() until the parameter is
+    /// bound again or another query is prepared, so @p arg must stay alive as long as it is executed.
+    /// Temporaries are therefore rejected at compile time. A copy the binder made of @p arg (e.g. a
+    /// converted string) is kept by the statement for as long as the binding.
     ///
     /// @param columnIndex The 1-based parameter index.
-    /// @param arg The value to bind; it must outlive the next @c Execute().
+    /// @param arg The value to bind; it must outlive every @c Execute() of this binding.
     template <SqlInputParameterBinder Arg>
     void BindInputParameter(SQLSMALLINT columnIndex, Arg const& arg);
 
     /// Binds an input parameter to the prepared statement at the given column index with a column name hint.
     ///
     /// @param columnIndex The 1-based parameter index.
-    /// @param arg The value to bind; it must outlive the next @c Execute().
+    /// @param arg The value to bind; it must outlive every @c Execute() of this binding.
     /// @param columnNameHint The column name, reported to the SQL logger.
     template <SqlInputParameterBinder Arg, typename ColumnName>
     void BindInputParameter(SQLSMALLINT columnIndex, Arg const& arg, ColumnName&& columnNameHint);
@@ -531,6 +533,7 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     LIGHTWEIGHT_API void RequireSuccess(SQLRETURN error,
                                         std::source_location sourceLocation = std::source_location::current()) const;
     LIGHTWEIGHT_API void PlanPostExecuteCallback(std::function<void()>&& cb) override;
+    LIGHTWEIGHT_API void KeepInputParameterAlive(SQLUSMALLINT column, std::shared_ptr<void const> buffer) override;
     LIGHTWEIGHT_API void PlanPostProcessOutputColumn(std::function<void()>&& cb) override;
     LIGHTWEIGHT_API void PlanPreFetchOutputColumn(SqlOutputColumnPreFetch const& step) override;
     [[nodiscard]] LIGHTWEIGHT_API std::size_t MinimumOutputColumnSize(SQLUSMALLINT column,
@@ -571,6 +574,9 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     [[nodiscard]] LIGHTWEIGHT_API std::optional<SQLSMALLINT> DescribeInputParameterType(
         SQLUSMALLINT column) noexcept override;
     LIGHTWEIGHT_API void ClearBatchIndicators();
+    /// @brief Releases the buffers the binders handed over with @ref KeepInputParameterAlive().
+    /// Called wherever the parameter bindings they serve are dropped or their batch has executed.
+    LIGHTWEIGHT_API void DropInputParameterKeepAlives() noexcept;
     /// Sets up column-wise array binding of @p rowCount rows and binds @p columns as input parameters.
     /// @param columns The columns to bind.
     /// @param rowCount The number of rows (parameter sets).
@@ -1834,6 +1840,7 @@ SqlResultCursor SqlStatement::ExecuteBatchNative(FirstColumnBatch const& firstCo
     auto const restoreParameterBinding = detail::Finally([this] {
         ResetParameterArrayBinding();
         ClearBatchIndicators();
+        DropInputParameterKeepAlives();
     });
 
     // clang-format off
@@ -1990,6 +1997,7 @@ SqlResultCursor SqlStatement::ExecuteBatchNativeRowWise(Rows const& rows, Column
     auto const restoreParameterBinding = detail::Finally([this] {
         ResetParameterArrayBinding();
         ClearBatchIndicators();
+        DropInputParameterKeepAlives();
     });
 
     // Row-wise array binding: the driver strides every bound value and indicator pointer by sizeof(RowElem).

@@ -420,7 +420,6 @@ namespace detail
                                            SqlDataBinderCallback& cb) noexcept
     {
         auto u16String = std::make_shared<std::u16string>(NarrowTextToUtf16(text, binding));
-        cb.PlanPostExecuteCallback([u16String = u16String]() {}); // keep buffer alive
         auto const charCount = u16String->size();
         auto const byteCount = charCount * sizeof(char16_t);
         auto const sqlType = static_cast<SQLSMALLINT>(charCount > SqlOptimalMaxColumnSize ? SQL_WLONGVARCHAR : SQL_WVARCHAR);
@@ -428,16 +427,19 @@ namespace detail
         SQLLEN* indicator = cb.ProvideInputIndicator();
         *indicator = static_cast<SQLLEN>(byteCount);
 
-        return SQLBindParameter(stmt,
-                                column,
-                                SQL_PARAM_INPUT,
-                                SQL_C_WCHAR,
-                                sqlType,
-                                NonZeroColumnSize(charCount),
-                                0,
-                                (SQLPOINTER) u16String->data(),
-                                static_cast<SQLLEN>(byteCount),
-                                indicator);
+        return detail::KeepAliveIfBound(cb,
+                                        column,
+                                        u16String,
+                                        SQLBindParameter(stmt,
+                                                         column,
+                                                         SQL_PARAM_INPUT,
+                                                         SQL_C_WCHAR,
+                                                         sqlType,
+                                                         NonZeroColumnSize(charCount),
+                                                         0,
+                                                         (SQLPOINTER) u16String->data(),
+                                                         static_cast<SQLLEN>(byteCount),
+                                                         indicator));
     }
 
 } // namespace detail
@@ -522,7 +524,8 @@ struct SqlDataBinder<AnsiStringType>
     /// Binds a column-wise batch of narrow strings as @c SQL_C_WCHAR, converted to UTF-16 as @p binding prescribes.
     ///
     /// The converted rows are laid out in one buffer with a fixed per-row stride, which the column-wise
-    /// parameter array addresses through the bind's buffer length; the buffer lives until the batch is executed.
+    /// parameter array addresses through the bind's buffer length; the statement keeps the buffer until the batch has
+    /// executed.
     static SQLRETURN BatchInputParameterAsUtf16(SQLHSTMT stmt,
                                                 SQLUSMALLINT column,
                                                 AnsiStringType const* values,
@@ -542,7 +545,6 @@ struct SqlDataBinder<AnsiStringType>
         auto const rowStride = maxChars + 1;
 
         auto buffer = std::make_shared<std::u16string>(rowCount * rowStride, u'\0');
-        cb.PlanPostExecuteCallback([buffer = buffer]() {}); // keep buffer alive
         SQLLEN* indicators = cb.ProvideInputIndicators(rowCount);
         for (auto const rowIndex: std::views::iota(size_t { 0 }, rowCount))
         {
@@ -552,16 +554,19 @@ struct SqlDataBinder<AnsiStringType>
         }
 
         auto const sqlType = static_cast<SQLSMALLINT>(maxChars > SqlOptimalMaxColumnSize ? SQL_WLONGVARCHAR : SQL_WVARCHAR);
-        return SQLBindParameter(stmt,
-                                column,
-                                SQL_PARAM_INPUT,
-                                SQL_C_WCHAR,
-                                sqlType,
-                                detail::NonZeroColumnSize(maxChars),
-                                0,
-                                (SQLPOINTER) buffer->data(),
-                                static_cast<SQLLEN>(rowStride * sizeof(char16_t)),
-                                indicators);
+        return detail::KeepAliveIfBound(cb,
+                                        column,
+                                        buffer,
+                                        SQLBindParameter(stmt,
+                                                         column,
+                                                         SQL_PARAM_INPUT,
+                                                         SQL_C_WCHAR,
+                                                         sqlType,
+                                                         detail::NonZeroColumnSize(maxChars),
+                                                         0,
+                                                         (SQLPOINTER) buffer->data(),
+                                                         static_cast<SQLLEN>(rowStride * sizeof(char16_t)),
+                                                         indicators));
     }
 
     /// Binds an inline fixed-capacity string column of a native row-wise batch zero-copy.
@@ -1015,7 +1020,6 @@ struct SqlDataBinder<Utf32StringType>
         // Always go via UTF-16 + SQL_C_WCHAR; the driver handles encoding conversion
         // for the target server.
         auto u16String = std::make_shared<std::u16string>(ToUtf16(detail::SqlViewHelper<Utf32StringType>::View(value)));
-        cb.PlanPostExecuteCallback([u16String = u16String]() {}); // Keep the string alive
         auto const* data = u16String->data();
         auto const charCount = u16String->size();
         auto const sizeInBytes = u16String->size() * sizeof(char16_t);
@@ -1025,16 +1029,19 @@ struct SqlDataBinder<Utf32StringType>
         SQLLEN* indicator = cb.ProvideInputIndicator();
         *indicator = static_cast<SQLLEN>(sizeInBytes);
 
-        return SQLBindParameter(stmt,
-                                column,
-                                SQL_PARAM_INPUT,
-                                CType,
-                                sqlType,
-                                detail::NonZeroColumnSize(charCount),
-                                0,
-                                (SQLPOINTER) data,
-                                static_cast<SQLLEN>(sizeInBytes),
-                                indicator);
+        return detail::KeepAliveIfBound(cb,
+                                        column,
+                                        u16String,
+                                        SQLBindParameter(stmt,
+                                                         column,
+                                                         SQL_PARAM_INPUT,
+                                                         CType,
+                                                         sqlType,
+                                                         detail::NonZeroColumnSize(charCount),
+                                                         0,
+                                                         (SQLPOINTER) data,
+                                                         static_cast<SQLLEN>(sizeInBytes),
+                                                         indicator));
     }
 
     static SQLRETURN OutputColumn(
@@ -1087,7 +1094,6 @@ struct SqlDataBinder<Utf8StringType>
         // Always go via UTF-16 + SQL_C_WCHAR; the driver handles encoding conversion
         // for the target server.
         auto u16String = std::make_shared<std::u16string>(ToUtf16(detail::SqlViewHelper<Utf8StringType>::View(value)));
-        cb.PlanPostExecuteCallback([u16String = u16String]() {}); // Keep the string alive
 
         auto const CType = SQL_C_WCHAR;
         auto const charCount = u16String->size();
@@ -1097,16 +1103,19 @@ struct SqlDataBinder<Utf8StringType>
         SQLLEN* indicator = cb.ProvideInputIndicator();
         *indicator = static_cast<SQLLEN>(byteCount);
 
-        return SQLBindParameter(stmt,
-                                column,
-                                SQL_PARAM_INPUT,
-                                CType,
-                                sqlType,
-                                detail::NonZeroColumnSize(charCount),
-                                0,
-                                (SQLPOINTER) u16String->data(),
-                                static_cast<SQLLEN>(byteCount),
-                                indicator);
+        return detail::KeepAliveIfBound(cb,
+                                        column,
+                                        u16String,
+                                        SQLBindParameter(stmt,
+                                                         column,
+                                                         SQL_PARAM_INPUT,
+                                                         CType,
+                                                         sqlType,
+                                                         detail::NonZeroColumnSize(charCount),
+                                                         0,
+                                                         (SQLPOINTER) u16String->data(),
+                                                         static_cast<SQLLEN>(byteCount),
+                                                         indicator));
     }
 
     static SQLRETURN OutputColumn(

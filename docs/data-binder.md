@@ -99,6 +99,28 @@ underlying type, before calling the `SqlDataBinder<T>::InputParameter(...)` func
 make use of the passed `callback` to also make sure any additional operations are performed
 at the end of the binding process.
 
+A binder that binds a copy it made (a converted string, a value in another layout) instead of the
+caller's value must keep that copy alive for as long as the parameter is bound to it: the driver reads
+it at every `Execute()` until the parameter is bound again. Hand the copy to
+`callback.KeepInputParameterAlive(column, buffer)` once `SQLBindParameter()` has succeeded, or wrap the
+bind in `detail::KeepAliveIfBound()`, which does exactly that:
+
+```cpp
+static SQLRETURN InputParameter(SQLHSTMT hStmt,
+                                SQLUSMALLINT column,
+                                CustomType const& value,
+                                SqlDataBinderCallback& cb) noexcept
+{
+    auto const copy = std::make_shared<int>(value.value * 10);
+    return detail::KeepAliveIfBound(
+        cb, column, copy, SQLBindParameter(hStmt, column, SQL_PARAM_INPUT, SQL_C_SLONG, SQL_INTEGER, 0, 0, copy.get(), 0, nullptr));
+}
+```
+
+The statement releases the copy when the parameter is bound again after an execution, when a batch it was
+bound for has executed, and when the parameter bindings are dropped (a new query is prepared or executed
+directly). A failed bind hands nothing over, so the previous binding keeps its buffers.
+
 ## OutputColumn()
 
 The `OutputColumn()` function binds the custom type to the SQL statement as an output parameter.

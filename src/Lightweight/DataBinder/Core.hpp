@@ -93,6 +93,27 @@ class LIGHTWEIGHT_API SqlDataBinderCallback
     /// @see SqlDataBinder::PostExecute()
     virtual void PlanPostExecuteCallback(std::function<void()>&&) = 0;
 
+    /// Keeps @p buffer alive for as long as input parameter @p column stays bound to it.
+    ///
+    /// An input binder that binds a copy it made (a converted string, a truncated timestamp) hands
+    /// the copy over here. The driver reads the bound buffer at every execution until the parameter
+    /// is bound again, so the copy must survive repeated executions of the same binding. It is
+    /// released when the parameter is bound again after an execution, or when the statement drops
+    /// its parameter bindings (a new query is prepared or executed directly, or the statement goes
+    /// away). Buffers handed over for the same parameter before its next execution are all kept,
+    /// so a binder that delegates to another binder may hand over its own buffer as well.
+    ///
+    /// The default implementation keeps the buffer only until the next execution, which suits a
+    /// callback that never executes the statement more than once per binding.
+    ///
+    /// @param column The 1-based index of the input parameter bound to @p buffer.
+    /// @param buffer The storage the parameter is bound to.
+    virtual void KeepInputParameterAlive(SQLUSMALLINT column, std::shared_ptr<void const> buffer)
+    {
+        (void) column;
+        PlanPostExecuteCallback([buffer = std::move(buffer)] {});
+    }
+
     /// Plans a callback to be called after every row fetched into the output column being bound.
     ///
     /// The callback stays registered as long as the column binding: it runs after each fetch until the
@@ -209,6 +230,26 @@ struct SqlBasicStringOperations;
 
 namespace detail
 {
+
+    /// @brief Hands @p buffer to @p cb as the storage of input parameter @p column once its bind succeeded.
+    ///
+    /// A failed bind leaves the parameter's previous binding in place, so the buffers that binding
+    /// reads must stay alive: only a successful bind may replace them.
+    ///
+    /// @param cb The data binder callback that keeps the buffer alive.
+    /// @param column The 1-based parameter index.
+    /// @param buffer The storage the parameter was bound to.
+    /// @param bindResult The return code of the bind.
+    /// @return @p bindResult.
+    inline SQLRETURN KeepAliveIfBound(SqlDataBinderCallback& cb,
+                                      SQLUSMALLINT column,
+                                      std::shared_ptr<void const> buffer,
+                                      SQLRETURN bindResult)
+    {
+        if (SQL_SUCCEEDED(bindResult))
+            cb.KeepInputParameterAlive(column, std::move(buffer));
+        return bindResult;
+    }
 
     /// @brief Column size to declare for a variable-length parameter of @p length characters or bytes.
     ///

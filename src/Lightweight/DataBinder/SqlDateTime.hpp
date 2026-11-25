@@ -377,7 +377,7 @@ namespace detail
     /// Binds the timestamps at @p first as `datetime` (23/3) for the legacy in-box SQL Server ODBC driver.
     ///
     /// The driver rejects fractions finer than the bound scale, so this binds a copy truncated to whole
-    /// milliseconds, laid out like the source and kept alive until the statement has executed.
+    /// milliseconds, laid out like the source and kept alive for as long as the parameter is bound to it.
     ///
     /// @param stmt The statement to bind to.
     /// @param column The 1-based parameter index.
@@ -406,18 +406,20 @@ namespace detail
             value.fraction -= value.fraction % NanosecondsPerMillisecond;
             std::memcpy(staged->data() + (row * layout.rowStride), &value, sizeof(value));
         }
-        cb.PlanPostExecuteCallback([staged]() {});
 
-        return SQLBindParameter(stmt,
-                                column,
-                                SQL_PARAM_INPUT,
-                                SQL_C_TIMESTAMP,
-                                SQL_TYPE_TIMESTAMP,
-                                23,
-                                3,
-                                static_cast<SQLPOINTER>(staged->data()),
-                                sizeof(SQL_TIMESTAMP_STRUCT),
-                                indicators);
+        return detail::KeepAliveIfBound(cb,
+                                        column,
+                                        staged,
+                                        SQLBindParameter(stmt,
+                                                         column,
+                                                         SQL_PARAM_INPUT,
+                                                         SQL_C_TIMESTAMP,
+                                                         SQL_TYPE_TIMESTAMP,
+                                                         23,
+                                                         3,
+                                                         static_cast<SQLPOINTER>(staged->data()),
+                                                         sizeof(SQL_TIMESTAMP_STRUCT),
+                                                         indicators));
     }
 } // namespace detail
 

@@ -173,6 +173,29 @@ TEST_CASE_METHOD(SqlTestFixture, "DateTime with sub-millisecond fraction binds",
     }
 }
 
+TEST_CASE_METHOD(SqlTestFixture, "DateTime parameter bound once and executed twice", "[LegacySqlServerDriver]")
+{
+    auto stmt = SqlStatement {};
+    if (stmt.Connection().ServerType() != SqlServerType::MICROSOFT_SQL)
+        return;
+
+    CreateDateTimeTable(stmt, "ExecutedTwice");
+
+    // The legacy driver binds a truncated copy of the value, which the second execution reads again.
+    auto const firstId = 1;
+    auto const at = MakeDay2026(5, 15);
+    stmt.Prepare(R"(INSERT INTO "ExecutedTwice" ("id", "at") VALUES (?, ?))");
+    stmt.BindInputParameter(1, firstId);
+    stmt.BindInputParameter(2, at);
+    (void) stmt.Execute();
+    auto const secondId = 2;
+    stmt.BindInputParameter(1, secondId);
+    (void) stmt.Execute();
+
+    auto const expectedRows = std::array { DateTimeRow { .id = 1, .at = at }, DateTimeRow { .id = 2, .at = at } };
+    CheckRowsReadBack(stmt, "ExecutedTwice", expectedRows);
+}
+
 TEST_CASE_METHOD(SqlTestFixture, "DateTime batch insert", "[LegacySqlServerDriver]")
 {
     auto stmt = SqlStatement {};
