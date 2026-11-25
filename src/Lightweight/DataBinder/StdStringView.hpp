@@ -107,19 +107,21 @@ struct SqlDataBinder<std::basic_string_view<Char32Type>>
                                                              SqlDataBinderCallback& cb) noexcept
     {
         auto u16String = std::make_shared<std::u16string>(ToUtf16(value));
-        cb.PlanPostExecuteCallback([u16String = u16String]() {}); // Keep the string alive
         auto const* data = u16String->data();
         auto const sizeInBytes = u16String->size() * sizeof(Char32Type);
-        return SQLBindParameter(stmt,
-                                column,
-                                SQL_PARAM_INPUT,
-                                CType,
-                                SqlType,
-                                detail::NonZeroColumnSize(sizeInBytes),
-                                0,
-                                (SQLPOINTER) data,
-                                0,
-                                nullptr);
+        return detail::KeepAliveIfBound(cb,
+                                        column,
+                                        u16String,
+                                        SQLBindParameter(stmt,
+                                                         column,
+                                                         SQL_PARAM_INPUT,
+                                                         CType,
+                                                         SqlType,
+                                                         detail::NonZeroColumnSize(sizeInBytes),
+                                                         0,
+                                                         (SQLPOINTER) data,
+                                                         0,
+                                                         nullptr));
     }
 
     static LIGHTWEIGHT_FORCE_INLINE std::string Inspect(std::basic_string_view<Char32Type> value) noexcept
@@ -141,19 +143,21 @@ struct SqlDataBinder<std::u8string_view>
                                                              SqlDataBinderCallback& cb) noexcept
     {
         auto u16String = std::make_shared<std::u16string>(ToUtf16(value));
-        cb.PlanPostExecuteCallback([u16String = u16String]() {}); // Keep the string alive
         auto const* data = u16String->data();
         auto const sizeInBytes = u16String->size() * sizeof(char8_t);
-        return SQLBindParameter(stmt,
-                                column,
-                                SQL_PARAM_INPUT,
-                                CType,
-                                SqlType,
-                                detail::NonZeroColumnSize(sizeInBytes),
-                                0,
-                                (SQLPOINTER) data,
-                                0,
-                                nullptr);
+        return detail::KeepAliveIfBound(cb,
+                                        column,
+                                        u16String,
+                                        SQLBindParameter(stmt,
+                                                         column,
+                                                         SQL_PARAM_INPUT,
+                                                         CType,
+                                                         SqlType,
+                                                         detail::NonZeroColumnSize(sizeInBytes),
+                                                         0,
+                                                         (SQLPOINTER) data,
+                                                         0,
+                                                         nullptr));
     }
 
     static LIGHTWEIGHT_FORCE_INLINE std::string Inspect(std::basic_string_view<char8_t> value) noexcept

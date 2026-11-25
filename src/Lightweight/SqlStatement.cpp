@@ -39,6 +39,18 @@ struct SqlStatement::Data
         batchStagingBuffers; // Holds temporary scratch buffers for batch input parameter binders
     std::vector<std::function<void()>> postExecuteCallbacks;
 
+    /// @brief The buffers the binders bound one input parameter to, and the execution they were bound for.
+    struct InputParameterKeepAlive
+    {
+        std::vector<std::shared_ptr<void const>> buffers;
+        std::uint64_t execution = 0; // executionCount at the time the buffers were handed over
+    };
+    // Indexed by parameter (slot 0 unused). A slot lives as long as the parameter binding: the first
+    // buffer handed over after an execution replaces the slot's buffers, and dropping the parameter
+    // bindings clears every slot, so re-executing a binding never reads a released buffer.
+    std::vector<InputParameterKeepAlive> inputParameterKeepAlives;
+    std::uint64_t executionCount = 0; // executions so far, to tell a re-bind from a binder's further buffer
+
     /// @brief What the binders planned for one bound output column. Re-binding the column clears the
     /// slot (keeping the vectors' capacity), so binding a column anew for every row neither grows the
     /// slot nor searches other columns' entries.
@@ -341,8 +353,31 @@ void SqlStatement::PlanPostExecuteCallback(std::function<void()>&& cb)
     m_data->postExecuteCallbacks.emplace_back(std::move(cb));
 }
 
+void SqlStatement::KeepInputParameterAlive(SQLUSMALLINT column, std::shared_ptr<void const> buffer)
+{
+    auto& keepAlives = m_data->inputParameterKeepAlives;
+    if (keepAlives.size() <= column)
+        keepAlives.resize(static_cast<std::size_t>(column) + 1);
+    auto& slot = keepAlives[column];
+    if (slot.execution != m_data->executionCount)
+    {
+        // The parameter is bound anew since it was last executed: its previous buffers are no longer bound.
+        slot.buffers.clear();
+        slot.execution = m_data->executionCount;
+    }
+    slot.buffers.push_back(std::move(buffer));
+}
+
+void SqlStatement::DropInputParameterKeepAlives() noexcept
+{
+    // Cleared in place, so a statement bound and prepared again and again keeps its slots' capacity.
+    for (auto& slot: m_data->inputParameterKeepAlives)
+        slot.buffers.clear();
+}
+
 void SqlStatement::ProcessPostExecuteCallbacks()
 {
+    ++m_data->executionCount;
     for (auto& cb: m_data->postExecuteCallbacks)
         cb();
     m_data->postExecuteCallbacks.clear();
@@ -409,6 +444,8 @@ SqlStatement::SqlStatement():
                  .batchIndicators = {},
                  .batchStagingBuffers = {},
                  .postExecuteCallbacks = {},
+                 .inputParameterKeepAlives = {},
+                 .executionCount = 0,
                  .outputColumnCallbacks = {},
                  .columnsWithCallbacks = {},
                  .outputColumnBeingBound = 0,
@@ -687,6 +724,7 @@ bool SqlStatement::ReleasePreparedHandle(SqlPreparedStatementCache& cache) noexc
     SQLFreeStmt(m_hStmt, SQL_UNBIND);
     DropOutputColumnBindings();
     SQLFreeStmt(m_hStmt, SQL_RESET_PARAMS);
+    DropInputParameterKeepAlives();
     ResetParameterArrayBinding();
 
     // A statement attribute outlives SQLFreeStmt, so the handle's next user would inherit this timeout.
@@ -831,6 +869,7 @@ void SqlStatement::Prepare(std::string_view query) &
 
     m_data->postExecuteCallbacks.clear();
     m_data->inputIndicators.clear();
+    DropInputParameterKeepAlives();
     m_data->batchIndicators.clear();
     m_data->batchStagingBuffers.clear();
 
@@ -1015,6 +1054,7 @@ SqlResultCursor SqlStatement::ExecuteDirect(std::string_view const& query, std::
     DropOutputColumnBindings();
 
     m_data->inputIndicators.clear();
+    DropInputParameterKeepAlives();
     m_data->batchIndicators.clear();
 
     SqlLogger::GetLogger().OnExecuteDirect(query);
@@ -1115,6 +1155,7 @@ SqlResultCursor SqlStatement::ExecuteBatch(std::span<SqlRawColumn const> columns
     }
     ProcessPostExecuteCallbacks();
     ClearBatchIndicators();
+    DropInputParameterKeepAlives();
     return SqlResultCursor { *this };
 }
 
@@ -1141,6 +1182,7 @@ SqlResultCursor SqlStatement::ExecuteBatch(std::span<SqlRawColumn const> columns
     auto const unbindStatus = detail::Finally([this] {
         ResetParameterArrayBinding();
         ClearBatchIndicators();
+        DropInputParameterKeepAlives();
     });
     RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAM_STATUS_PTR, paramStatus.data(), 0));
     RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAMS_PROCESSED_PTR, &paramsProcessed, 0));
@@ -1185,6 +1227,7 @@ RowArrayCursor SqlStatement::ExecuteBatchFetch(std::string_view query, std::size
     DropOutputColumnBindings();
 
     m_data->inputIndicators.clear();
+    DropInputParameterKeepAlives();
     m_data->batchIndicators.clear();
 
     SqlLogger::GetLogger().OnExecuteDirect(query);

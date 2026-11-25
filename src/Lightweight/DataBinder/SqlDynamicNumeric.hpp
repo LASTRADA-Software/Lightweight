@@ -11,6 +11,7 @@
 #include <array>
 #include <cstdint>
 #include <format>
+#include <memory>
 #include <optional>
 #include <span>
 #include <string>
@@ -345,28 +346,28 @@ struct SqlDataBinder<SqlDynamicNumeric>
                                                              SqlDynamicNumeric const& value,
                                                              SqlDataBinderCallback& cb) noexcept
     {
-        // Stage the literal on the statement rather than in the value: the buffer only has to
-        // outlive the execute, and carrying it inside the type would put ~130 bytes of ODBC scratch
-        // into every SqlVariant — and so into every row of every prefetch block.
-        auto const literal = value.ToString();
-        auto* const buffer = reinterpret_cast<char*>(cb.ProvideBatchStagingBuffer(literal.size() + 1));
-        std::ranges::copy(literal, buffer);
-        buffer[literal.size()] = '\0';
+        // Stage the literal on the statement rather than in the value: carrying it inside the type
+        // would put ~130 bytes of ODBC scratch into every SqlVariant, and so into every row of every
+        // prefetch block. The statement keeps it for as long as the parameter is bound to it.
+        auto const literal = std::make_shared<std::string>(value.ToString());
 
         auto* const indicator = cb.ProvideInputIndicator();
-        *indicator = static_cast<SQLLEN>(literal.size());
+        *indicator = static_cast<SQLLEN>(literal->size());
 
         auto const columnSize = static_cast<SQLULEN>(value.precision != 0 ? value.precision : SqlMaxDynamicNumericPrecision);
-        return SQLBindParameter(stmt,
-                                column,
-                                SQL_PARAM_INPUT,
-                                SQL_C_CHAR,
-                                SQL_NUMERIC,
-                                columnSize,
-                                static_cast<SQLSMALLINT>(value.scale),
-                                (SQLPOINTER) buffer,
-                                static_cast<SQLLEN>(literal.size() + 1),
-                                indicator);
+        return detail::KeepAliveIfBound(cb,
+                                        column,
+                                        literal,
+                                        SQLBindParameter(stmt,
+                                                         column,
+                                                         SQL_PARAM_INPUT,
+                                                         SQL_C_CHAR,
+                                                         SQL_NUMERIC,
+                                                         columnSize,
+                                                         static_cast<SQLSMALLINT>(value.scale),
+                                                         (SQLPOINTER) literal->c_str(),
+                                                         static_cast<SQLLEN>(literal->size() + 1),
+                                                         indicator));
     }
 
     /// A decimal column's text, as delivered by a single SQLGetData call.

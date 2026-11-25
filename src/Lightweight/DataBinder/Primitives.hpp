@@ -181,7 +181,6 @@ struct SqlDataBinder<char>
         // One UTF-16 code unit per character (a single byte of an ANSI code page), plus a terminator per row.
         constexpr auto rowStride = size_t { 2 };
         auto buffer = std::make_shared<std::u16string>(rowCount * rowStride, u'\0');
-        cb.PlanPostExecuteCallback([buffer = buffer]() {}); // keep buffer alive
         auto* const indicators = cb.ProvideInputIndicators(rowCount);
         for (auto const rowIndex: std::views::iota(size_t { 0 }, rowCount))
         {
@@ -189,16 +188,19 @@ struct SqlDataBinder<char>
             (*buffer)[rowIndex * rowStride] = wide.empty() ? u'?' : wide.front();
             indicators[rowIndex] = static_cast<SQLLEN>(sizeof(char16_t));
         }
-        return SQLBindParameter(stmt,
-                                column,
-                                SQL_PARAM_INPUT,
-                                SQL_C_WCHAR,
-                                SQL_WCHAR,
-                                ColumnSize,
-                                0,
-                                (SQLPOINTER) buffer->data(),
-                                static_cast<SQLLEN>(rowStride * sizeof(char16_t)),
-                                indicators);
+        return detail::KeepAliveIfBound(cb,
+                                        column,
+                                        buffer,
+                                        SQLBindParameter(stmt,
+                                                         column,
+                                                         SQL_PARAM_INPUT,
+                                                         SQL_C_WCHAR,
+                                                         SQL_WCHAR,
+                                                         ColumnSize,
+                                                         0,
+                                                         (SQLPOINTER) buffer->data(),
+                                                         static_cast<SQLLEN>(rowStride * sizeof(char16_t)),
+                                                         indicators));
     }
 
     /// Binds @p result as the output column @p column, filled in on every fetch.

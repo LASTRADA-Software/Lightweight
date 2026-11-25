@@ -104,7 +104,7 @@ SQLRETURN SqlDataBinder<SqlGuid>::InputParameter(SQLHSTMT stmt,
             auto text = std::make_shared<std::string>(to_string(value));
             auto rv = SqlDataBinder<std::string>::InputParameter(stmt, column, *text, cb);
             if (SQL_SUCCEEDED(rv))
-                cb.PlanPostExecuteCallback([text = std::move(text)] {});
+                cb.KeepInputParameterAlive(column, std::move(text));
             return rv;
         }
         case SqlServerType::MYSQL: // TODO
@@ -125,7 +125,7 @@ SQLRETURN SqlDataBinder<SqlGuid>::InputParameter(SQLHSTMT stmt,
                                              0,
                                              nullptr);
             if (SQL_SUCCEEDED(rv))
-                cb.PlanPostExecuteCallback([wireGuid = std::move(wireGuid)] {});
+                cb.KeepInputParameterAlive(column, std::move(wireGuid));
             return rv;
         }
     }
