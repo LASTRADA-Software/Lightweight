@@ -134,7 +134,7 @@ Static Public Attributes</h2></td></tr>
 <div class="textblock"><p>Binds <a class="el" href="../../d7/d2c/structLightweight_1_1SqlDynamicNumeric.html">SqlDynamicNumeric</a> as an exact decimal literal.</p>
 <p>Text is deliberately the wire format in both directions. <code>SQL_C_NUMERIC</code> needs the application to publish precision and scale on the descriptor before each call and is honoured inconsistently — the SQL Server driver returns scale-0 values without it and the SQLite driver has no native support at all, which is why <code>SqlDataBinder&lt;<a class="el" href="../../d6/d1b/structLightweight_1_1SqlNumeric.html">SqlNumeric</a>&lt;P, S&gt;&gt;</code> routes both backends around it. Every supported driver converts between a decimal column and its literal exactly, with no binary floating-point step, so this path keeps all digits on all backends. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00337">337</a> of file <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html">SqlDynamicNumeric.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00338">338</a> of file <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html">SqlDynamicNumeric.hpp</a>.</p>
 </div><h2 class="groupheader">Member Function Documentation</h2>
 <a id="a310d82871dab9637b5dacede95851854" name="a310d82871dab9637b5dacede95851854"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a310d82871dab9637b5dacede95851854">&#9670;&#160;</a></span>InputParameter()</h2>
@@ -184,7 +184,7 @@ Static Public Attributes</h2></td></tr>
 
 <p>Binds the value as an input parameter, rendered as an exact decimal literal. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00343">343</a> of file <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html">SqlDynamicNumeric.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00344">344</a> of file <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html">SqlDynamicNumeric.hpp</a>.</p>
 
 </div>
 </div>
@@ -245,7 +245,7 @@ Static Public Attributes</h2></td></tr>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00399">399</a> of file <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html">SqlDynamicNumeric.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00400">400</a> of file <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html">SqlDynamicNumeric.hpp</a>.</p>
 
 </div>
 </div>
@@ -296,9 +296,9 @@ Static Public Attributes</h2></td></tr>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00439">439</a> of file <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html">SqlDynamicNumeric.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00440">440</a> of file <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html">SqlDynamicNumeric.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00317">Lightweight::SqlDynamicNumeric::FromString()</a>.</p>
+<p class="reference">References <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00318">Lightweight::SqlDynamicNumeric::FromString()</a>.</p>
 
 </div>
 </div>
@@ -361,7 +361,7 @@ Static Public Attributes</h2></td></tr>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00470">470</a> of file <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html">SqlDynamicNumeric.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00471">471</a> of file <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html">SqlDynamicNumeric.hpp</a>.</p>
 
 </div>
 </div>
@@ -424,7 +424,7 @@ Static Public Attributes</h2></td></tr>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00499">499</a> of file <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html">SqlDynamicNumeric.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00500">500</a> of file <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html">SqlDynamicNumeric.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="../../d9/d02/SqlError_8hpp_source.html#l00034">Lightweight::SqlErrorInfo::nativeErrorCode</a>.</p>
 
@@ -456,9 +456,9 @@ Static Public Attributes</h2></td></tr>
 
 <p>Renders the value for SQL trace logs. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00519">519</a> of file <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html">SqlDynamicNumeric.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00520">520</a> of file <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html">SqlDynamicNumeric.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00294">Lightweight::SqlDynamicNumeric::ToString()</a>.</p>
+<p class="reference">References <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00295">Lightweight::SqlDynamicNumeric::ToString()</a>.</p>
 
 </div>
 </div>
@@ -485,7 +485,7 @@ Static Public Attributes</h2></td></tr>
 
 <p>Widest decimal ODBC admits, so no supported backend can overflow the bind buffer. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00340">340</a> of file <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html">SqlDynamicNumeric.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html#l00341">341</a> of file <a class="el" href="../../d7/dbe/SqlDynamicNumeric_8hpp_source.html">SqlDynamicNumeric.hpp</a>.</p>
 
 </div>
 </div>
